@@ -1,0 +1,116 @@
+# See https://help.github.com/articles/ignoring-files/ for more about ignoring files.
+packages/database/prisma/generated
+# dependencies
+/node_modules
+/.pnp
+.pnp.*
+.yarn/*
+!.yarn/patches
+!.yarn/plugins
+!.yarn/releases
+!.yarn/versions
+
+**/node_modules
+**/dist
+**/build
+**/.env*
+
+**/*prisma/generated
+
+# testing
+/coverage
+**/coverage
+/.nyc_output
+
+# next.js
+/.next/
+**/.next/
+/out/
+**/out/
+
+# production
+/build
+**/build
+
+# misc
+.DS_Store
+*.pem
+.idea/
+
+*.sublime-project
+*.sublime-workspace
+.project
+.classpath
+.settings/
+.eslintcache
+.stylelintcache
+
+# logs
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+.pnpm-debug.log*
+
+# env files (can opt-in for committing if needed)
+.env*
+.env.local
+.env.development.local
+.env.test.local
+.env.production.local
+
+# vercel
+.vercel
+
+# typescript
+*.tsbuildinfo
+next-env.d.ts
+
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+.pytest_cache/
+**/temp_files/
+*.so
+.Python
+venv/
+.venv/
+ENV/
+env/
+.env/
+
+
+# Database dumps
+dump.sql
+
+# Cache
+.turbo
+.cache/
+.parcel-cache/
+
+# Serverless
+.serverless/
+
+# Storybook
+storybook-static/
+
+# PWA
+**/public/sw.js
+**/public/workbox-*.js
+**/public/worker-*.js
+**/public/fallback-*.js
+**/public/precache-*.js
+
+.funcignore
+__azurite*
+__queuestorage__
+__blobstorage__
+job_page*.html
+# Test code
+**/test-code/
+local/
+
+# Ignored workspace files
+0.code-workspace
+local.code-workspace

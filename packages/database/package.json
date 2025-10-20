@@ -1,0 +1,23 @@
+{
+  "name": "@repo/db",
+  "version": "0.0.0",
+  "prisma": {
+    "schema": "./prisma/schema"
+  },
+  "devDependencies": {
+    "prisma": "^6.5.0"
+  },
+  "dependencies": {
+    "@prisma/client": "^6.5.0",
+    "dotenv": "^16.4.7"
+  },
+  "scripts": {
+    "db:generate": "node -r dotenv/config $(which prisma) generate",
+    "db:migrate": "node -r dotenv/config $(which prisma) migrate dev",
+    "db:deploy": "node -r dotenv/config $(which prisma) migrate deploy",
+    "db:seed": "node -r dotenv/config $(which tsx) src/seed.ts"
+  },
+  "exports": {
+    ".": "./src/index.ts"
+  }
+}

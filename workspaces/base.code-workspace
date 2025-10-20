@@ -1,0 +1,54 @@
+{
+  "folders": [
+    {
+      "path": "../folder-to-include-in-the-workspace"
+    }
+    // Add other folders here only when you need to edit them.
+  ],
+  "settings": {
+    "files.exclude": {
+      // Pattern-based exclusions
+      "**/*.venv": true,
+      "**/*.next": true,
+      "**/*.turbo": true,
+      "**/*node_modules": true,
+      "**/*generated": true,
+      // "**/*migrations": true,
+      "**/*__pycache__": true,
+      "**/*package-lock.json": true
+    },
+    "search.exclude": {
+      "**/*.js": true,
+      "**/search-excluded/**": true,
+      "venv": true
+    },
+    "files.watcherExclude": {
+      "**/test-code/**": true,
+      "venv": true
+    },
+    "editor.defaultFormatter": "esbenp.prettier-vscode",
+    "editor.formatOnSave": true,
+    "editor.formatOnPaste": true,
+    "editor.codeActionsOnSave": {
+      "source.fixAll": "explicit",
+      "source.organizeImports": "explicit"
+    },
+    "[typescript]": {
+      "editor.defaultFormatter": "esbenp.prettier-vscode"
+    },
+    "[typescriptreact]": {
+      "editor.defaultFormatter": "esbenp.prettier-vscode"
+    },
+    "cursorpyright.analysis.diagnosticSeverityOverrides": {},
+    // settings to enable pylance type checking features in cursor
+    "cursorpyright.analysis.extraPaths": ["./path-to-your-python-folder"],
+    "cursorpyright.analysis.inlayHints.callArgumentNames": "all",
+    "cursorpyright.analysis.inlayHints.functionReturnTypes": true,
+    "cursorpyright.analysis.inlayHints.variableTypes": true,
+    "cursorpyright.analysis.typeCheckingMode": "basic",
+    "python.languageServer": "None",
+    "python.defaultInterpreterPath": "~/your-path/venv/bin/python",
+    "python.terminal.activateEnvironment": true,
+    "terminal.integrated.cwd": "~/your-path-to-the-project-root"
+  }
+}
