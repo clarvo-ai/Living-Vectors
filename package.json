@@ -1,0 +1,41 @@
+{
+  "name": "galactic",
+  "version": "0.1.0",
+  "private": true,
+  "scripts": {
+    "build": "turbo run build",
+    "dev": "turbo run dev",
+    "dev:lv-web": "NEXT_PUBLIC_APP_SOURCE_NAME=lv-web turbo run dev --filter=lv-web",
+    "dev:caleuche": "NEXT_PUBLIC_APP_SOURCE_NAME=caleuche turbo run dev --filter=caleuche",
+    "dev:bagan": "NEXT_PUBLIC_APP_SOURCE_NAME=bagan turbo run dev --filter=bagan",
+    "dev:proximab": "NEXT_PUBLIC_APP_SOURCE_NAME=proximab turbo run dev --filter=proximab",
+    "dev:proximab:wxt": "NEXT_PUBLIC_APP_SOURCE_NAME=proximab turbo run dev:wxt --filter=proximab",
+    "lint": "turbo run lint",
+    "format": "prettier --write \"**/*.{ts,tsx,md}\"",
+    "check-types": "turbo run check-types",
+    "build:lv-web": "NEXT_PUBLIC_APP_SOURCE_NAME=lv-web turbo run build --filter=lv-web...",
+    "build:caleuche": "NEXT_PUBLIC_APP_SOURCE_NAME=caleuche turbo run build --filter=caleuche...",
+    "build:bagan": "NEXT_PUBLIC_APP_SOURCE_NAME=bagan turbo run build --filter=bagan...",
+    "ui": "npm run --filter=@repo/ui ui"
+  },
+  "dependencies": {
+    "zod": "^3.24.1"
+  },
+  "devDependencies": {
+    "turbo": "^2.4.4",
+    "typescript": "^5",
+    "tsx": "4.19.3"
+  },
+  "overrides": {
+    "@radix-ui/react-focus-scope": "1.1.1"
+  },
+  "packageManager": "npm@10.2.4",
+  "engines": {
+    "node": ">=18"
+  },
+  "workspaces": [
+    "packages/database",
+    "packages/ts-shared/*",
+    "apps/*"
+  ]
+}

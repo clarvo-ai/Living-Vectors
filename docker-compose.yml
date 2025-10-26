@@ -1,0 +1,143 @@
+services:
+  lv-web:
+    profiles: ['lv-web']
+    container_name: lv-web
+    image: lv-web
+    restart: always
+    build:
+      context: .
+      dockerfile: ./apps/lv-web/Dockerfile.web
+    ports:
+      - '3045:3000'
+    environment:
+      - DATABASE_URL=postgresql://postgres:postgres@db:5432/postgres
+      - DIRECT_DATABASE_URL=postgresql://postgres:postgres@db:5432/postgres
+      - NODE_ENV=development
+      - NEXT_PUBLIC_PYAPI_URL=http://localhost:8091
+      - NEXT_PUBLIC_APP_SOURCE_NAME=living-vectors
+      - NEXT_PUBLIC_APP_NAME=LivingVectors
+    volumes:
+      - .:/app
+    # volumes:
+    #   - ./apps/lv-web:/app/apps/lv-web
+    #   - ./packages:/app/packages
+    #   - ./scripts:/app/scripts
+    #   - ./package-lock.json:/app/package-lock.json
+    #   - ./package.json:/app/package.json
+    #   - ./turbo.json:/app/turbo.json
+    depends_on:
+      - db
+      - lv-pyapi
+    command: sh -c "./scripts/init-db.sh && npm run dev:lv-web"
+
+  lv-web-build:
+    profiles: ['lv-web-build']
+    container_name: lv-web-build
+    image: lv-web-build
+    restart: always
+    build:
+      context: .
+      dockerfile: ./apps/lv-web/Dockerfile
+    ports:
+      - '3045:3000'
+    env_file:
+      - ./apps/lv-web/.env
+    environment:
+      - DATABASE_URL=postgresql://postgres:postgres@db:5432/postgres
+      - DIRECT_DATABASE_URL=postgresql://postgres:postgres@db:5432/postgres
+      - NODE_ENV=development
+      - PYAPI_URL=http://lv-pyapi:8000
+      - NEXT_PUBLIC_APP_SOURCE_NAME=living-vectors
+      - NEXT_PUBLIC_APP_NAME=LivingVectors
+      - DB_SYNC_URL=http://db-sync:8000
+    depends_on:
+      - db
+
+  lv-pyapi:
+    profiles: ['lv-web', 'lv-pyapi']
+    container_name: lv-pyapi
+    image: lv-pyapi
+    build:
+      context: .
+      dockerfile: ./apps/lv-pyapi/Dockerfile
+    ports:
+      - '8091:8000'
+    environment:
+      - DATABASE_URL=postgresql://postgres:postgres@db:5432/postgres
+      - PYTHONPATH=/app:/app/packages/python-utils/src
+    volumes:
+      - ./apps/lv-pyapi:/app/apps/lv-pyapi
+      - ./packages/python-utils:/app/packages/python-utils
+    depends_on:
+      - db
+    restart: always
+
+  # lv-pyapi-tests:
+
+  prisma-migrate:
+    profiles: ['prisma-migrate']
+    container_name: living-vectors-db-migrate
+    build:
+      context: .
+      dockerfile: ./packages/database/Dockerfile.web
+    environment:
+      - DATABASE_URL=postgresql://postgres:postgres@db:5432/postgres
+      - DIRECT_DATABASE_URL=postgresql://postgres:postgres@db:5432/postgres
+      - APP_SOURCE_NAME=${APP_SOURCE_NAME:-unknown}
+    depends_on:
+      - db
+    command: sh -c  "./scripts/wait-db.sh && cd packages/database && npx prisma migrate dev"
+    volumes:
+      - .:/app
+      - /app/node_modules
+
+  python-typegen:
+    profiles: ['python-typegen']
+    container_name: living-vectors-python-typegen
+    build:
+      context: ./packages/python-utils/src/typegen
+      dockerfile: Dockerfile.typegen
+    environment:
+      - POSTGRES_USER=postgres
+      - POSTGRES_PASSWORD=postgres
+      - POSTGRES_DB=postgres
+      - POSTGRES_HOST=db
+      - DATABASE_URL=postgresql://postgres:postgres@db:5432/postgres
+    working_dir: /app/packages/python-utils/src/typegen
+    volumes:
+      - ./packages/python-utils/src:/app/packages/python-utils/src:rw
+    user: '1000:1000'
+    depends_on:
+      - db
+
+  container-node-modules:
+    profiles: ['container-node-modules']
+    container_name: container-node-modules
+    build:
+      context: .
+      dockerfile: ./Dockerfile.container-node-modules
+    working_dir: /app
+    volumes:
+      - ./container_node_modules:/app/node_modules
+    command: sh -c "npm install"
+
+  db:
+    profiles: ['lv-web', 'lv-pyapi', 'prisma-migrate', 'python-typegen']
+    container_name: lv-db
+    image: lv-db
+    restart: always
+    build:
+      context: ./packages/database/prisma
+      dockerfile: Dockerfile
+    ports:
+      - '3772:5432'
+    environment:
+      - POSTGRES_USER=postgres
+      - POSTGRES_PASSWORD=postgres
+      - POSTGRES_DB=postgres
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      # - we can add create_db.sql
+
+volumes:
+  postgres_data:

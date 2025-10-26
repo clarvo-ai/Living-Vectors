@@ -1,0 +1,17 @@
+{
+  "recommendations": [
+    "ms-azuretools.vscode-azurefunctions",
+    "ms-python.python",
+    "esbenp.prettier-vscode",
+    "dbaeumer.vscode-eslint",
+    "ms-azuretools.vscode-docker",
+    "kamikillerto.vscode-colorize",
+    "GitHub.vscode-pull-request-github",
+    "eamodio.gitlens",
+    "Cardinal90.multi-cursor-case-preserve",
+    "Prisma.prisma",
+    "ms-python.vscode-pylance",
+    "ms-python.python",
+    "wraith13.unsaved-files-vscode"
+  ]
+}

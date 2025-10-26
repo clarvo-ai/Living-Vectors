@@ -1,0 +1,14 @@
+// schema.prisma
+// add migrations to the schema to avoid the error:
+generator client {
+  provider        = "prisma-client-js"
+  output = "../generated/client"
+  previewFeatures = ["postgresqlExtensions"]
+}
+
+datasource db {
+  provider   = "postgresql"
+  url        = env("DATABASE_URL")
+  extensions = [pgcrypto, vector]
+  directUrl  = env("DIRECT_DATABASE_URL")
+}

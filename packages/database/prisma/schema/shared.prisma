@@ -1,0 +1,86 @@
+// Simplified schema for fullstack template
+// Basic user management with OAuth support
+
+model User {
+  // Metadata
+  id                            String        @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  createdAt                     DateTime      @default(now())
+  updatedAt                     DateTime      @updatedAt
+  emailVerified                 DateTime?
+
+  // Basic profile attributes
+  name                          String?
+  first_name                    String?
+  last_name                     String?
+  email                         String        @unique
+  image                         String?
+  phone                         String?
+  bio                           String?
+
+  // OAuth relations
+  accounts                      Account[]
+  sessions                      Session[]
+  Authenticator                 Authenticator[]
+
+  @@index([id])
+  @@index([email])
+}
+
+model Account {
+  userId            String  @db.Uuid
+  type              String
+  provider          String
+  providerAccountId String
+  refresh_token     String?
+  access_token      String?
+  expires_at        Int?
+  token_type        String?
+  scope             String?
+  id_token          String?
+  session_state     String?
+  email             String?
+  first_name        String?
+  last_name         String?
+  picture_url       String?
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@id([provider, providerAccountId])
+  @@index([userId])
+}
+
+model Session {
+  sessionToken String   @unique
+  userId       String   @db.Uuid
+  expires      DateTime
+  user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+  ipAddress    String?
+  userAgent    String?
+}
+
+model VerificationToken {
+  identifier String
+  token      String
+  expires    DateTime
+
+  @@id([identifier, token])
+}
+
+model Authenticator {
+  credentialID         String  @unique
+  userId               String  @db.Uuid
+  providerAccountId    String
+  credentialPublicKey  String
+  counter              Int
+  credentialDeviceType String
+  credentialBackedUp   Boolean
+  transports           String?
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@id([userId, credentialID])
+}

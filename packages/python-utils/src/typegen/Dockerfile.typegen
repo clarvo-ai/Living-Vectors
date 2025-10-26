@@ -1,0 +1,28 @@
+FROM python:3.11-slim
+
+# Install system dependencies
+RUN apt-get update && apt-get install -y \
+    postgresql-client \
+    && rm -rf /var/lib/apt/lists/*
+
+# Create a non-root user and setup directory structure
+RUN useradd -m -u 1000 typegenuser && \
+    mkdir -p /app/packages/python-utils/src/python_utils && \
+    mkdir -p /app/packages/python-utils/src/typegen && \
+    chown -R typegenuser:typegenuser /app
+
+WORKDIR /app/packages/python-utils/src/typegen
+
+USER typegenuser
+
+# Copy requirements and install Python dependencies
+COPY --chown=typegenuser:typegenuser requirements.txt .
+RUN pip install --no-cache-dir -r requirements.txt
+
+# Copy the typegen files
+COPY --chown=typegenuser:typegenuser . .
+
+# Set environment variables
+ENV PYTHONUNBUFFERED=1
+
+CMD ["python", "generate_models.py"] 
