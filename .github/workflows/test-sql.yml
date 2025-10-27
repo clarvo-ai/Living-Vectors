@@ -1,7 +1,9 @@
 name: Test DB Connection (Service Account)
 
 on:
-  workflow_dispatch:
+  push:
+    branches:
+      - test-sql-connection
 
 jobs:
   test-connection:
