@@ -1,0 +1,35 @@
+name: Test DB Connection (Service Account)
+
+on:
+  workflow_dispatch:
+
+jobs:
+  test-connection:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Authenticate to Google Cloud
+        uses: 'google-github-actions/auth@v2'
+        with:
+          credentials_json: ${{ secrets.GCP_SA_KEY }}
+
+      - name: Start Cloud SQL Proxy
+        uses: 'google-github-actions/cloud-sql-proxy@v2'
+        with:
+          instance_connection_name: ${{ secrets.PGHOST }}
+
+      - name: Test SQL Connection
+        env:
+          PGPASSWORD: ${{ secrets.PGPASSWORD }}
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y postgresql-client
+
+          echo "Connecting to 127.0.0.1..."
+
+          psql --host 127.0.0.1 \
+               --username ${{ secrets.PGUSER }} \
+               --dbname ${{ secrets.PGDATABASE }} \
+               --command "\dt" # (list tables)
+
+          echo "Connection successful"
