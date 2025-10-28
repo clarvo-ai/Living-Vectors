@@ -4,6 +4,7 @@ on:
   push:
     branches:
       - test-sql-connection
+  workflow_dispatch:
 
 jobs:
   test-connection:
@@ -11,9 +12,25 @@ jobs:
 
     steps:
       - name: Authenticate to Google Cloud
+        id: auth
         uses: 'google-github-actions/auth@v2'
         with:
           credentials_json: ${{ secrets.GCP_SA_KEY }}
+
+      - name: Setup Google Cloud SDK
+        uses: 'google-github-actions/setup-gcloud@v2'
+
+      - name: Download Cloud SQL Proxy
+        run: curl -o cloud-sql-proxy https://storage.googleapis.com/cloud-sql-proxy/v2.11.0/cloud-sql-proxy.linux.amd64
+
+      - name: Make Proxy Executable
+        run: chmod +x cloud-sql-proxy
+
+      - name: Start Cloud SQL Proxy
+        run: |
+          ./cloud-sql-proxy --port 5432 \
+            --credentials-file ${{ steps.auth.outputs.credentials_file_path }} \
+            ${{ secrets.PGHOST }} &
 
       - name: Test SQL Connection
         env:
@@ -22,11 +39,13 @@ jobs:
           sudo apt-get update
           sudo apt-get install -y postgresql-client
 
-          echo "Connecting to 127.0.0.1..."
+          echo "Waiting for proxy to start..."
+          sleep 5 # Annetaan proxylle 5s aikaa käynnistyä kunnolla
 
+          echo "Connecting to 127.0.0.1..."
           psql --host 127.0.0.1 \
                --username ${{ secrets.PGUSER }} \
                --dbname ${{ secrets.PGDATABASE }} \
-               --command "\dt" # (list tables)
+               --command "\dt"
 
           echo "Connection successful"
