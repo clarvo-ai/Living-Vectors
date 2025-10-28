@@ -10,11 +10,21 @@ steps:
   - name: Install dependencies
     run: npm install --frozen-lockfile
 
+  - name: Authenticate to Google Cloud
+    uses: 'google-github-actions/auth@v2'
+    with:
+      credentials_json: ${{ secrets.GCP_SA_KEY }}
+
+  - name: Start Cloud SQL Proxy
+    uses: 'google-github-actions/cloud-sql-proxy-action@v2'
+    with:
+      instance_connection_name: ${{ secrets.PGHOST }}
+
   - name: Create .env file
     run: |
       touch packages/database/.env
-      echo "DATABASE_URL=postgresql://${{ secrets.PGUSER }}:${{ secrets.PGPASSWORD }}@127.0.0.1:5432/${{ secrets.DBNAME }}" >> packages/database/.env
-      echo "DIRECT_DATABASE_URL=postgresql://${{ secrets.PGUSER }}:${{ secrets.PGPASSWORD }}@127.0.0.1:5432/${{ secrets.DBNAME }}" >> packages/database/.env
+      echo "DATABASE_URL=postgresql://${{ secrets.PGUSER }}:${{ secrets.PGPASSWORD }}@127.0.0.1:5432/${{ secrets.PGDATABASE }}" >> packages/database/.env
+      echo "DIRECT_DATABASE_URL=postgresql://${{ secrets.PGUSER }}:${{ secrets.PGPASSWORD }}@127.0.0.1:5432/${{ secrets.PGDATABASE }}" >> packages/database/.env
       echo "NODE_ENV=development" >> packages/database/.env
 
   - name: Run migrations
