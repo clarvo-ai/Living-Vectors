@@ -1,37 +1,30 @@
-name: Test DB Connection (Service Account)
+steps:
+  - name: Checkout
+    uses: actions/checkout@v2
 
-on:
-  push:
-    branches:
-      - test-sql-connection
+  - name: Setup Node
+    uses: actions/setup-node@v3
+    with:
+      node-version: '20'
 
-jobs:
-  test-connection:
-    runs-on: ubuntu-latest
+  - name: Install dependencies
+    run: npm install --frozen-lockfile
 
-    steps:
-      - name: Authenticate to Google Cloud
-        uses: 'google-github-actions/auth@v2'
-        with:
-          credentials_json: ${{ secrets.GCP_SA_KEY }}
+  - name: Create .env file
+    run: |
+      touch packages/database/.env
+      echo "DATABASE_URL=postgresql://${{ secrets.PGUSER }}:${{ secrets.PGPASSWORD }}@127.0.0.1:5432/${{ secrets.DBNAME }}" >> packages/database/.env
+      echo "DIRECT_DATABASE_URL=postgresql://${{ secrets.PGUSER }}:${{ secrets.PGPASSWORD }}@127.0.0.1:5432/${{ secrets.DBNAME }}" >> packages/database/.env
+      echo "NODE_ENV=development" >> packages/database/.env
 
-      - name: Start Cloud SQL Proxy
-        uses: 'google-github-actions/cloud-sql-proxy'
-        with:
-          instance_connection_name: ${{ secrets.PGHOST }}
+  - name: Run migrations
+    run: npx turbo run db:deploy
 
-      - name: Test SQL Connection
-        env:
-          PGPASSWORD: ${{ secrets.PGPASSWORD }}
-        run: |
-          sudo apt-get update
-          sudo apt-get install -y postgresql-client
+  - name: Generate Prisma client
+    run: npx turbo run db:generate
 
-          echo "Connecting to 127.0.0.1..."
+  # - name: Seed database
+  #  run: npx turbo run db:seed
 
-          psql --host 127.0.0.1 \
-               --username ${{ secrets.PGUSER }} \
-               --dbname ${{ secrets.PGDATABASE }} \
-               --command "\dt" # (list tables)
-
-          echo "Connection successful"
+  - name: Cleanup
+    run: rm packages/database/.env
