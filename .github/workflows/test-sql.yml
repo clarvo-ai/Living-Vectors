@@ -1,40 +1,54 @@
-steps:
-  - name: Checkout
-    uses: actions/checkout@v2
+name: Test DB Connection (Official Google Setup)
 
-  - name: Setup Node
-    uses: actions/setup-node@v3
-    with:
-      node-version: '20'
+on:
+  push:
+    branches:
+      - test-sql-connection
+  workflow_dispatch:
 
-  - name: Install dependencies
-    run: npm install --frozen-lockfile
+jobs:
+  test-connection:
+    runs-on: ubuntu-latest
 
-  - name: Authenticate to Google Cloud
-    uses: 'google-github-actions/auth@v2'
-    with:
-      credentials_json: ${{ secrets.GCP_SA_KEY }}
+    steps:
+      # 1. Tunnistaudu
+      - name: Authenticate to Google Cloud
+        uses: 'google-github-actions/auth@v2'
+        with:
+          credentials_json: ${{ secrets.GCP_SA_KEY }}
 
-  - name: Start Cloud SQL Proxy
-    uses: 'google-github-actions/cloud-sql-proxy-action@v2'
-    with:
-      instance_connection_name: ${{ secrets.PGHOST }}
+      # 2. Asenna gcloud (virallinen)
+      - name: Setup Google Cloud SDK
+        uses: 'google-github-actions/setup-gcloud@v2'
 
-  - name: Create .env file
-    run: |
-      touch packages/database/.env
-      echo "DATABASE_URL=postgresql://${{ secrets.PGUSER }}:${{ secrets.PGPASSWORD }}@127.0.0.1:5432/${{ secrets.PGDATABASE }}" >> packages/database/.env
-      echo "DIRECT_DATABASE_URL=postgresql://${{ secrets.PGUSER }}:${{ secrets.PGPASSWORD }}@127.0.0.1:5432/${{ secrets.PGDATABASE }}" >> packages/database/.env
-      echo "NODE_ENV=development" >> packages/database/.env
+      # 3. Lataa Cloud SQL Proxy
+      - name: Download Cloud SQL Proxy
+        run: curl -o cloud-sql-proxy https://storage.googleapis.com/cloud-sql-proxy/v2.11.0/cloud-sql-proxy.linux.amd64
 
-  - name: Run migrations
-    run: npx turbo run db:deploy
+      # 4. Tee suoritettavaksi
+      - name: Make Proxy Executable
+        run: chmod +x cloud-sql-proxy
 
-  - name: Generate Prisma client
-    run: npx turbo run db:generate
+      # 5. Käynnistä proxy TAUSTALLE (&-merkki)
+      - name: Start Cloud SQL Proxy
+        # Käyttää sinun PGHOST-secretiäsi yhteysnimenä
+        run: ./cloud-sql-proxy --port 5432 ${{ secrets.PGHOST }} &
 
-  # - name: Seed database
-  #  run: npx turbo run db:seed
+      # 6. Testaa yhteys
+      - name: Test SQL Connection
+        env:
+          PGPASSWORD: ${{ secrets.PGPASSWORD }}
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y postgresql-client
 
-  - name: Cleanup
-    run: rm packages/database/.env
+          echo "Waiting for proxy to start..."
+          sleep 5 # Annetaan proxylle hetki käynnistyä
+
+          echo "Connecting to 127.0.0.1..."
+          psql --host 127.0.0.1 \
+               --username ${{ secrets.PGUSER }} \
+               --dbname ${{ secrets.PGDATABASE }} \
+               --command "\dt"
+
+          echo "Connection successful"
