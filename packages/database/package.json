@@ -16,6 +16,11 @@
     "db:migrate": "node -r dotenv/config $(which prisma) migrate dev",
     "db:deploy": "node -r dotenv/config $(which prisma) migrate deploy",
     "db:seed": "node -r dotenv/config $(which tsx) src/seed.ts"
+    "main": "dist/index.js",
+    "types": "dist/index.d.ts",
+    "files": ["dist", "prisma"],
+    "build": "prisma generate && tsc",
+    "dev": "prisma generate && tsc --watch"
   },
   "exports": {
     ".": "./src/index.ts"
