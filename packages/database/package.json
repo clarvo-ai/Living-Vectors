@@ -12,6 +12,7 @@
     "dotenv": "^16.4.7"
   },
   "scripts": {
+    "build": "prisma generate && tsc",
     "db:generate": "node -r dotenv/config $(which prisma) generate",
     "db:migrate": "node -r dotenv/config $(which prisma) migrate dev",
     "db:deploy": "node -r dotenv/config $(which prisma) migrate deploy",
