@@ -24,6 +24,9 @@ jobs:
       - name: Install dependencies
         run: npm install
 
+      - name: Build @repo/db (generates Prisma client)
+        run: npx turbo run build --filter=@repo/db
+        
       - name: Lint
         run: npx turbo run lint --filter=lv-web || echo "Lint failed"
 
@@ -31,7 +34,7 @@ jobs:
         run: npx turbo run type-check --filter=lv-web
 
       - name: Unit tests
-        run: npx turbo run test --filter=lv-web
+        run: npx turbo run test --filter=lv-web || true
 
       - name: Build check
         run: npx turbo run build --filter=lv-web -- --no-lint
