@@ -1,0 +1,84 @@
+name: Deploy lv-pyapi to Cloud Run
+
+# When to run the workflow:
+# - On push to main or develop branch on apps/lv-pyapi or packages/python-utils
+# - On pull request to main branch on apps/lv-pyapi or packages/python-utils
+# - Manually via workflow_dispatch
+on:
+  push:
+    branches: [ main, develop ]
+    paths:
+      - 'apps/lv-pyapi/**'
+      - 'packages/python-utils/**'
+  pull_request:
+    branches: [ main ]
+    paths:
+      - 'apps/lv-pyapi/**'
+      - 'packages/python-utils/**'
+  workflow_dispatch:
+
+
+# Environment variables:
+env:
+  PROJECT_ID: swp-livingvectors
+  REGION: europe-north1
+  SERVICE_NAME: lv-pyapi-dev
+  REGISTRY: europe-north1-docker.pkg.dev/swp-livingvectors/lv-registry
+  IMAGE_NAME: lv-pyapi-dev
+
+# Jobs:
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    
+    steps:
+      #Get the code
+    - name: Checkout code
+      uses: actions/checkout@v4
+
+      #Set up Cloud SDK
+    - name: Set up Cloud SDK
+      uses: google-github-actions/setup-gcloud@v2
+      with:
+        version: '>= 0.2.0'
+
+      #Login to Google Cloud
+    - name: Authenticate with GCP using GCP_SA_KEY
+      uses: google-github-actions/auth@v2
+      with:
+        credentials_json: ${{ secrets.GCP_SA_KEY }}
+      
+      #Configure Docker
+    - name: Configure Docker to use gcloud as a credential helper
+      run: |
+        gcloud auth configure-docker europe-north1-docker.pkg.dev
+
+    - name: Build Docker image from apps/lv-pyapi
+      run: |
+        docker build -t $REGISTRY/$IMAGE_NAME:$GITHUB_SHA \
+          -f apps/lv-pyapi/Dockerfile .
+
+      #Upload the image
+    - name: Tag and push the image to lv-registry
+      run: |
+        docker push $REGISTRY/$IMAGE_NAME:$GITHUB_SHA
+
+      #Deploy the image to Cloud Run
+    - name: Deploy the image to Cloud Run as lv-pyapi-dev
+      run: |
+        gcloud run deploy $SERVICE_NAME \
+          --image $REGISTRY/$IMAGE_NAME:$GITHUB_SHA \
+          --region $REGION \
+          --platform managed \
+          --allow-unauthenticated \
+          --port 8000 \
+          --memory 512Mi \
+          --cpu 1 \
+          --max-instances 10 \
+          --set-env-vars="ENVIRONMENT=development"
+
+      #Show the URL
+    - name: Show service URL
+      run: |
+        SERVICE_URL=$(gcloud run services describe $SERVICE_NAME --region=$REGION --format='value(status.url)')
+        echo "Service deployed at: $SERVICE_URL"
