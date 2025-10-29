@@ -1,5 +1,4 @@
-name: Test DB Connection (Service Account)
-
+name: Test DB Connection
 on:
   push:
     branches:
