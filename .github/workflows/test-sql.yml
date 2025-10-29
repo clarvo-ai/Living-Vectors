@@ -31,7 +31,6 @@ jobs:
         run: npm ci
 
       - name: Run Prisma migrations
-        run: |
-          echo "Running Prisma migrations on ${{ secrets.PGDATABASE }}..."
-          DATABASE_URL="postgresql://${{ secrets.PGUSER }}:${{ secrets.PGPASSWORD }}@127.0.0.1:5432/${{ secrets.PGDATABASE }}?schema=public" \
-          npx prisma migrate deploy
+        env:
+          DATABASE_URL: postgresql://${{ secrets.PGUSER }}:${{ secrets.PGPASSWORD }}@127.0.0.1:5432/${{ secrets.PGDATABASE }}?schema=public
+        run: npx turbo run db:migrate
