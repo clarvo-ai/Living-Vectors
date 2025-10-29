@@ -19,7 +19,8 @@
     ],
     "paths": {
       "@/*": ["./src/*"],
-      "@repo/ui/*": ["../../packages/ts-shared/ui/src/*"]
+      "@repo/ui/*": ["../../packages/ts-shared/ui/src/*"],
+      "@repo/db": ["../../packages/database/*"]
     },
     "noEmit": true
   },
