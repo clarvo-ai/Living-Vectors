@@ -24,14 +24,11 @@ jobs:
           ./cloud_sql_proxy -instances=${{ secrets.PGHOST }}=tcp:5432 &
           sleep 5
 
-      - name: Install psql client
-        run: sudo apt-get update && sudo apt-get install -y postgresql-client
+      - name: Install dependencies
+        run: npm ci
 
-      - name: Test Cloud SQL connection
+      - name: Run Prisma migrations
         run: |
-          echo "Testing connection to database '${{ secrets.PGDATABASE }}'..."
-          PGPASSWORD="${{ secrets.PGPASSWORD }}" psql \
-            -h 127.0.0.1 -p 5432 \
-            -U "${{ secrets.PGUSER }}" \
-            -d "${{ secrets.PGDATABASE }}" \
-            -c "SELECT NOW();"
+          echo "Running Prisma migrations on ${{ secrets.PGDATABASE }}..."
+          DATABASE_URL="postgresql://${{ secrets.PGUSER }}:${{ secrets.PGPASSWORD }}@127.0.0.1:5432/${{ secrets.PGDATABASE }}?schema=public" \
+          npx prisma migrate deploy
