@@ -34,7 +34,10 @@ TIP: use Docker/Containers extension in Cursor to manage containers and see logs
 ```bash
 ## Clone the repository / git pull the latest changes
 
-## Configure .env files for each profile
+## Configure .env files for each profile (currently only .env in lv-web based on .env.example)
+
+## Install dependencies
+npm i
 
 ## Initialize database
 docker compose run --rm prisma-migrate
