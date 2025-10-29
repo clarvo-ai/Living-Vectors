@@ -1,20 +1,21 @@
 {
   "$schema": "https://turbo.build/schema.json",
-  "tasks": {
+  "pipeline": {
     "build": {
       "dependsOn": ["^build"],
-      "inputs": ["$TURBO_DEFAULT$", ".env*"],
+      "inputs": ["$TURBO_DEFAULT$", ".env*", "prisma/schema.prisma"],
       "outputs": [
         ".next/**",
-        "!.next/cache/**",
         "dist/**",
-        "prisma/generated/**"
+        "build/**",
+        "prisma/generated/**",
+        "!.next/cache/**"
       ]
     },
     "lint": {
       "dependsOn": ["^lint"]
     },
-    "type-check": {
+    "check-types": {
       "dependsOn": ["^build"],
       "outputs": []
     },
