@@ -7,15 +7,15 @@ name: CI/CD - lv-web (Test + Deploy to Cloud Run)
 
 on:
   pull_request:
-    branches: [dev]
+    branches: [dev, feature/ci-cd-debugging]
   push:
-    branches: [dev]
+    branches: [dev, feature/ci-cd-debugging]
   workflow_dispatch:
 
 jobs:
   # Job 1: Test & Lint (on PR)
   test:
-    if: github.event_name == 'pull_request'
+    #if: github.event_name == 'pull_request'
     runs-on: ubuntu-latest
     steps:
       - name: Checkout code
@@ -39,7 +39,7 @@ jobs:
   # Job 2: Deploy (only on push to dev)
   deploy:
     needs: test # Only deploy if test passed
-    if: github.ref == 'refs/heads/dev' && github.event_name == 'push'
+    #if: github.ref == 'refs/heads/dev' && github.event_name == 'push'
     runs-on: ubuntu-latest
     steps:
       # 2.1. Get the code
