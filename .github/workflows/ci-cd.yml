@@ -8,13 +8,8 @@ name: CI/CD - lv-web (Test + Deploy to Cloud Run)
 on:
   pull_request:
     branches: [dev]
-    paths:
-      - 'apps/lv-web/**'
-
   push:
     branches: [dev]
-    paths:
-      - 'apps/lv-web/**'
   workflow_dispatch:
 
 jobs:
