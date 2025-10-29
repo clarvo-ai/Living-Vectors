@@ -1,32 +1,23 @@
 {
   "name": "@repo/db",
   "version": "0.0.0",
-  "private": true,
-  "main": "dist/index.js",
-  "types": "dist/index.d.ts",
-  "files": [
-    "dist/**",
-    "prisma/generated/**"
-  ],
   "prisma": {
     "schema": "./prisma/schema"
   },
-  "scripts": {
-    "build": "prisma generate && tsc",
-    "dev": "prisma generate && tsc --watch",
-    "db:generate": "node -r dotenv/config $(which prisma) generate",
-    "db:migrate": "node -r dotenv/config $(which prisma) migrate dev",
-    "db:deploy": "node -r dotenv/config $(which prisma) migrate deploy",
-    "db:seed": "node -r dotenv/config $(which tsx) src/seed.ts"
+  "devDependencies": {
+    "prisma": "^6.5.0"
   },
   "dependencies": {
     "@prisma/client": "^6.5.0",
     "dotenv": "^16.4.7"
   },
-  "devDependencies": {
-    "prisma": "^6.5.0",
-    "ts-node": "^10.9.0",
-    "tsx": "^4.7.0",
-    "typescript": "^5"
+  "scripts": {
+    "db:generate": "node -r dotenv/config $(which prisma) generate",
+    "db:migrate": "node -r dotenv/config $(which prisma) migrate dev",
+    "db:deploy": "node -r dotenv/config $(which prisma) migrate deploy",
+    "db:seed": "node -r dotenv/config $(which tsx) src/seed.ts"
+  },
+  "exports": {
+    ".": "./src/index.ts"
   }
 }
