@@ -19,7 +19,8 @@
       }
     ],
     "paths": {
-      "@/*": ["./src/*", "./apps/lv-web/*", "./apps/lv-web/src/*", "./packages/*"]
+      "@/*": ["./src/*", "./apps/lv-web/*", "./apps/lv-web/src/*", "./packages/*"],
+      "@repo/db": ["../../packages/database/*"]
     }
   },
   "include": ["next-env.d.ts", "**/*.ts", "**/*.tsx", ".next/types/**/*.ts"],
