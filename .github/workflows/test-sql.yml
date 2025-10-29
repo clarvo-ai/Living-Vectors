@@ -29,9 +29,9 @@ jobs:
 
       - name: Test Cloud SQL connection
         run: |
-          echo "Testing connection to ${{ secrets.PGDATABASE }}..."
-          export PGPASSWORD="${{ secrets.PGPASSWORD }}"
-          psql -h 127.0.0.1 -p 5432 \
-              -U "${{ secrets.PGUSER }}" \
-              -d "${{ secrets.PGDATABASE }}" \
-              -c "SELECT NOW();"
+          echo "Testing connection to database '${{ secrets.PGDATABASE }}'..."
+          PGPASSWORD="${{ secrets.PGPASSWORD }}" psql \
+            -h 127.0.0.1 -p 5432 \
+            -U "${{ secrets.PGUSER }}" \
+            -d "${{ secrets.PGDATABASE }}" \
+            -c "SELECT NOW();"
