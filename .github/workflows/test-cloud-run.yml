@@ -25,7 +25,7 @@ jobs:
         uses: actions/checkout@v4
 
       - name: Install dependencies
-        run: npm ci
+        run: npm install
 
         #Set up Cloud SDK
       - name: Set up Cloud SDK
