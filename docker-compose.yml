@@ -61,7 +61,7 @@ services:
       context: .
       dockerfile: ./apps/lv-pyapi/Dockerfile
     ports:
-      - '8091:8000'
+      - '8091:8080'
     environment:
       - DATABASE_URL=postgresql://postgres:postgres@db:5432/postgres
       - PYTHONPATH=/app:/app/packages/python-utils/src
