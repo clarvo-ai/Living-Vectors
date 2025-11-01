@@ -1,4 +1,4 @@
-    # Base stage
+# Base stage
 FROM node:22-alpine AS base
 
 # Install dependencies needed for Puppeteer/Chromium
@@ -49,13 +49,13 @@ RUN npm install --frozen-lockfile
 COPY --from=builder /app/out/full/ .
 
 # Generate Prisma client before building the application
-RUN npx turbo run db:generate
+RUN npx --yes turbo run db:generate
 
 # Set environment variable if provided
 ENV NEXT_PUBLIC_ENVIRONMENT=${NEXT_PUBLIC_ENVIRONMENT}
 
 # Build the application
-RUN npx turbo run build --filter=lv-web -- --no-lint
+RUN npx --yes turbo run build --filter=lv-web -- --no-lint
 
 # Create a smaller production image
 FROM base AS runner
@@ -86,4 +86,4 @@ USER nextjs
 EXPOSE 8080
 
 # Use standalone Next.js server for improved performance
-CMD ["node", "apps/lv-web/server.js"] 
+CMD ["node", "apps/lv-web/server.js"]
