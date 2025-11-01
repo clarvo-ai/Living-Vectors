@@ -36,17 +36,17 @@ jobs:
     - name: Checkout code
       uses: actions/checkout@v4
 
-      #Set up Cloud SDK
-    - name: Set up Cloud SDK
-      uses: google-github-actions/setup-gcloud@v2
-      with:
-        version: '>= 0.2.0'
-
       #Login to Google Cloud
     - name: Authenticate with GCP using GCP_SA_KEY
       uses: google-github-actions/auth@v2
       with:
         credentials_json: ${{ secrets.GCP_SA_KEY }}
+
+      #Set up Cloud SDK
+    - name: Set up Cloud SDK
+      uses: google-github-actions/setup-gcloud@v2
+      with:
+        project_id: ${{ env.PROJECT_ID }}
       
       #Configure Docker
     - name: Configure Docker to use gcloud as a credential helper
