@@ -1,4 +1,4 @@
-name: Testing deployment
+name: Testing Depoloyment to Cloud Run
 
 on:
   push:
