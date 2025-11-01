@@ -1,12 +1,12 @@
 name: Deploy lv-pyapi to Cloud Run
 
 # When to run the workflow:
-# - On push to main or develop branch on apps/lv-pyapi or packages/python-utils
+# - On push to main or dev branch on apps/lv-pyapi or packages/python-utils
 # - On pull request to main branch on apps/lv-pyapi or packages/python-utils
 # - Manually via workflow_dispatch
 on:
   push:
-    branches: [ main, develop ]
+    branches: [ main, dev, feature/setup-lv-pyapi-cicd ]
     paths:
       - 'apps/lv-pyapi/**'
       - 'packages/python-utils/**'
