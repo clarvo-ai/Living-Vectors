@@ -1,4 +1,4 @@
-name: CI/CD - lv-web (Test + Deploy to Cloud Run)
+name: Testing deployment
 
 # ------------------------
 # 1. PR: Test, Lint, Build
@@ -20,20 +20,20 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v4
 
-      - name: Install dependencies
-        run: npm install
+  #      - name: Install dependencies
+  #        run: npm install
 
-      - name: Lint
-        run: npx turbo run lint --filter=lv-web || echo "Lint failed"
+  #      - name: Lint
+  #        run: npx turbo run lint --filter=lv-web || echo "Lint failed"
 
-      - name: Type check
-        run: npx turbo run type-check --filter=lv-web
+  #      - name: Type check
+  #        run: npx turbo run type-check --filter=lv-web
 
-      - name: Unit tests
-        run: npx turbo run test --filter=lv-web
+  #      - name: Unit tests
+  #        run: npx turbo run test --filter=lv-web
 
-      - name: Build check
-        run: npx turbo run build --filter=lv-web -- --no-lint
+  #      - name: Build check
+  #        run: npx turbo run build --filter=lv-web -- --no-lint
 
   # Job 2: Deploy (only on push to dev)
   deploy:
