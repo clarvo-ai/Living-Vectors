@@ -19,10 +19,6 @@ jobs:
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
-
-      - name: Install dependencies
-        run: npm install
-
   #      - name: Lint
   #        run: npx turbo run lint --filter=lv-web || echo "Lint failed"
 
@@ -44,6 +40,9 @@ jobs:
       # 2.1. Get the code
       - name: Checkout code
         uses: actions/checkout@v4
+
+      - name: Install dependencies
+        run: npm install
 
       # 2.2. Login to google Cloud
       - name: Authenticate to GCP
