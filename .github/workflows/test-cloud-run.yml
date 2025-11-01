@@ -31,11 +31,10 @@ jobs:
           node-version: 22
           cache: 'npm'
 
-      # Install dependencies in the root (workspace install)
-      - name: Install dependencies (monorepo)
+      # Install dependencies
+      - name: Install dependencies
         run: |
           npm ci
-          npm run bootstrap # jos sinulla on Turbo bootstrap / workspace linkit
 
       # Build lv-web
       - name: Build lv-web
