@@ -24,18 +24,6 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v4
 
-      # Setup Node.js
-      - name: Setup Node.js
-        uses: actions/setup-node@v3
-        with:
-          node-version: 22
-          cache: 'npm'
-
-      # Install dependencies in the root (workspace install)
-      - name: Install dependencies (monorepo)
-        run: |
-          npm ci
-
         #Set up Cloud SDK
       - name: Set up Cloud SDK
         uses: google-github-actions/setup-gcloud@v2
@@ -53,32 +41,10 @@ jobs:
         run: |
           gcloud auth configure-docker europe-north1-docker.pkg.dev
 
-      - name: Build Docker image from apps/lv-web
-        run: |
-          docker build -t $REGISTRY/$IMAGE_NAME:$GITHUB_SHA \
-            -f apps/lv-web/Dockerfile .
-
-        #Upload the image
-      - name: Tag and push the image to lv-registry
-        run: |
-          docker push $REGISTRY/$IMAGE_NAME:$GITHUB_SHA
-
-        #Deploy the image to Cloud Run
-      - name: Deploy the image to Cloud Run as lv-web-dev
-        run: |
-          gcloud run deploy $SERVICE_NAME \
-            --image $REGISTRY/$IMAGE_NAME:$GITHUB_SHA \
-            --region $REGION \
-            --platform managed \
-            --allow-unauthenticated \
-            --port 8000 \
-            --memory 512Mi \
-            --cpu 1 \
-            --max-instances 10 \
-            --set-env-vars="ENVIRONMENT=development"
-
-        #Show the URL
-      - name: Show service URL
-        run: |
-          SERVICE_URL=$(gcloud run services describe $SERVICE_NAME --region=$REGION --format='value(status.url)')
-          echo "Service deployed at: $SERVICE_URL"
+      - name: Build and push Docker image
+        uses: docker/build-push-action@v5
+        with:
+          context: ./apps/lv-web
+          file: ./apps/lv-web/Dockerfile
+          push: true
+          tags: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:${{ github.sha }}
