@@ -62,7 +62,7 @@ jobs:
       # 2.5. Build & Push to Docker image
       - name: Build and Push Docker Image
         run: |
-          IMAGE="europe-north1-docker.pkg.dev/SWP-LivingVectors/lv-registry/lv-web:latest"
+          IMAGE="europe-north1-docker.pkg.dev/swp-livingvectors/lv-registry/lv-web:latest"
           docker build -t $IMAGE ./apps/lv-web
           docker push $IMAGE
 
