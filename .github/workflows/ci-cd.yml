@@ -2,6 +2,8 @@ name: Build Docker images (lv-web + lv-pyapi)
 
 on:
   push:
+    branches:
+      - force-dynamic-bug
 
 jobs:
   build-images:
