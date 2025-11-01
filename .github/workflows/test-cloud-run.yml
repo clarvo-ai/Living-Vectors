@@ -48,3 +48,20 @@ jobs:
           file: ./apps/lv-web/Dockerfile
           push: true
           tags: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:${{ github.sha }}
+
+      - name: Deploy to Cloud Run
+        uses: google-github-actions/deploy-cloudrun@v2
+        with:
+          service: ${{ env.SERVICE_NAME }}
+
+          image: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:${{ github.sha }}
+
+          region: ${{ env.REGION }}
+
+          flags: --allow-unauthenticated
+
+            --memory=1Gi
+            --cpu=1
+
+            --min-instances=1
+            --max-instances=5
