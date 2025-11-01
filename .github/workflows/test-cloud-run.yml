@@ -31,16 +31,10 @@ jobs:
           node-version: 22
           cache: 'npm'
 
-      # Install dependencies
-      - name: Install dependencies
+      # Install dependencies in the root (workspace install)
+      - name: Install dependencies (monorepo)
         run: |
           npm ci
-
-      # Build lv-web
-      - name: Build lv-web
-        working-directory: apps/lv-web
-        run: |
-          npm run build:lv-web
 
         #Set up Cloud SDK
       - name: Set up Cloud SDK
