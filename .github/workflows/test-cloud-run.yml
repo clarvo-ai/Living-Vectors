@@ -1,77 +1,72 @@
 name: Testing deployment
 
-# ------------------------
-# 1. PR: Test, Lint, Build
-# 2. Push to dev: Deploy
-# ------------------------
-
 on:
   push:
     branches:
       - test-sql-connection
   workflow_dispatch:
 
+# Environment variables:
+env:
+  PROJECT_ID: swp-livingvectors
+  REGION: europe-north1
+  SERVICE_NAME: lv-web-dev
+  REGISTRY: europe-north1-docker.pkg.dev/swp-livingvectors/lv-registry
+  IMAGE_NAME: lv-web-dev
+
+# Jobs:
 jobs:
-  # Job 1: Test & Lint (on PR)
-  test:
-    # if: github.event_name == 'pull_request'
-    runs-on: ubuntu-latest
-    steps:
-      - name: Checkout code
-        uses: actions/checkout@v4
-  #      - name: Lint
-  #        run: npx turbo run lint --filter=lv-web || echo "Lint failed"
-
-  #      - name: Type check
-  #        run: npx turbo run type-check --filter=lv-web
-
-  #      - name: Unit tests
-  #        run: npx turbo run test --filter=lv-web
-
-  #      - name: Build check
-  #        run: npx turbo run build --filter=lv-web -- --no-lint
-
-  # Job 2: Deploy (only on push to dev)
   deploy:
-    needs: test # Only deploy if test passed
-    #   if: github.ref == 'refs/heads/dev' && github.event_name == 'push'
     runs-on: ubuntu-latest
+
     steps:
-      # 2.1. Get the code
+      #Get the code
       - name: Checkout code
         uses: actions/checkout@v4
 
-      - name: Install dependencies
-        run: npm install
+        #Set up Cloud SDK
+      - name: Set up Cloud SDK
+        uses: google-github-actions/setup-gcloud@v2
+        with:
+          version: '>= 0.2.0'
 
-      # 2.2. Login to google Cloud
-      - name: Authenticate to GCP
+        #Login to Google Cloud
+      - name: Authenticate with GCP using GCP_SA_KEY
         uses: google-github-actions/auth@v2
         with:
           credentials_json: ${{ secrets.GCP_SA_KEY }}
 
-      # 2.3. Install Google Cloud tools
-      - name: Set up Cloud SDK
-        uses: google-github-actions/setup-gcloud@v2
-
-      # 2.4. Allow Docker to push to Artifact Registry
-      - name: Configure Docker for Artifact Registry
-        run: gcloud auth configure-docker europe-north1-docker.pkg.dev
-
-      # 2.5. Build & Push to Docker image
-      - name: Build and Push Docker Image
+        #Configure Docker
+      - name: Configure Docker to use gcloud as a credential helper
         run: |
-          IMAGE="europe-north1-docker.pkg.dev/swp-livingvectors/lv-registry/lv-web:latest"
-          docker build -t $IMAGE ./apps/lv-web
-          docker push $IMAGE
+          gcloud auth configure-docker europe-north1-docker.pkg.dev
 
-      # 2.6. Deploy to Cloud Run
-      - name: Deploy to Cloud Run
+      - name: Build Docker image from apps/lv-web
         run: |
-          gcloud run deploy lv-web \
-            --image=$IMAGE \
-            --region=europe-north1 \
-            --platform=managed \
+          docker build -t $REGISTRY/$IMAGE_NAME:$GITHUB_SHA \
+            -f apps/lv-web/Dockerfile .
+
+        #Upload the image
+      - name: Tag and push the image to lv-registry
+        run: |
+          docker push $REGISTRY/$IMAGE_NAME:$GITHUB_SHA
+
+        #Deploy the image to Cloud Run
+      - name: Deploy the image to Cloud Run as lv-web-dev
+        run: |
+          gcloud run deploy $SERVICE_NAME \
+            --image $REGISTRY/$IMAGE_NAME:$GITHUB_SHA \
+            --region $REGION \
+            --platform managed \
             --allow-unauthenticated \
-            --port=8080 \
-            --quiet
+            --port 8000 \
+            --memory 512Mi \
+            --cpu 1 \
+            --max-instances 10 \
+            --set-env-vars="ENVIRONMENT=development"
+
+        #Show the URL
+      - name: Show service URL
+        run: |
+          SERVICE_URL=$(gcloud run services describe $SERVICE_NAME --region=$REGION --format='value(status.url)')
+          echo "Service deployed at: $SERVICE_URL"
