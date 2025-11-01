@@ -24,8 +24,24 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v4
 
-      - name: Install dependencies
-        run: npm install
+      # Setup Node.js
+      - name: Setup Node.js
+        uses: actions/setup-node@v3
+        with:
+          node-version: 22
+          cache: 'npm'
+
+      # Install dependencies in the root (workspace install)
+      - name: Install dependencies (monorepo)
+        run: |
+          npm ci
+          npm run bootstrap # jos sinulla on Turbo bootstrap / workspace linkit
+
+      # Build lv-web
+      - name: Build lv-web
+        working-directory: apps/lv-web
+        run: |
+          npm run build:lv-web
 
         #Set up Cloud SDK
       - name: Set up Cloud SDK
