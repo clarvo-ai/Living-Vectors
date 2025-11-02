@@ -3,7 +3,7 @@ name: Testing Depoloyment to Cloud Run
 on:
   push:
     branches:
-      - test-sql-connection
+      - test-sql-connection-2
   workflow_dispatch:
 
 # Environment variables:
