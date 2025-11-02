@@ -65,7 +65,13 @@ jobs:
 
       #Deploy the image to Cloud Run
     - name: Deploy the image to Cloud Run as lv-pyapi-dev
+      env:
+        PGUSER: ${{ secrets.PGUSER }}
+        PGPASSWORD: ${{ secrets.PGPASSWORD }}
+        PGHOST: ${{ secrets.PGHOST }}
+        PGDATABASE: ${{ secrets.PGDATABASE }}
       run: |
+        DATABASE_URL="postgresql://${PGUSER}:${PGPASSWORD}@${PGHOST}/${PGDATABASE}"
         gcloud run deploy $SERVICE_NAME \
           --image $REGISTRY/$IMAGE_NAME:$GITHUB_SHA \
           --region $REGION \
@@ -75,7 +81,7 @@ jobs:
           --memory 512Mi \
           --cpu 1 \
           --max-instances 10 \
-          --set-env-vars="ENVIRONMENT=development"
+          --set-env-vars="ENVIRONMENT=development,DATABASE_URL=${DATABASE_URL}"
 
       #Show the URL
     - name: Show service URL
