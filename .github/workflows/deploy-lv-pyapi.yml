@@ -45,8 +45,6 @@ jobs:
       #Set up Cloud SDK
     - name: Set up Cloud SDK
       uses: google-github-actions/setup-gcloud@v2
-      with:
-        project_id: ${{ env.PROJECT_ID }}
       
       #Configure Docker
     - name: Configure Docker to use gcloud as a credential helper
