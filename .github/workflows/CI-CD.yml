@@ -36,8 +36,7 @@ jobs:
           version: '>= 0.2.0'
 
       - name: Configure Docker to use gcloud as a credential helper
-        run: |
-          gcloud auth configure-docker ${{ env.REGION }}-docker.pkg.dev
+        run: gcloud auth configure-docker ${{ env.REGION }}-docker.pkg.dev
 
       - name: Start Cloud SQL Proxy
         run: |
@@ -49,10 +48,21 @@ jobs:
       - name: Install dependencies
         run: npm ci
 
+      - name: URL-encode DB password
+        run: |
+          python - <<'PY'
+          import urllib.parse, os
+          encoded = urllib.parse.quote(os.environ["PGPASSWORD"], safe="")
+          with open(os.environ["GITHUB_ENV"], "a") as fh:
+              fh.write(f"PGPASSWORD_URLENCODED={encoded}\n")
+          PY
+        env:
+          PGPASSWORD: ${{ secrets.PGPASSWORD }}
+
       - name: Run Prisma migrations
         env:
-          DATABASE_URL: postgresql://${{ secrets.PGUSER }}:${{ secrets.PGPASSWORD }}@127.0.0.1:5432/${{ secrets.PGDATABASE }}?schema=public
-          DIRECT_DATABASE_URL: postgresql://${{ secrets.PGUSER }}:${{ secrets.PGPASSWORD }}@127.0.0.1:5432/${{ secrets.PGDATABASE }}?schema=public
+          DATABASE_URL: postgresql://${{ secrets.PGUSER }}:${{ env.PGPASSWORD_URLENCODED }}@127.0.0.1:5432/${{ secrets.PGDATABASE }}?schema=public
+          DIRECT_DATABASE_URL: postgresql://${{ secrets.PGUSER }}:${{ env.PGPASSWORD_URLENCODED }}@127.0.0.1:5432/${{ secrets.PGDATABASE }}?schema=public
         run: npx turbo run db:migrate
 
       - name: Build and push backend Docker image
@@ -97,8 +107,7 @@ jobs:
           version: '>= 0.2.0'
 
       - name: Configure Docker to use gcloud as a credential helper
-        run: |
-          gcloud auth configure-docker ${{ env.REGION }}-docker.pkg.dev
+        run: gcloud auth configure-docker ${{ env.REGION }}-docker.pkg.dev
 
       - name: Build and push frontend Docker image
         uses: docker/build-push-action@v5
@@ -121,4 +130,3 @@ jobs:
             --cpu=1
             --min-instances=1
             --max-instances=5
-#
