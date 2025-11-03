@@ -116,6 +116,9 @@ jobs:
           file: ./apps/lv-web/Dockerfile
           push: true
           tags: ${{ env.FRONT_REGISTRY }}/${{ env.FRONT_IMAGE_NAME }}:${{ github.sha }}
+          build-args: |
+            NEXT_PUBLIC_ENVIRONMENT=production
+            NEXT_PUBLIC_PYAPI_URL=${{ secrets.NEXT_PUBLIC_PYAPI_URL }}
 
       - name: Deploy frontend to Cloud Run
         uses: google-github-actions/deploy-cloudrun@v2
