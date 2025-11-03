@@ -1,5 +1,5 @@
 # Main API entry point for lv-pyapi service
-# Testing workflow trigger #7
+# Testing workflow trigger #8
 from fastapi import FastAPI, Depends, HTTPException
 from sqlalchemy.orm import Session
 from sqlalchemy import select
@@ -60,4 +60,5 @@ async def get_user(user_id: str, db: Session = Depends(get_db)):
         raise HTTPException(status_code=500, detail=f"Database error: {str(e)}")
 
 if __name__ == "__main__":
-    uvicorn.run(app, host="0.0.0.0", port=8080)
+    port = int(os.getenv("PORT", 8080))
+    uvicorn.run(app, host="0.0.0.0", port=port)

@@ -20,10 +20,10 @@ on:
 
 # Environment variables:
 env:
-  PROJECT_ID: swp-livingvectors
-  REGION: europe-north1
+  PROJECT_ID: ${{ secrets.GCP_PROJECT_ID }}
+  REGION: ${{ secrets.GCP_REGION }}
   SERVICE_NAME: lv-pyapi-dev
-  REGISTRY: europe-north1-docker.pkg.dev/swp-livingvectors/lv-registry
+  REGISTRY: ${{ secrets.GCP_REGION }}-docker.pkg.dev/${{ secrets.GCP_PROJECT_ID }}/lv-registry
   IMAGE_NAME: lv-pyapi-dev
 
 # Jobs:
@@ -45,44 +45,40 @@ jobs:
       #Set up Cloud SDK
     - name: Set up Cloud SDK
       uses: google-github-actions/setup-gcloud@v2
+      with:
+        project_id: ${{ env.PROJECT_ID }}
+        version: '>= 0.2.0'
       
       #Configure Docker
     - name: Configure Docker to use gcloud as a credential helper
       run: |
-        gcloud auth configure-docker europe-north1-docker.pkg.dev
+        gcloud auth configure-docker ${{ env.REGION }}-docker.pkg.dev
 
-    - name: Build Docker image from apps/lv-pyapi
-      run: |
-        docker build -t $REGISTRY/$IMAGE_NAME:$GITHUB_SHA \
-          -f apps/lv-pyapi/Dockerfile .
-
-      #Upload the image
-    - name: Tag and push the image to lv-registry
-      run: |
-        docker push $REGISTRY/$IMAGE_NAME:$GITHUB_SHA
+    - name: Build and push Docker image
+      uses: docker/build-push-action@v5
+      with:
+        context: .
+        file: ./apps/lv-pyapi/Dockerfile
+        push: true
+        tags: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:${{ github.sha }}
 
       #Deploy the image to Cloud Run
     - name: Deploy the image to Cloud Run as lv-pyapi-dev
-      env:
-        PGUSER: ${{ secrets.PGUSER }}
-        PGPASSWORD: ${{ secrets.PGPASSWORD }}
-        PGHOST: ${{ secrets.PGHOST }}
-        PGDATABASE: ${{ secrets.PGDATABASE }}
-      run: |
-        DATABASE_URL="postgresql://${PGUSER}:${PGPASSWORD}@${PGHOST}/${PGDATABASE}"
-        gcloud run deploy $SERVICE_NAME \
-          --image $REGISTRY/$IMAGE_NAME:$GITHUB_SHA \
-          --region $REGION \
-          --platform managed \
-          --allow-unauthenticated \
-          --port 8080 \
-          --memory 512Mi \
-          --cpu 1 \
-          --max-instances 10 \
-          --set-env-vars="ENVIRONMENT=development,DATABASE_URL=${DATABASE_URL}"
+      uses: google-github-actions/deploy-cloudrun@v2
+      with:
+        service: ${{ env.SERVICE_NAME }}
+        image: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:${{ github.sha }}
+        region: ${{ env.REGION }}
+        project_id: ${{ env.PROJECT_ID }}
+        flags: |
+          --allow-unauthenticated
+          --port=8080
+          --memory=512Mi
+          --cpu=1
+          --max-instances=10
 
       #Show the URL
     - name: Show service URL
       run: |
-        SERVICE_URL=$(gcloud run services describe $SERVICE_NAME --region=$REGION --format='value(status.url)')
+        SERVICE_URL=$(gcloud run services describe ${{ env.SERVICE_NAME }} --region=${{ env.REGION }} --format='value(status.url)')
         echo "Service deployed at: $SERVICE_URL"
