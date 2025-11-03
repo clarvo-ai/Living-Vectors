@@ -20,10 +20,10 @@ on:
 
 # Environment variables:
 env:
-  PROJECT_ID: SWP-LivingVectors
+  PROJECT_ID: swp-livingvectors
   REGION: europe-north1
   SERVICE_NAME: lv-pyapi-dev
-  REGISTRY: europe-north1-docker.pkg.dev/SWP-LivingVectors/lv-registry
+  REGISTRY: europe-north1-docker.pkg.dev/swp-livingvectors/lv-registry
   IMAGE_NAME: lv-pyapi-dev
 
 # Jobs:
