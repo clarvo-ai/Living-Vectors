@@ -4,6 +4,7 @@
   "rules": {
     "prettier/prettier": "error",
     "no-unused-vars": "warn",
-    "no-console": "warn"
+    "no-console": "warn",
+    "@typescript-eslint/no-empty-object-type": "off"
   }
 }

@@ -55,7 +55,7 @@ RUN npx turbo run db:generate
 ENV NEXT_PUBLIC_ENVIRONMENT=${NEXT_PUBLIC_ENVIRONMENT}
 
 # Build the application
-RUN npm run build:lv-web
+RUN npx turbo run build --filter=lv-web -- --no-lint
 
 # Create a smaller production image
 FROM base AS runner
@@ -66,6 +66,9 @@ ARG NEXT_PUBLIC_ENVIRONMENT
 
 # Set environment variable for runtime if provided
 ENV NEXT_PUBLIC_ENVIRONMENT=${NEXT_PUBLIC_ENVIRONMENT}
+
+# Set PORT environment variable for Cloud Run
+ENV PORT=8080
 
 # Create a non-root user for improved security
 RUN addgroup --system --gid 1001 nodejs && \
@@ -80,7 +83,7 @@ COPY --from=installer --chown=nextjs:nodejs /app/apps/lv-web/public ./apps/lv-we
 USER nextjs
 
 # Expose the port the app will run on
-EXPOSE 3000
+EXPOSE 8080
 
 # Use standalone Next.js server for improved performance
 CMD ["node", "apps/lv-web/server.js"] 
