@@ -73,7 +73,7 @@ RUN addgroup --system --gid 1001 nodejs && \
     adduser --system --uid 1001 nextjs
 
 # Copy the built application
-COPY --from=installer --chown=nextjs:nodejs /app/apps/lv-web/next.config.mjs ./apps/lv-web/next.config.mjs
+COPY --from=installer --chown=nextjs:nodejs /app/apps/lv-web/next.config.ts ./apps/lv-web/next.config.ts
 COPY --from=installer --chown=nextjs:nodejs /app/apps/lv-web/package.json ./apps/lv-web/package.json
 COPY --from=installer --chown=nextjs:nodejs /app/apps/lv-web/.next/standalone ./
 COPY --from=installer --chown=nextjs:nodejs /app/apps/lv-web/.next/static ./apps/lv-web/.next/static
