@@ -15,10 +15,11 @@ load_dotenv()
 
 # Create FastAPI app
 app = FastAPI(title="LV PyAPI", description="Living Vectors Python API", version="1.0.0")
+allowed_origins = [origin.strip() for origin in os.getenv("FRONTEND_ORIGINS", "").split(",") if origin.strip()]
 
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["http://localhost:3045", "https://yourfrontend.com"],
+    allow_origins= allowed_origins or ["http://localhost:3045", "https://yourfrontend.com"],
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],

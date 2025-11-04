@@ -123,4 +123,3 @@ The template is ready for deployment on platforms like Vercel, Netlify, or any N
 ## License
 
 MIT License - feel free to use this template for your projects!
-# CI/CD trigger
