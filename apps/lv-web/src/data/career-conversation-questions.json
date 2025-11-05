@@ -1,0 +1,140 @@
+{
+  "goals": [
+    {
+    "goal": "Build Trust & Explore Current Motivation",
+    "questions": [
+        {
+            "question": "What's been exciting or interesting in what you've been learning or doing lately?",
+            "potentialInsight": "Recent focus areas, intrinsic motivation, current engagement level"
+        },
+        {
+            "question": "What led you to explore the field or direction you're in right now?",
+            "potentialInsight": "Career journey, curiosity triggers, origin story"
+        },
+        {
+            "question": "What's something you'd like to learn more about or try in the near future?",
+            "potentialInsight": "Aspirations, near-term goals, personal definition of progress"
+        }
+        ]
+    },
+    {
+      "goal": "Identify Core Motivation",
+      "questions": [
+        {
+          "question": "What gives you energy in your current work?",
+          "potentialInsight": "Motivation type (autonomy, mastery, purpose)"
+        },
+        {
+          "question": "What kind of projects make you lose track of time?",
+          "potentialInsight": "Intrinsic interest areas"
+        },
+        {
+          "question": "Can you tell me about a moment recently when you felt proud of your work?",
+          "potentialInsight": "Achievement drivers"
+        }
+      ]
+    },
+    {
+      "goal": "Understand Environment Preference",
+      "questions": [
+        {
+          "question": "What kind of teamwork or collaboration makes you feel at your best?",
+          "potentialInsight": "Team vs independent preference"
+        },
+        {
+          "question": "What kind of environment helps you do your best work or feel most like yourself?",
+          "potentialInsight": "Cultural or environmental fit"
+        },
+        {
+          "question": "How do you recharge after a demanding day or week?",
+          "potentialInsight": "Work-life balance style"
+        }
+      ]
+    },
+    {
+      "goal": "Surface Skill Strengths",
+      "questions": [
+        {
+          "question": "What do people usually come to you for?",
+          "potentialInsight": "Key strengths / domain expertise"
+        },
+        {
+          "question": "What's something that feels effortless for you, even when it's challenging for others?",
+          "potentialInsight": "Natural talents, cognitive strengths"
+        },
+        {
+          "question": "Which recent challenge made you feel you were 'at your best'?",
+          "potentialInsight": "Skill mastery moments"
+        }
+      ]
+    },
+    {
+      "goal": "Explore Future Direction",
+      "questions": [
+        {
+          "question": "If you could shape your next role freely, what would it include?",
+          "potentialInsight": "Career aspirations, growth direction"
+        },
+        {
+          "question": "What's something new you'd like to learn or take on next?",
+          "potentialInsight": "Learning motivation, curiosity"
+        },
+        {
+          "question": "Looking a few years ahead, what kind of problems or causes would you love to be part of?",
+          "potentialInsight": "Long-term vision, role trajectory"
+        }
+      ]
+    },
+    {
+      "goal": "Reveal Core Values & Priorities",
+      "questions": [
+        {
+          "question": "What matters most to you in the way you work?",
+          "potentialInsight": "Personal values, ethical alignment"
+        },
+        {
+          "question": "When you think about taking on something new, what helps you decide if it's worth your time and energy?",
+          "potentialInsight": "Value-based decision patterns"
+        },
+        {
+          "question": "When you think about meaningful work, what comes to mind?",
+          "potentialInsight": "Purpose, fulfillment factors"
+        }
+      ]
+    },
+    {
+      "goal": "Uncover Challenges or Constraints",
+      "questions": [
+        {
+          "question": "What kind of situations make work harder than it should be?",
+          "potentialInsight": "Frustration points, blockers"
+        },
+        {
+          "question": "What kind of situations or setups drain your energy?",
+          "potentialInsight": "Environment mismatches"
+        },
+        {
+          "question": "What would make it easier for you to take your next step?",
+          "potentialInsight": "Career constraints, readiness"
+        }
+      ]
+    },
+    {
+      "goal": "Identify Leadership & Influence Style",
+      "questions": [
+        {
+          "question": "How do you like to support or guide others?",
+          "potentialInsight": "Leadership or mentorship style"
+        },
+        {
+          "question": "When your team is making decisions, what's your natural way of contributing?",
+          "potentialInsight": "Influence pattern, communication style"
+        },
+        {
+          "question": "Who do you admire as a leader or collaborator — and why?",
+          "potentialInsight": "Leadership values, inspiration source"
+        }
+      ]
+    }
+  ]
+}
