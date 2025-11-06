@@ -46,10 +46,10 @@ services:
       - DATABASE_URL=postgresql://postgres:postgres@db:5432/postgres
       - DIRECT_DATABASE_URL=postgresql://postgres:postgres@db:5432/postgres
       - NODE_ENV=development
-      - PYAPI_URL=http://lv-pyapi:8000
+      - PYAPI_URL=http://lv-pyapi:8080
       - NEXT_PUBLIC_APP_SOURCE_NAME=living-vectors
       - NEXT_PUBLIC_APP_NAME=LivingVectors
-      - DB_SYNC_URL=http://db-sync:8000
+      - DB_SYNC_URL=http://db-sync:8080
     depends_on:
       - db
 
@@ -61,7 +61,7 @@ services:
       context: .
       dockerfile: ./apps/lv-pyapi/Dockerfile
     ports:
-      - '8091:8000'
+      - '8091:8080'
     environment:
       - DATABASE_URL=postgresql://postgres:postgres@db:5432/postgres
       - PYTHONPATH=/app:/app/packages/python-utils/src
