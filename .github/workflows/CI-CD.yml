@@ -1,6 +1,10 @@
 name: Full Deployment to Cloud Run
 
 on:
+  push:
+    branches:
+      - test-sql-connection-2
+      
   pull_request:
     types:
       - closed
