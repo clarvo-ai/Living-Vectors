@@ -2,7 +2,12 @@
 
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { PyAPIHealthResponse, checkHealth, getHello } from '@/lib/services/pyapi';
+import {
+  PyAPIHealthResponse,
+  checkHealth,
+  getGeminiResponse,
+  getHello,
+} from '@/lib/services/pyapi';
 import { signOut, useSession } from 'next-auth/react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
@@ -15,6 +20,21 @@ export default function DashboardPage() {
   const [pyApiMessage, setPyApiMessage] = useState<string>('');
   const [pyApiLoading, setPyApiLoading] = useState(true);
   const [pyApiError, setPyApiError] = useState<string>('');
+  const [message, setMessage] = useState<string>('LOADING');
+
+  useEffect(() => {
+    const prompt = 'Kirjoita maammelaulu hexadesimaaleissa';
+    async function fetchGemini() {
+      try {
+        const result = await getGeminiResponse(prompt);
+        setMessage(result.message);
+      } catch (error) {
+        console.error('Error:', error);
+      }
+    }
+
+    fetchGemini();
+  }, []);
 
   useEffect(() => {
     if (status === 'unauthenticated') {
@@ -167,6 +187,7 @@ export default function DashboardPage() {
             <Card>
               <CardHeader>
                 <CardTitle>Welcome to Living Vectors!</CardTitle>
+                <p>{message}</p>
                 <CardDescription>Your playground for innovation and creativity</CardDescription>
               </CardHeader>
               <CardContent>
