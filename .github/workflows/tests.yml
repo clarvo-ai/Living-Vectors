@@ -22,6 +22,22 @@ jobs:
 
   tests:
     runs-on: ubuntu-latest
+
+    services:
+      postgres:
+        image: postgres:16
+        ports:
+          - 5432:5432
+        env:
+          POSTGRES_USER: test
+          POSTGRES_PASSWORD: test
+          POSTGRES_DB: CI-db
+        options: >-
+          --health-cmd="pg_isready -U test -d CI-db"
+          --health-interval=10s
+          --health-timeout=5s
+          --health-retries=5
+
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
@@ -49,6 +65,7 @@ jobs:
           pip install -r apps/lv-pyapi/requirements.txt
 
       - name: Run lv-pyapi tests
-        env:
+        env:  
           PYTHONPATH: ${{ github.workspace }}/apps/lv-pyapi:${{ github.workspace }}/packages/python-utils/src
+          DATABASE_URL: postgresql://postgres:postgres@localhost:5432/postgres
         run: pytest apps/lv-pyapi/tests
