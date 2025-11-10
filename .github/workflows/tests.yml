@@ -68,4 +68,4 @@ jobs:
         env:  
           PYTHONPATH: ${{ github.workspace }}/apps/lv-pyapi:${{ github.workspace }}/packages/python-utils/src
           DATABASE_URL: postgresql://postgres:postgres@localhost:5432/postgres
-        run: pytest apps/lv-pyapi/tests
+        run: pytest apps/lv-pyapi/tests --asyncio-mode=auto
