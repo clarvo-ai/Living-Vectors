@@ -23,6 +23,7 @@
   },
   "devDependencies": {
     "turbo": "^2.4.4",
+    "ts-node": "^10.9.2",
     "typescript": "^5",
     "tsx": "4.19.3"
   },
