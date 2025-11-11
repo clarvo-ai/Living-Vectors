@@ -17,6 +17,7 @@
       "cache": false
     },
     "db:migrate": {
+      "env": ["DATABASE_URL", "DIRECT_DATABASE_URL"],
       "cache": false,
       "persistent": true
     },
