@@ -23,7 +23,7 @@ export default function DashboardPage() {
   const [message, setMessage] = useState<string>('LOADING');
 
   useEffect(() => {
-    const prompt = 'Kirjoita maammelaulu hexadesimaaleissa';
+    const prompt = 'Say 3 funny words, nothing else.';
     async function fetchGemini() {
       try {
         const result = await getGeminiResponse(prompt);

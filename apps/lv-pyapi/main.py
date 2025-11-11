@@ -64,11 +64,14 @@ async def get_user(user_id: str, db: Session = Depends(get_db)):
 @app.post("/test")
 def get_gemini_response(prompt: str = Body(..., embed=True)):
     """Query Gemini API"""
-    response = client.models.generate_content(
-        model="gemini-2.5-flash",
-        contents=prompt
-    )
-    return {"message": response.text}
+    try:
+        response = client.models.generate_content(
+            model="gemini-2.5-flash",
+            contents=prompt
+        )
+        return {"message": response.text, "status": 200}
+    except Exception as e:
+        return JSONResponse(status_code=500, content={"message": str(e), "status": 500})
 
 if __name__ == "__main__":
     uvicorn.run(app, host="0.0.0.0", port=8080)
