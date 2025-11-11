@@ -61,7 +61,7 @@ async def get_user(user_id: str, db: Session = Depends(get_db)):
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Database error: {str(e)}")
 
-@app.post("/test")
+@app.post("/api/gemini")
 def get_gemini_response(prompt: str = Body(..., embed=True)):
     """Query Gemini API"""
     try:

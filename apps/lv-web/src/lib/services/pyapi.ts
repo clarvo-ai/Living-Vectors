@@ -42,7 +42,7 @@ export async function getUser(userId: string): Promise<PyAPIUser> {
 export async function getGeminiResponse(
   userMessage: string
 ): Promise<{ message: string; status: number }> {
-  const response = await fetch(`${getBaseUrl()}/test`, {
+  const response = await fetch(`${getBaseUrl()}/api/gemini`, {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',

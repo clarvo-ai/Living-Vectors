@@ -3,6 +3,7 @@ from main import app
 
 client = TestClient(app)
 
+# Test Gemini endpoint with real API call
 def test_gemini():
   response = client.post("/test", json={"prompt": "say only 'hello'"})
   data = response.json()
