@@ -3,11 +3,11 @@ on:
   push:
     branches:
       - '**'
-  pull_request:
-    types:
-      - opened
-      - reopened
-      - synchronize
+#  pull_request:
+#    types:
+#      - opened
+#      - reopened
+#      - synchronize
 
 jobs:
   lint:
@@ -73,7 +73,7 @@ jobs:
           pip install -r apps/lv-pyapi/requirements.txt
 
       - name: Run lv-pyapi tests
-        env:  
+        env:
           PYTHONPATH: ${{ github.workspace }}/apps/lv-pyapi:${{ github.workspace }}/packages/python-utils/src
           DATABASE_URL: postgresql://postgres:postgres@localhost:5432/postgres
         run: pytest apps/lv-pyapi/tests --asyncio-mode=auto
