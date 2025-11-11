@@ -1,4 +1,4 @@
-from fastapi import FastAPI, Depends, HTTPException
+from fastapi import FastAPI, Depends, HTTPException, Body
 from sqlalchemy.orm import Session
 from sqlalchemy import select
 from typing import List
@@ -6,6 +6,7 @@ import uvicorn
 import os
 from dotenv import load_dotenv
 from fastapi.middleware.cors import CORSMiddleware
+from google import genai
 
 from database import get_db
 from python_utils.sqlalchemy_models import User
@@ -24,6 +25,8 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
+client = genai.Client(api_key=os.getenv("GEMINI_API_KEY"))
 
 @app.get("/")
 async def hello():
@@ -58,5 +61,17 @@ async def get_user(user_id: str, db: Session = Depends(get_db)):
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Database error: {str(e)}")
 
+@app.post("/api/gemini")
+def get_gemini_response(prompt: str = Body(..., embed=True)):
+    """Query Gemini API"""
+    try:
+        response = client.models.generate_content(
+            model="gemini-2.5-flash",
+            contents=prompt
+        )
+        return {"message": response.text, "status": 200}
+    except Exception as e:
+        return JSONResponse(status_code=500, content={"message": str(e), "status": 500})
+
 if __name__ == "__main__":
-    uvicorn.run(app, host="0.0.0.0", port=8000)
+    uvicorn.run(app, host="0.0.0.0", port=8080)

@@ -15,7 +15,7 @@ export default function InterviewPage() {
     {
       id: 'initial-ai-message',
       role: 'ai',
-      content: 'Hello! I\'m here to figure you out. First, are you dedicated?',
+      content: "Hello! I'm here to figure you out. First, are you dedicated?",
       timestamp: new Date(),
     },
   ]);
@@ -92,7 +92,7 @@ export default function InterviewPage() {
       setIsLoading(false);
     }
   };
-  
+
   //Send message on Enter key press
   const handleKeyDown = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
     if (e.key === 'Enter' && !e.shiftKey) {
@@ -157,15 +157,21 @@ export default function InterviewPage() {
                   <div className="bg-gray-200 rounded-lg px-4 py-2">
                     <div className="flex space-x-2">
                       <div className="w-2 h-2 bg-gray-500 rounded-full animate-bounce"></div>
-                      <div className="w-2 h-2 bg-gray-500 rounded-full animate-bounce" style={{ animationDelay: '0.2s' }}></div>
-                      <div className="w-2 h-2 bg-gray-500 rounded-full animate-bounce" style={{ animationDelay: '0.4s' }}></div>
+                      <div
+                        className="w-2 h-2 bg-gray-500 rounded-full animate-bounce"
+                        style={{ animationDelay: '0.2s' }}
+                      ></div>
+                      <div
+                        className="w-2 h-2 bg-gray-500 rounded-full animate-bounce"
+                        style={{ animationDelay: '0.4s' }}
+                      ></div>
                     </div>
                   </div>
                 </div>
               )}
               {/* This is a ref to the bottom of the messages area 
                   Used to scroll to the bottom of the messages area when a new message is added*/}
-              <div ref={messagesEndRef} /> 
+              <div ref={messagesEndRef} />
             </div>
 
             {/* Input Area */}
@@ -189,4 +195,3 @@ export default function InterviewPage() {
     </div>
   );
 }
-

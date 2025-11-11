@@ -1,4 +1,4 @@
-name: Testing And Linting
+name: Testing and Linting
 on:
   push:
     branches:
@@ -73,7 +73,8 @@ jobs:
           pip install -r apps/lv-pyapi/requirements.txt
 
       - name: Run lv-pyapi tests
-        env:  
+        env:
+          GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
           PYTHONPATH: ${{ github.workspace }}/apps/lv-pyapi:${{ github.workspace }}/packages/python-utils/src
           DATABASE_URL: postgresql://postgres:postgres@localhost:5432/postgres
         run: pytest apps/lv-pyapi/tests --asyncio-mode=auto

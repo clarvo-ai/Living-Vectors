@@ -161,13 +161,13 @@ export default function DashboardPage() {
               </CardContent>
             </Card>
 
-          <div className="flex justify-end mt-4">
-            <Link href="/interview">
-              <Button size="sm" variant="default">
-                Go to Interview
-              </Button>
-            </Link>
-          </div>
+            <div className="flex justify-end mt-4">
+              <Link href="/interview">
+                <Button size="sm" variant="default">
+                  Go to Interview
+                </Button>
+              </Link>
+            </div>
           </div>
 
           {/* Additional Content Section */}

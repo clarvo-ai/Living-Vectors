@@ -1,14 +1,8 @@
-import pytest
-from httpx import AsyncClient
-
+from fastapi.testclient import TestClient
 from main import app
 
-
-@pytest.mark.asyncio
-async def test_health_endpoint_returns_healthy_status():
-    async with AsyncClient(app=app, base_url='http://test') as client:
-        response = await client.get('/health')
-
+def test_health_endpoint_returns_healthy_status():
+    client = TestClient(app)
+    response = client.get("/health")
     assert response.status_code == 200
-    payload = response.json()
-    assert payload == {'status': 'healthy', 'service': 'lv-pyapi'}
+    assert response.json() == {"status": "healthy", "service": "lv-pyapi"}
