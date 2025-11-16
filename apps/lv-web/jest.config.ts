@@ -3,14 +3,15 @@ import nextJest from 'next/jest';
 
 const createJestConfig = nextJest({
   // Provide the path to your Next.js app to load next.config.js and .env files in your test environment
-  dir: './apps/lv-web',
+  dir: './',
 });
 
 // Add any custom config to be passed to Jest
 const config: Config = {
   clearMocks: true,
   coverageProvider: 'v8',
-  testEnvironment: 'jest-environment-node',
+  testEnvironment: 'jest-environment-jsdom',
+  setupFilesAfterEnv: ['<rootDir>/jest.setup.js'],
   testMatch: ['**/__tests__/**/*.[jt]s?(x)', '**/?(*.)+(spec|test).[tj]s?(x)'],
   testPathIgnorePatterns: ['/node_modules/', '/.next/', '/dist/', '/coverage/', '/.git/'],
 };
