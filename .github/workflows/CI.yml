@@ -60,7 +60,8 @@ jobs:
         run: npm install
 
       - name: Run lv-web tests
-        run: npx jest --config apps/lv-web/jest.config.ts --runInBand
+        working-directory: ./apps/lv-web
+        run: npx jest --runInBand
 
       - name: Set up Python
         uses: actions/setup-python@v5
