@@ -1,7 +1,7 @@
 import '@testing-library/jest-dom';
 import { fireEvent, render, screen, waitFor } from '@testing-library/react';
 import { useSession } from 'next-auth/react';
-import InterviewPage from './page';
+import InterviewPage from '../../app/interview/page';
 
 // Mock next-auth/react
 jest.mock('next-auth/react', () => ({
