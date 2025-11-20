@@ -188,7 +188,11 @@ export default function InterviewPage() {
                 rows={3}
                 disabled={isLoading}
               />
-              <Button onClick={handleSend} disabled={isLoading || !input.trim()}>
+              <Button
+                data-testid="sendButton"
+                onClick={handleSend}
+                disabled={isLoading || !input.trim()}
+              >
                 Send
               </Button>
             </div>
