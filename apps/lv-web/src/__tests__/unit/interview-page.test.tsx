@@ -73,11 +73,9 @@ describe('InterviewPage', () => {
     await waitFor(() => {
       expect(screen.getByText('Yes, I am very dedicated.')).toBeInTheDocument();
       expect(screen.getByTestId('sendButton')).toBeDisabled();
-      //expect(screen.getByTestId('chat-loading-indicator')).toBeInTheDocument();
+      // Check that the loading indicator is shown
+      expect(screen.getByTestId('chat-loading-indicator')).toBeInTheDocument();
     });
-
-    // Assert that the loading indicator is shown
-    // expect(screen.getByTestId('chat-loading-indicator')).toBeInTheDocument();
 
     // Assert that the AI's response is displayed
     await waitFor(() => {
