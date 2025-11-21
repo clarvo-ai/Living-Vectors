@@ -19,6 +19,9 @@ jest.mock('next/navigation', () => ({
 // Mock fetch
 global.fetch = jest.fn();
 
+// Preserve original scrollIntoView so we can restore it
+const realScrollIntoView = Element.prototype.scrollIntoView;
+
 const mockUseSession = useSession as jest.Mock;
 
 describe('InterviewPage', () => {
@@ -27,6 +30,12 @@ describe('InterviewPage', () => {
     (fetch as jest.Mock).mockClear();
     // Mock scrollIntoView
     Element.prototype.scrollIntoView = jest.fn();
+  });
+
+  afterEach(() => {
+    // Restore original scrollIntoView to avoid leaking to other tests
+    Element.prototype.scrollIntoView = realScrollIntoView;
+    (fetch as jest.Mock).mockReset();
   });
 
   it('shows loading spinner when session status is loading', () => {
@@ -95,6 +104,33 @@ describe('InterviewPage', () => {
     expect(screen.queryByTestId('chat-loading-indicator')).not.toBeInTheDocument();
 
     // Check that the input field is cleared
+    expect(textarea).toHaveValue('');
+  });
+
+  it('shows error message when fetch fails', async () => {
+    mockUseSession.mockReturnValue({
+      data: { user: { name: 'Err User' } },
+      status: 'authenticated',
+    });
+    render(<InterviewPage />);
+
+    const textarea = screen.getByPlaceholderText(/Type your response.../i);
+    fireEvent.change(textarea, { target: { value: 'Test error' } });
+
+    // Make fetch reject to simulate error
+    (fetch as jest.Mock).mockRejectedValueOnce(new Error('Error'));
+
+    const sendButton = screen.getByRole('button', { name: /Send/i });
+    fireEvent.click(sendButton);
+
+    // Wait for the error AI message to appear
+    await waitFor(() =>
+      expect(
+        screen.getByText('Sorry, I encountered an error. Please try again.')
+      ).toBeInTheDocument()
+    );
+
+    // Input should have been cleared and button re-enabled
     expect(textarea).toHaveValue('');
   });
 
