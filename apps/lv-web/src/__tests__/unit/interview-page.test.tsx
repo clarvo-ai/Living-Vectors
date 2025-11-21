@@ -108,6 +108,9 @@ describe('InterviewPage', () => {
   });
 
   it('shows error message when fetch fails', async () => {
+    // Suppress console.error for this test
+    const consoleSpy = jest.spyOn(console, 'error').mockImplementation(() => {});
+
     mockUseSession.mockReturnValue({
       data: { user: { name: 'Err User' } },
       status: 'authenticated',
@@ -132,6 +135,9 @@ describe('InterviewPage', () => {
 
     // Input should have been cleared and button re-enabled
     expect(textarea).toHaveValue('');
+
+    // Restore console.error
+    consoleSpy.mockRestore();
   });
 
   it('submits the message when Enter is pressed', async () => {
