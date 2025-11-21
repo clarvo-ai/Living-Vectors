@@ -32,7 +32,7 @@ describe('InterviewPage', () => {
   it('shows loading spinner when session status is loading', () => {
     mockUseSession.mockReturnValue({ status: 'loading' });
     render(<InterviewPage />);
-    expect(screen.getByTestId('loading-spinner'));
+    expect(screen.getByTestId('loading-spinner')).toBeInTheDocument();
   });
 
   it('redirects unauthenticated users to /login', async () => {
@@ -95,6 +95,48 @@ describe('InterviewPage', () => {
     expect(screen.queryByTestId('chat-loading-indicator')).not.toBeInTheDocument();
 
     // Check that the input field is cleared
+    expect(textarea).toHaveValue('');
+  });
+
+  it('submits the message when Enter is pressed', async () => {
+    mockUseSession.mockReturnValue({
+      data: { user: { name: 'Enter Tester' } },
+      status: 'authenticated',
+    });
+
+    render(<InterviewPage />);
+
+    const textarea = screen.getByPlaceholderText(/Type your response.../i);
+
+    // Type message
+    fireEvent.change(textarea, { target: { value: 'Test Enter' } });
+
+    // Mock AI response before pressing Enter
+    (fetch as jest.Mock).mockResolvedValueOnce({
+      ok: true,
+      json: async () => ({
+        id: 'ai-response-enter',
+        role: 'ai',
+        content: 'Received via Enter',
+        timestamp: new Date(),
+      }),
+    });
+
+    // Press Enter to submit
+    fireEvent.keyDown(textarea, { key: 'Enter', code: 'Enter', charCode: 13, shiftKey: false });
+
+    // Wait for user's message to appear and loading indicator
+    await waitFor(() => {
+      expect(screen.getByText('Test Enter')).toBeInTheDocument();
+      expect(screen.getByTestId('chat-loading-indicator')).toBeInTheDocument();
+    });
+
+    // Wait for AI response
+    await waitFor(() => {
+      expect(screen.getByText('Received via Enter')).toBeInTheDocument();
+    });
+
+    // Input cleared
     expect(textarea).toHaveValue('');
   });
 });
