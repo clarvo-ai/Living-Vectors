@@ -103,6 +103,30 @@ src/
 - **Notifications**: Sonner
 - **TypeScript**: Full type safety
 
+## Testing
+
+We use Jest and React Testing Library for unit and component testing.
+
+### Running Tests
+
+To run the test suite:
+
+```bash
+npm test
+```
+
+To run tests in watch mode (interactive):
+
+```bash
+npm run test:watch
+```
+
+### Writing Tests
+
+- Place test files in `src/__tests__` or colocated with components (e.g., `component.test.tsx`).
+- Use the `.test.tsx` or `.spec.tsx` extension.
+- We use `jest-environment-jsdom` for component tests.
+
 ## Customization
 
 This template is designed to be easily customizable:
