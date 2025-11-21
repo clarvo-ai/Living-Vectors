@@ -35,6 +35,15 @@ describe('InterviewPage', () => {
     expect(screen.getByTestId('loading-spinner'));
   });
 
+  it('redirects unauthenticated users to /login', async () => {
+    mockUseSession.mockReturnValue({ status: 'unauthenticated' });
+    render(<InterviewPage />);
+
+    await waitFor(() => {
+      expect(mockPush).toHaveBeenCalledWith('/login');
+    });
+  });
+
   // Test chat interaction
   it('should allow a user to send a message and receive a response', async () => {
     mockUseSession.mockReturnValue({
