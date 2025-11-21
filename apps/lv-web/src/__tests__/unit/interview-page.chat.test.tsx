@@ -24,7 +24,7 @@ const realScrollIntoView = Element.prototype.scrollIntoView;
 
 const mockUseSession = useSession as jest.Mock;
 
-describe('InterviewPage', () => {
+describe('InterviewPage - Chat Interaction', () => {
   beforeEach(() => {
     jest.clearAllMocks();
     (fetch as jest.Mock).mockClear();
@@ -38,22 +38,6 @@ describe('InterviewPage', () => {
     (fetch as jest.Mock).mockReset();
   });
 
-  it('shows loading spinner when session status is loading', () => {
-    mockUseSession.mockReturnValue({ status: 'loading' });
-    render(<InterviewPage />);
-    expect(screen.getByTestId('loading-spinner')).toBeInTheDocument();
-  });
-
-  it('redirects unauthenticated users to /login', async () => {
-    mockUseSession.mockReturnValue({ status: 'unauthenticated' });
-    render(<InterviewPage />);
-
-    await waitFor(() => {
-      expect(mockPush).toHaveBeenCalledWith('/login');
-    });
-  });
-
-  // Test chat interaction
   it('should allow a user to send a message and receive a response', async () => {
     mockUseSession.mockReturnValue({
       data: { user: { name: 'Test User' } },
@@ -107,45 +91,11 @@ describe('InterviewPage', () => {
     expect(textarea).toHaveValue('');
   });
 
-  it('shows error message when fetch fails', async () => {
-    // Suppress console.error for this test
-    const consoleSpy = jest.spyOn(console, 'error').mockImplementation(() => {});
-
-    mockUseSession.mockReturnValue({
-      data: { user: { name: 'Err User' } },
-      status: 'authenticated',
-    });
-    render(<InterviewPage />);
-
-    const textarea = screen.getByPlaceholderText(/Type your response.../i);
-    fireEvent.change(textarea, { target: { value: 'Test error' } });
-
-    // Make fetch reject to simulate error
-    (fetch as jest.Mock).mockRejectedValueOnce(new Error('Error'));
-
-    const sendButton = screen.getByRole('button', { name: /Send/i });
-    fireEvent.click(sendButton);
-
-    // Wait for the error AI message to appear
-    await waitFor(() =>
-      expect(
-        screen.getByText('Sorry, I encountered an error. Please try again.')
-      ).toBeInTheDocument()
-    );
-
-    // Input should have been cleared and button re-enabled
-    expect(textarea).toHaveValue('');
-
-    // Restore console.error
-    consoleSpy.mockRestore();
-  });
-
   it('submits the message when Enter is pressed', async () => {
     mockUseSession.mockReturnValue({
       data: { user: { name: 'Enter Tester' } },
       status: 'authenticated',
     });
-
     render(<InterviewPage />);
 
     const textarea = screen.getByPlaceholderText(/Type your response.../i);
