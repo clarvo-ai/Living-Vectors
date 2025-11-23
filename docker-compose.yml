@@ -13,18 +13,12 @@ services:
       - DATABASE_URL=postgresql://postgres:postgres@db:5432/postgres
       - DIRECT_DATABASE_URL=postgresql://postgres:postgres@db:5432/postgres
       - NODE_ENV=development
+      - PYAPI_URL=http://lv-pyapi:8080
       - NEXT_PUBLIC_PYAPI_URL=http://localhost:8091
       - NEXT_PUBLIC_APP_SOURCE_NAME=living-vectors
       - NEXT_PUBLIC_APP_NAME=LivingVectors
     volumes:
       - .:/app
-    # volumes:
-    #   - ./apps/lv-web:/app/apps/lv-web
-    #   - ./packages:/app/packages
-    #   - ./scripts:/app/scripts
-    #   - ./package-lock.json:/app/package-lock.json
-    #   - ./package.json:/app/package.json
-    #   - ./turbo.json:/app/turbo.json
     depends_on:
       - db
       - lv-pyapi
@@ -62,6 +56,8 @@ services:
       dockerfile: ./apps/lv-pyapi/Dockerfile
     ports:
       - '8091:8080'
+    env_file:
+      - ./apps/lv-pyapi/.env
     environment:
       - DATABASE_URL=postgresql://postgres:postgres@db:5432/postgres
       - PYTHONPATH=/app:/app/packages/python-utils/src
@@ -137,7 +133,6 @@ services:
       - POSTGRES_DB=postgres
     volumes:
       - postgres_data:/var/lib/postgresql/data
-      # - we can add create_db.sql
 
 volumes:
   postgres_data:
