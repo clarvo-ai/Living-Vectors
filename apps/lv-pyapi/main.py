@@ -55,7 +55,7 @@ async def get_user(user_id: str, db: Session = Depends(get_db)):
             "email": user.email,
             "name": user.name,
         }
-        
+    An error here to see if project still lets me merge
     except HTTPException:
         raise
     except Exception as e:
