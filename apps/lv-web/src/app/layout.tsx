@@ -1,10 +1,11 @@
 import { Metadata } from 'next';
+import { APP_DESCRIPTION, APP_NAME } from '../config';
 import { ClientProviders } from './client-providers';
 import './globals.css';
 
 export const metadata: Metadata = {
-  title: 'Fullstack Template',
-  description: 'A simple fullstack template with authentication and user management.',
+  title: `${APP_NAME}`,
+  description: `${APP_DESCRIPTION}`,
   icons: {
     icon: '/favicon.ico',
   },
