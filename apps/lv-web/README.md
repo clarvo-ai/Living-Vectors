@@ -109,7 +109,7 @@ We use Jest and React Testing Library for unit and component testing.
 
 ### Running Tests
 
-To run the test suite:
+To run the test suite, go to `apps/lv-web` and run:
 
 ```bash
 npm test
