@@ -21,6 +21,7 @@ model User {
   accounts                      Account[]
   sessions                      Session[]
   Authenticator                 Authenticator[]
+  messages                      ConversationMessage[]
 
   @@index([id])
   @@index([email])
@@ -83,4 +84,18 @@ model Authenticator {
   user User @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@id([userId, credentialID])
+}
+
+model ConversationMessage {
+  messageId   String        @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  userId      String        @db.Uuid
+  sender      MessageSender
+  content     String
+  createdAt   DateTime      @default(now())
+  user        User          @relation(fields: [userId], references: [id])
+}
+
+enum MessageSender {
+  USER 
+  AI
 }
