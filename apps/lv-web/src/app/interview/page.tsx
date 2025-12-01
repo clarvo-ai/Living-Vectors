@@ -15,7 +15,7 @@ export default function InterviewPage() {
     {
       id: 'initial-ai-message',
       role: 'ai',
-      content: "Hello! I'm here to figure you out. First, are you dedicated?",
+      content: "Hello! I'm here to help explore your career goals and aspirations. Let's start by learning a bit about what you've been up to lately. What's been exciting or interesting in what you've been learning or doing recently?",
       timestamp: new Date(),
     },
   ]);
@@ -51,10 +51,8 @@ export default function InterviewPage() {
     setIsLoading(true);
 
     try {
-      // This is the part where a message would be sent to the API
-      // and the response is received from the API
-      // Logic for the request processing is in
-      // src/app/api/interview/chat/route.ts
+      // Send message to API and receive AI response
+      // See src/app/api/interview/chat/route.ts for request processing logic
       const response = await fetch('/api/interview/chat', {
         method: 'POST',
         headers: {
@@ -62,6 +60,10 @@ export default function InterviewPage() {
         },
         body: JSON.stringify({
           message: userMessage.content,
+          conversation_history: messages.map((msg) => ({
+            role: msg.role,
+            content: msg.content,
+          })),
         }),
       });
 
