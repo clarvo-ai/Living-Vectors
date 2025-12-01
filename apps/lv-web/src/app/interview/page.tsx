@@ -104,7 +104,10 @@ export default function InterviewPage() {
   if (status === 'loading') {
     return (
       <div className="min-h-screen flex items-center justify-center">
-        <div className="animate-spin rounded-full h-32 w-32 border-b-2 border-gray-900"></div>
+        <div
+          data-testid="loading-spinner"
+          className="animate-spin rounded-full h-32 w-32 border-b-2 border-gray-900"
+        ></div>
       </div>
     );
   }
@@ -153,7 +156,7 @@ export default function InterviewPage() {
               ))}
               {/* This is a loading indicator that is shown when the AI is generating a response */}
               {isLoading && (
-                <div className="flex justify-start">
+                <div className="flex justify-start" data-testid="chat-loading-indicator">
                   <div className="bg-gray-200 rounded-lg px-4 py-2">
                     <div className="flex space-x-2">
                       <div className="w-2 h-2 bg-gray-500 rounded-full animate-bounce"></div>
@@ -185,7 +188,11 @@ export default function InterviewPage() {
                 rows={3}
                 disabled={isLoading}
               />
-              <Button onClick={handleSend} disabled={isLoading || !input.trim()}>
+              <Button
+                data-testid="sendButton"
+                onClick={handleSend}
+                disabled={isLoading || !input.trim()}
+              >
                 Send
               </Button>
             </div>
