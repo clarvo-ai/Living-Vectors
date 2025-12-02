@@ -12,6 +12,7 @@ from database import get_db
 from python_utils.sqlalchemy_models import User
 from message_save import save_message
 from python_utils.sqlalchemy_models import User, MessageSender
+from fastapi.responses import JSONResponse
 
 
 # Load environment variables
