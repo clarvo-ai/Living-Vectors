@@ -10,6 +10,9 @@ from google import genai
 
 from database import get_db
 from python_utils.sqlalchemy_models import User
+from message_save import save_message
+from python_utils.sqlalchemy_models import User, MessageSender
+
 
 # Load environment variables
 load_dotenv()
@@ -62,14 +65,26 @@ async def get_user(user_id: str, db: Session = Depends(get_db)):
         raise HTTPException(status_code=500, detail=f"Database error: {str(e)}")
 
 @app.post("/api/gemini")
-def get_gemini_response(prompt: str = Body(..., embed=True)):
+async def get_gemini_response(
+    userId: str = Body(...), 
+    prompt: str = Body(..., embed=True),
+    db: Session = Depends(get_db)):
+
     """Query Gemini API"""
     try:
+        save_message(db, userId, MessageSender.USER, prompt)
+
+
         response = client.models.generate_content(
             model="gemini-2.5-flash",
             contents=prompt
         )
+        ai_text = response.text or ""
+
+        save_message(db, userId, MessageSender.AI, ai_text)
+
         return {"message": response.text, "status": 200}
+
     except Exception as e:
         return JSONResponse(status_code=500, content={"message": str(e), "status": 500})
 
