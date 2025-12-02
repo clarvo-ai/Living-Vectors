@@ -22,6 +22,7 @@ model User {
   sessions                      Session[]
   Authenticator                 Authenticator[]
   messages                      ConversationMessage[]
+  learnings                     Learning[]
 
   @@index([id])
   @@index([email])
@@ -93,7 +94,20 @@ model ConversationMessage {
   content     String
   createdAt   DateTime      @default(now())
   user        User          @relation(fields: [userId], references: [id])
+  learnings   Learning[]
 
+  @@index([userId])
+}
+
+model Learning {
+  id        String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  userId    String   @db.Uuid
+  summary   String
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  user     User      @relation(fields: [userId], references: [id])
+  messages ConversationMessage[]
+  
   @@index([userId])
 }
 
