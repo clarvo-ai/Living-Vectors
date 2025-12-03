@@ -1,7 +1,7 @@
 from fastapi import FastAPI, Depends, HTTPException, Body
 from sqlalchemy.orm import Session
 from sqlalchemy import select
-from typing import List
+from typing import List, Optional
 import uvicorn
 import os
 from dotenv import load_dotenv
@@ -10,6 +10,10 @@ from google import genai
 
 from database import get_db
 from python_utils.sqlalchemy_models import User
+from message_save import save_message
+from python_utils.sqlalchemy_models import User, MessageSender
+from fastapi.responses import JSONResponse
+
 
 # Load environment variables
 load_dotenv()
@@ -62,14 +66,33 @@ async def get_user(user_id: str, db: Session = Depends(get_db)):
         raise HTTPException(status_code=500, detail=f"Database error: {str(e)}")
 
 @app.post("/api/gemini")
-def get_gemini_response(prompt: str = Body(..., embed=True)):
+async def get_gemini_response(
+    # userId is optional, but only for testing (specifically test_gemini.py)
+    # in real usage, the user is authenticated and the userId is always provided
+    # so, messages are always saved
+    # this should be removed in the future, when we have better gemini tests :)
+    # TODO: fix this when we have better gemini tests (correct version: userId: str = Body(...))
+    userId: Optional[str] = Body(default=None), 
+    prompt: str = Body(..., embed=True),
+    db: Session = Depends(get_db)):
+
     """Query Gemini API"""
     try:
+        if userId:
+            save_message(db, userId, MessageSender.USER, prompt)
+
+
         response = client.models.generate_content(
             model="gemini-2.5-flash",
             contents=prompt
         )
+        ai_text = response.text or ""
+
+        if userId:
+            save_message(db, userId, MessageSender.AI, ai_text)
+
         return {"message": response.text, "status": 200}
+
     except Exception as e:
         return JSONResponse(status_code=500, content={"message": str(e), "status": 500})
 

@@ -2,10 +2,15 @@ import '@testing-library/jest-dom';
 import { fireEvent, render, screen, waitFor } from '@testing-library/react';
 import { useSession } from 'next-auth/react';
 import InterviewPage from '../../app/interview/page';
+import { getGeminiResponse } from '../../lib/services/pyapi';
 
 // Mock next-auth/react
 jest.mock('next-auth/react', () => ({
   useSession: jest.fn(),
+}));
+
+jest.mock('../../lib/services/pyapi', () => ({
+  getGeminiResponse: jest.fn(),
 }));
 
 // Mock next/navigation
@@ -40,7 +45,7 @@ describe('InterviewPage - Chat Interaction', () => {
 
   it('should allow a user to send a message and receive a response', async () => {
     mockUseSession.mockReturnValue({
-      data: { user: { name: 'Test User' } },
+      data: { user: { id: 'test-user-id', name: 'Test User' } },
       status: 'authenticated',
     });
     render(<InterviewPage />);
@@ -57,14 +62,9 @@ describe('InterviewPage - Chat Interaction', () => {
     expect(textarea).toHaveValue('Yes, I am very dedicated.');
 
     // Mock the AI's response
-    (fetch as jest.Mock).mockResolvedValueOnce({
-      ok: true,
-      json: async () => ({
-        id: 'ai-response-1',
-        role: 'ai',
-        content: 'That is great to hear!',
-        timestamp: new Date(),
-      }),
+    (getGeminiResponse as jest.Mock).mockResolvedValueOnce({
+      message: 'That is great to hear!',
+      status: 200,
     });
 
     // User clicks the "Send" button
@@ -93,7 +93,7 @@ describe('InterviewPage - Chat Interaction', () => {
 
   it('submits the message when Enter is pressed', async () => {
     mockUseSession.mockReturnValue({
-      data: { user: { name: 'Enter Tester' } },
+      data: { user: { id: 'enter-tester-id', name: 'Enter Tester' } },
       status: 'authenticated',
     });
     render(<InterviewPage />);
@@ -104,14 +104,9 @@ describe('InterviewPage - Chat Interaction', () => {
     fireEvent.change(textarea, { target: { value: 'Test Enter' } });
 
     // Mock AI response before pressing Enter
-    (fetch as jest.Mock).mockResolvedValueOnce({
-      ok: true,
-      json: async () => ({
-        id: 'ai-response-enter',
-        role: 'ai',
-        content: 'Received via Enter',
-        timestamp: new Date(),
-      }),
+    (getGeminiResponse as jest.Mock).mockResolvedValueOnce({
+      message: 'Received via Enter',
+      status: 200,
     });
 
     // Press Enter to submit
