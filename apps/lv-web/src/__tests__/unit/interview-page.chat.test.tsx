@@ -2,14 +2,14 @@ import '@testing-library/jest-dom';
 import { fireEvent, render, screen, waitFor } from '@testing-library/react';
 import { useSession } from 'next-auth/react';
 import InterviewPage from '../../app/interview/page';
-import { getGeminiResponse } from '@/lib/services/pyapi';
+import { getGeminiResponse } from '../../lib/services/pyapi';
 
 // Mock next-auth/react
 jest.mock('next-auth/react', () => ({
   useSession: jest.fn(),
 }));
 
-jest.mock('@/lib/services/pyapi', () => ({
+jest.mock('../../lib/services/pyapi', () => ({
   getGeminiResponse: jest.fn(),
 }));
 
