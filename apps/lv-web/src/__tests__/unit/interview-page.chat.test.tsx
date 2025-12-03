@@ -40,7 +40,7 @@ describe('InterviewPage - Chat Interaction', () => {
 
   it('should allow a user to send a message and receive a response', async () => {
     mockUseSession.mockReturnValue({
-      data: { user: { name: 'Test User' } },
+      data: { user: { id: 'test-user-id', name: 'Test User' } },
       status: 'authenticated',
     });
     render(<InterviewPage />);
@@ -93,7 +93,7 @@ describe('InterviewPage - Chat Interaction', () => {
 
   it('submits the message when Enter is pressed', async () => {
     mockUseSession.mockReturnValue({
-      data: { user: { name: 'Enter Tester' } },
+      data: { user: { id: 'enter-tester-id', name: 'Enter Tester' } },
       status: 'authenticated',
     });
     render(<InterviewPage />);
