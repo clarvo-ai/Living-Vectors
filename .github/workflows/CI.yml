@@ -77,7 +77,7 @@ jobs:
           pip install -r apps/lv-pyapi/requirements.txt
       
       - name: Run test database migrations
-        run: npx prisma migrate deploy
+        run: npx prisma migrate deploy --schema ./packages/database/prisma/schema/schema.prisma
         env:
           DATABASE_URL: postgresql://postgres:postgres@localhost:5432/postgres
 
