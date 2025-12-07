@@ -19,8 +19,8 @@ from python_utils.sqlalchemy_models import User
 load_dotenv()
 
 # Create FastAPI app
-app: Any = FastAPI(title="LV PyAPI", description="Living Vectors Python API", version="1.0.0")
-allowed_origins: list[str] = [origin.strip() for origin in os.getenv("FRONTEND_ORIGINS", "").split(sep=",") if origin.strip()]
+app= FastAPI(title="LV PyAPI", description="Living Vectors Python API", version="1.0.0")
+allowed_origins: list[str] = [origin.strip() for origin in os.getenv("FRONTEND_ORIGINS", "").split(",") if origin.strip()]
 
 app.add_middleware(
     CORSMiddleware,
@@ -47,23 +47,23 @@ class InterviewChatRequest(BaseModel):
     conversation_history: Optional[List[ChatMessage]] = []
 
 @app.get("/")
-async def hello() -> dict[str, str]:
+async def hello():
     """Simple hello endpoint"""
     return {"message": "Hello from LV PyAPI! 🚀"}
 
 @app.get("/health")
-async def health_check() -> dict[str, str]:
+async def health_check():
     """Health check endpoint"""
     return {"status": "healthy", "service": "lv-pyapi"}
 
 @app.get("/users/{user_id}")
-async def get_user(user_id: str, db: Session = Depends(get_db)) -> dict[str, Any]:
+async def get_user(user_id: str, db: Session = Depends(get_db)):
     """Get a specific user by ID"""
     try:
         # Query specific user by ID
-        stmt: Any = select(User).where(User.id == user_id)
-        result: Any = db.execute(stmt)
-        user: Any = result.scalar_one_or_none()
+        stmt= select(User).where(User.id == user_id)
+        result= db.execute(stmt)
+        user= result.scalar_one_or_none()
         
         if not user:
             raise HTTPException(status_code=404, detail="User not found")
@@ -80,10 +80,10 @@ async def get_user(user_id: str, db: Session = Depends(get_db)) -> dict[str, Any
         raise HTTPException(status_code=500, detail=f"Database error: {str(e)}")
 
 @app.post("/api/gemini")
-def get_gemini_response(prompt: str = Body(..., embed=True)) -> dict[str, Any] | Any:
+def get_gemini_response(prompt: str = Body(..., embed=True)):
     """Query Gemini API"""
     try:
-        response: Any = client.models.generate_content(
+        response= client.models.generate_content(
             model="gemini-2.5-flash",
             contents=prompt
         )
@@ -92,7 +92,7 @@ def get_gemini_response(prompt: str = Body(..., embed=True)) -> dict[str, Any] |
         return JSONResponse(status_code=500, content={"message": str(e), "status": 500})
 
 @app.post("/api/interview/chat")
-async def interview_chat(request: InterviewChatRequest) -> dict[str, Any]:
+async def interview_chat(request: InterviewChatRequest):
     """AI-powered interview chat using career conversation questions as guidance"""
     try:
         # Build system prompt with career questions guidance
@@ -110,11 +110,8 @@ Use the following career conversation questions as a guide, but DO NOT ask them 
 Available question themes to guide your conversation:
 """
 
-        # Add all questions organized by goals
-        for goal_data in CAREER_QUESTIONS["goals"]:
-            system_prompt += f"\n{goal_data['goal']}:\n"
-            for q in goal_data["questions"]:
-                system_prompt += f"- {q['question']} (to explore: {q['potentialInsight']})\n"
+        # Add all questions organized by goals as formatted JSON
+        system_prompt += json.dumps(CAREER_QUESTIONS)
 
         system_prompt += """
 Remember: Be conversational, natural, and strategic. Build trust and gather insights organically."""
@@ -136,7 +133,7 @@ Remember: Be conversational, natural, and strategic. Build trust and gather insi
         full_prompt += f"\nUser: {request.message}\n\nAssistant:"
 
         # Generate response using Gemini
-        response: Any = client.models.generate_content(
+        response= client.models.generate_content(
             model="gemini-2.5-flash",
             contents=full_prompt
         )

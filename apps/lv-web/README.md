@@ -50,6 +50,12 @@ A simple, clean fullstack template built with Next.js, NextAuth.js, Prisma, and 
    GITHUB_CLIENT_ID="your-github-client-id"
    GITHUB_CLIENT_SECRET="your-github-client-secret"
    ```
+   # Set up a new .env file in the lv-pyapi.
+   # Set up your Gemini API key there:
+   # GEMINI_API_KEY=YOUR_GEMINI_API_KEY_HERE
+   # And the key you'll get from https://aistudio.google.com/app/api-keys 
+
+
 
 5. Set up the database:
 

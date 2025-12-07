@@ -23,16 +23,7 @@ export async function POST(request: NextRequest) {
     // Prepare conversation history for Python API
     const history = conversation_history || [];
 
-    // Determine Python API URL based on environment
-    // In Docker: Containers communicate via internal network using service names (lv-pyapi:8080)
-    // Outside Docker: Use localhost or environment variables for flexibility
-    // We detect Docker by checking if DATABASE_URL contains '@db:' (Docker service name)
-    // This is more reliable than checking for container existence
-    const isDocker = process.env.DATABASE_URL?.includes('@db:');
-    const apiUrl = isDocker 
-      ? 'http://lv-pyapi:8080'  // Docker internal network
-      : (process.env.PYAPI_URL || process.env.NEXT_PUBLIC_PYAPI_URL || 'http://localhost:8091');
-    // Fallback order: PYAPI_URL (server-side env) > NEXT_PUBLIC_PYAPI_URL (client-side env) > localhost:8091 (default)
+    const apiUrl = process.env.PYAPI_URL;
 
     // Call Python API for AI response
     const pyapiResponse = await fetch(`${apiUrl}/api/interview/chat`, {

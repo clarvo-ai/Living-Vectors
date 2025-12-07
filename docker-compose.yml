@@ -22,7 +22,7 @@ services:
     depends_on:
       - db
       - lv-pyapi
-    command: sh -c "./scripts/init-db.sh && npm run dev:lv-web"
+    command: sh -c "./scripts/init-db.sh && rm -f apps/lv-web/.env.local && npm run dev:lv-web"
 
   lv-web-build:
     profiles: ['lv-web-build']

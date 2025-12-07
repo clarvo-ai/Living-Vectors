@@ -9,6 +9,9 @@ from types import SimpleNamespace
 import pytest
 from fastapi.testclient import TestClient
 
+# To run the test in the terminal, run command: 
+# pytest apps/lv-pyapi/tests/unit/test_interview_chat.py
+
 PROJECT_ROOT: Path = Path(__file__).resolve().parents[2]
 if str(PROJECT_ROOT) not in sys.path:
     sys.path.append(str(PROJECT_ROOT))
@@ -87,4 +90,3 @@ def test_interview_chat_includes_conversation_history(monkeypatch, api_client) -
     assert "User: Hi there" in prompt
     assert "Assistant: Hello!" in prompt
     assert "User: I'd like to know my next step." in prompt
-
