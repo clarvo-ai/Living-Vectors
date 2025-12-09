@@ -184,6 +184,7 @@ Across all developers, the AI consistently followed a recognizable pattern:
 - **Keep it simple**: just ask one question at a time
 - **Accuracy**: verify external references before using them
 - **UI improvements**: progress indicator, better layout, stable transcript storage
+- It does not have a chat interface. Ours will.
 
 ## Aspects to Avoid Entirely
 
@@ -192,3 +193,4 @@ Across all developers, the AI consistently followed a recognizable pattern:
 - Overly leading questions that assume too much experience
 - Artificially enthusiastic affirmations
 - Voice behavior that rushes or interrupts users
+- Most devs experienced problems with the initial authentication. This should be avoided.
