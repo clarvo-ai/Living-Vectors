@@ -67,6 +67,52 @@ PYTHONPATH=$PYTHONPATH:./packages/python-utils/src:./apps/lv-pyapi python -m fol
 
 ```
 
+## Running Tests
+
+The project uses **Jest** for JavaScript/TypeScript tests and **Pytest** for python tests.
+
+### Quick Commands
+
+```bash
+# Run ALL tests (Jest + Pytest)
+npm run test
+
+# Run ALL tests with coverage reports
+npm run test:all:coverage
+```
+
+### Jest (JavaScript/TypeScript)
+
+```bash
+# Run Jest tests only
+npm run test:jest
+
+# Run Jest tests with coverage
+npm run test:jest:coverage
+
+# View coverage report
+open apps/lv-web/coverage/lcov-report/index.html
+```
+
+### Pytest (Python)
+
+```bash
+# Run Pytest tests only (requires Docker)
+npm run test:pytest
+
+# Run Pytest test with coverage
+npm run test:pytest:coverage
+
+# View coverage report
+open apps/lv-pyapi/htmlcov/index.html
+```
+
+### Coverage Reports
+
+- **Jest:** 'apps/lv-web/coverage/lcov-report/index.html'
+- **Pytest:** 'apps/lv-pyapi/htmlcov/index.html'
+- **CI:** Coverage reports are uploaded as artifacts in GitHub Actions
+
 ## Test Builds Locally
 
 ```bash
