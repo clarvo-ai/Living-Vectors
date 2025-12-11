@@ -1,4 +1,4 @@
-from fastapi import FastAPI, Depends, HTTPException, Body
+from fastapi import FastAPI, Depends, HTTPException, Body, BackgroundTasks
 from sqlalchemy.orm import Session
 from sqlalchemy import select
 from typing import List, Optional
@@ -8,11 +8,12 @@ from dotenv import load_dotenv
 from fastapi.middleware.cors import CORSMiddleware
 from google import genai
 
-from database import get_db
+from database import get_db, SessionLocal
 from python_utils.sqlalchemy_models import User
 from message_save import save_message
-from python_utils.sqlalchemy_models import User, MessageSender
+from python_utils.sqlalchemy_models import User, MessageSender, ConversationMessage
 from fastapi.responses import JSONResponse
+from learnings import get_messages_for_learnings
 
 
 # Load environment variables
@@ -67,6 +68,7 @@ async def get_user(user_id: str, db: Session = Depends(get_db)):
 
 @app.post("/api/gemini")
 async def get_gemini_response(
+    bg_tasks: BackgroundTasks,
     # userId is optional, but only for testing (specifically test_gemini.py)
     # in real usage, the user is authenticated and the userId is always provided
     # so, messages are always saved
@@ -90,6 +92,14 @@ async def get_gemini_response(
 
         if userId:
             save_message(db, userId, MessageSender.AI, ai_text)
+
+        count = db.query(ConversationMessage).filter(
+            ConversationMessage.userId == userId,
+            ConversationMessage.sender == MessageSender.USER
+            ).count()
+
+        if userId and count % 3 == 0:
+            bg_tasks.add_task(get_messages_for_learnings, userId, SessionLocal)
 
         return {"message": response.text, "status": 200}
 

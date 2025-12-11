@@ -6,16 +6,20 @@ from sqlalchemy import select
 from python_utils.sqlalchemy_models import ConversationMessage
 
 from database import get_db, SessionLocal
-from google import client
+import os
+from dotenv import load_dotenv
+from google import genai
 
+load_dotenv()
+client = genai.Client(api_key=os.getenv("GEMINI_API_KEY"))
 
 # Function to save learnings to the database
 def save_learnings_to_db(user_id: str, learnings: List[str], db: Session):
     """Save generated learnings to the database"""
     try:
         rows = [
-            Learning(userId=user_id, content=learning)
-            for learning in learnings
+           # Learning(userId=user_id, content=learning)
+           # for learning in learnings
         ]
         db.add_all(rows)
         db.commit()
@@ -70,8 +74,9 @@ def process_learnings(user_id: str, messages: List[str], db_session_factory):
 
 
 # Should be triggered when every fifth message is added
-def get_messages_for_learnings(user_id: str, background: BackgroundTasks,  db: Session = Depends(get_db)):
+def get_messages_for_learnings(user_id: str, db_session_factory):
     """Fetch messages for new learnings"""
+    db = db_session_factory()
     try:
         # Query the last 5 messages from the user
         stmt = (
@@ -83,9 +88,11 @@ def get_messages_for_learnings(user_id: str, background: BackgroundTasks,  db: S
         result = db.execute(stmt)
         messages = result.scalars().all()
         contents = [message.content for message in messages]
-
-        background.add_task(process_learnings, user_id, contents, SessionLocal) # Process in background
-
-        return {"status": "Learning task initiated"}
     except Exception as e:
-        raise HTTPException(status_code=500, detail=f"Error creating learnings: {str(e)}")
+        print(f"Error fetching messages for learnings: {str(e)}")
+        contents = []  
+    finally:
+        db.close()
+
+    if contents:
+        process_learnings(user_id, contents, db_session_factory)
