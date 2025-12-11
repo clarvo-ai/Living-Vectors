@@ -43,8 +43,6 @@ def test_create_learning_with_messages(db_session: Session):
 
     msg2_content = "Cats are great pets!"
     msg2 = save_message(db_session, user_id, sender, msg2_content)
-    db_session.add(msg1)
-    db_session.add(msg2)
 
     summary_text = "User likes cats."
     test_learning = Learning(
