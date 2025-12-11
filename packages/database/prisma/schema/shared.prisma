@@ -3,33 +3,33 @@
 
 model User {
   // Metadata
-  id                            String        @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
-  createdAt                     DateTime      @default(now())
-  updatedAt                     DateTime      @updatedAt
-  emailVerified                 DateTime?
+  id            String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+  emailVerified DateTime?
 
   // Basic profile attributes
-  name                          String?
-  first_name                    String?
-  last_name                     String?
-  email                         String        @unique
-  image                         String?
-  phone                         String?
-  bio                           String?
+  name       String?
+  first_name String?
+  last_name  String?
+  email      String  @unique
+  image      String?
+  phone      String?
+  bio        String?
 
   // OAuth relations
-  accounts                      Account[]
-  sessions                      Session[]
-  Authenticator                 Authenticator[]
-  messages                      ConversationMessage[]
-  learnings                     Learning[]
+  accounts      Account[]
+  sessions      Session[]
+  Authenticator Authenticator[]
+  messages      ConversationMessage[]
+  learnings     Learning[]
 
   @@index([id])
   @@index([email])
 }
 
 model Account {
-  userId            String  @db.Uuid
+  userId            String   @db.Uuid
   type              String
   provider          String
   providerAccountId String
@@ -88,30 +88,30 @@ model Authenticator {
 }
 
 model ConversationMessage {
-  messageId   String        @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
-  userId      String        @db.Uuid
-  sender      MessageSender
-  content     String
-  createdAt   DateTime      @default(now())
-  user        User          @relation(fields: [userId], references: [id])
-  learnings   Learning[]
+  messageId String        @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  userId    String        @db.Uuid
+  sender    MessageSender
+  content   String
+  createdAt DateTime      @default(now())
+  user      User          @relation(fields: [userId], references: [id])
+  learnings Learning[]
 
   @@index([userId])
 }
 
 model Learning {
-  id        String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
-  userId    String   @db.Uuid
+  id        String                @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  userId    String                @db.Uuid
   summary   String
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-  user     User      @relation(fields: [userId], references: [id])
-  messages ConversationMessage[]
-  
+  createdAt DateTime              @default(now())
+  updatedAt DateTime              @updatedAt
+  user      User                  @relation(fields: [userId], references: [id])
+  messages  ConversationMessage[]
+
   @@index([userId])
 }
 
 enum MessageSender {
-  USER 
+  USER
   AI
 }
