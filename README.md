@@ -1,3 +1,8 @@
+Project Board: https://github.com/orgs/clarvo-ai/projects/9/views/1
+> 📖 **For project documentation including folder structure and architecture overview, see [DOCUMENTATION.md](./DOCUMENTATION.md)**
+
+
+
 # How to Run the Project Locally
 
 ## 1. Prerequisites
