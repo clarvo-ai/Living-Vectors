@@ -7,6 +7,7 @@ import { useSession } from 'next-auth/react';
 import { useRouter } from 'next/navigation';
 import { useEffect, useRef, useState } from 'react';
 import { ChatMessage, Message } from './components/chatmessage';
+import { getGeminiResponse } from '@/lib/services/pyapi';
 
 export default function InterviewPage() {
   const { data: session, status } = useSession();
@@ -55,26 +56,20 @@ export default function InterviewPage() {
       // and the response is received from the API
       // Logic for the request processing is in
       // src/app/api/interview/chat/route.ts
-      const response = await fetch('/api/interview/chat', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          message: userMessage.content,
-        }),
-      });
-
-      if (!response.ok) {
-        throw new Error('Failed to get AI response');
+      const userId = session?.user?.id;
+      if (!userId) {
+        throw new Error('User ID missing');
       }
 
-      const data = await response.json();
+      //frontend calls the backend API to get the AI response
+      //this function also saves the message to the database
+      const data = await getGeminiResponse(userId, userMessage.content);
+
       const aiMessage: Message = {
-        id: data.id,
-        role: data.role,
-        content: data.content,
-        timestamp: new Date(data.timestamp),
+        id: Date.now().toString(),
+        role: 'ai',
+        content: data.message,
+        timestamp: new Date(),
       };
 
       setMessages((prev) => [...prev, aiMessage]);

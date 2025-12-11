@@ -40,6 +40,7 @@ export async function getUser(userId: string): Promise<PyAPIUser> {
 }
 
 export async function getGeminiResponse(
+  userId: string,
   userMessage: string
 ): Promise<{ message: string; status: number }> {
   const response = await fetch(`${getBaseUrl()}/api/gemini`, {
@@ -47,8 +48,11 @@ export async function getGeminiResponse(
     headers: {
       'Content-Type': 'application/json',
     },
-    body: JSON.stringify({ prompt: userMessage }),
+    body: JSON.stringify({ userId: userId, prompt: userMessage }),
   });
+  if (!response.ok) {
+    throw new Error(`Failed to get AI response: ${response.statusText}`);
+  }
 
   return response.json();
 }

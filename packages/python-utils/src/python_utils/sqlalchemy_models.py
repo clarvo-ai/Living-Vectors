@@ -107,7 +107,8 @@ class User(Base):
     account: Mapped[List["Account"]] = relationship("Account", back_populates="user")
     session: Mapped[List["Session"]] = relationship("Session", back_populates="user")
     authenticator: Mapped[List["Authenticator"]] = relationship("Authenticator", back_populates="user")
-
+    conversation_messages: Mapped[List["ConversationMessage"]] = relationship("ConversationMessage", back_populates="user")
+    
 class Vector(TypeDecorator):
     """Custom type for PostgreSQL vector type"""
     impl = String
@@ -149,3 +150,19 @@ class _prisma_migrations(Base):
     started_at: Mapped[datetime] = mapped_column(TIMESTAMP, nullable=False)
     applied_steps_count: Mapped[int] = mapped_column(Integer, nullable=False)
 
+class MessageSender(enum.Enum):
+    USER = "USER"
+    AI = "AI"
+
+class ConversationMessage(Base):
+    __tablename__ = "ConversationMessage"
+    __table_args__ = {'schema': 'public'}
+
+    messageId: Mapped[UUID] = mapped_column(PostgresUUID(as_uuid=True), primary_key=True, nullable=False, server_default=text("gen_random_uuid()"))
+    userId: Mapped[UUID] = mapped_column(PostgresUUID(as_uuid=True), ForeignKey("public.User.id"), nullable=False)
+    sender: Mapped[MessageSender] = mapped_column(ENUM(MessageSender, name="MessageSender"), nullable=False)
+    content: Mapped[str] = mapped_column(Text, nullable=False)
+    createdAt: Mapped[datetime] = mapped_column(TIMESTAMP, nullable=False, server_default=func.now())
+
+    # Relationships
+    user: Mapped["User"] = relationship("User", back_populates="conversation_messages")
