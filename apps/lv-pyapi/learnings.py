@@ -13,7 +13,11 @@ from google import client
 def save_learnings_to_db(user_id: str, learnings: List[str], db: Session):
     """Save generated learnings to the database"""
     try:
-        #don't know schema yet
+        rows = [
+            Learning(userId=user_id, content=learning)
+            for learning in learnings
+        ]
+        db.add_all(rows)
         db.commit()
     except Exception as e:
         db.rollback()

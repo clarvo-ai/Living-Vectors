@@ -73,6 +73,5 @@ def get_gemini_response(prompt: str = Body(..., embed=True)):
     except Exception as e:
         return JSONResponse(status_code=500, content={"message": str(e), "status": 500})
 
-
 if __name__ == "__main__":
     uvicorn.run(app, host="0.0.0.0", port=8080)
