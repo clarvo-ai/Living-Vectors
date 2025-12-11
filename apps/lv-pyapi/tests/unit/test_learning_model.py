@@ -1,0 +1,70 @@
+import os
+import pytest
+import uuid
+from datetime import datetime
+from sqlalchemy import create_engine
+from sqlalchemy.orm import sessionmaker, Session
+
+from message_save import save_message
+from python_utils.sqlalchemy_models import Base, ConversationMessage, MessageSender, User, Learning
+
+raw_url = os.getenv("TEST_DATABASE_URL")
+assert raw_url, "TEST_DATABASE_URL is not set"
+TEST_DATABASE_URL = raw_url
+
+#this is a fixture that creates a database session for the tests
+@pytest.fixture
+def db_session():
+    engine = create_engine(TEST_DATABASE_URL)
+
+    SessionLocal = sessionmaker(bind=engine)
+    session = SessionLocal()
+    try:
+        yield session
+    finally:
+        session.close()
+
+def test_create_learning_with_messages(db_session: Session):
+    user_id = str(uuid.uuid4())
+    sender = MessageSender.USER
+
+    test_user = User(
+        id=user_id, 
+        email=f"{uuid.uuid4()}@example.com", 
+        name="Test User", 
+        createdAt=datetime.now(), 
+        updatedAt=datetime.now()
+    )
+    db_session.add(test_user)
+    db_session.commit()
+
+    msg1Content = "I like cats."
+    msg1 = save_message(db_session, user_id, sender, msg1Content)
+
+    msg2Content = "Cats are great pets!"
+    msg2 = save_message(db_session, user_id, sender, msg2Content)
+
+    db_session.add(msg1)
+    db_session.add(msg2)
+
+    summary_text = "User likes cats."
+    test_learning = Learning(
+        userId=user_id,
+        summary=summary_text,
+        updatedAt=datetime.now(),
+        messages=[msg1, msg2]
+    )
+
+    db_session.add(test_learning)
+    db_session.commit()
+    db_session.refresh(test_learning)
+
+    stored = db_session.query(Learning).filter_by(id=test_learning.id).first()
+    assert stored is not None
+    assert stored.summary == summary_text
+    assert len(stored.messages) == 2
+    
+    message_contents = [m.content for m in stored.messages]
+    assert msg1Content in message_contents
+    assert msg2Content in message_contents
+    
