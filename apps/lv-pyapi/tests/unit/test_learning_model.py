@@ -38,12 +38,11 @@ def test_create_learning_with_messages(db_session: Session):
     db_session.add(test_user)
     db_session.commit()
 
-    msg1Content = "I like cats."
-    msg1 = save_message(db_session, user_id, sender, msg1Content)
+    msg1_content = "I like cats."
+    msg1 = save_message(db_session, user_id, sender, msg1_content)
 
-    msg2Content = "Cats are great pets!"
-    msg2 = save_message(db_session, user_id, sender, msg2Content)
-
+    msg2_content = "Cats are great pets!"
+    msg2 = save_message(db_session, user_id, sender, msg2_content)
     db_session.add(msg1)
     db_session.add(msg2)
 
@@ -65,6 +64,6 @@ def test_create_learning_with_messages(db_session: Session):
     assert len(stored.messages) == 2
     
     message_contents = [m.content for m in stored.messages]
-    assert msg1Content in message_contents
-    assert msg2Content in message_contents
+    assert msg1_content in message_contents
+    assert msg2_content in message_contents
     
