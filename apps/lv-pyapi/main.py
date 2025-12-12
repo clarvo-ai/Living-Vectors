@@ -79,6 +79,7 @@ async def get_gemini_response(
     db: Session = Depends(get_db)):
 
     """Query Gemini API"""
+    messageID = ""
     try:
         if userId:
             save_message(db, userId, MessageSender.USER, prompt)
@@ -91,15 +92,14 @@ async def get_gemini_response(
         ai_text = response.text or ""
 
         if userId:
-            save_message(db, userId, MessageSender.AI, ai_text)
+            messageID = save_message(db, userId, MessageSender.AI, ai_text).messageId
 
         count = db.query(ConversationMessage).filter(
-            ConversationMessage.userId == userId,
-            ConversationMessage.sender == MessageSender.USER
+            ConversationMessage.userId == userId
             ).count()
 
-        if userId and count % 3 == 0:
-            bg_tasks.add_task(get_messages_for_learnings, userId, SessionLocal)
+        if userId and count % 6 == 0:
+            bg_tasks.add_task(get_messages_for_learnings, userId, messageID, SessionLocal)
 
         return {"message": response.text, "status": 200}
 

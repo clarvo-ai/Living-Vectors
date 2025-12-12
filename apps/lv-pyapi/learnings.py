@@ -74,17 +74,26 @@ def process_learnings(user_id: str, messages: List[str], db_session_factory):
 
 
 # Should be triggered when every fifth message is added
-def get_messages_for_learnings(user_id: str, db_session_factory):
+def get_messages_for_learnings(user_id: str, message_id: str, db_session_factory):
     """Fetch messages for new learnings"""
     db = db_session_factory()
     try:
-        # Query the last 5 messages from the user
+        # Get the timestamp of the message with message_id
+        anchor_timestamp = db.execute(
+            select(ConversationMessage.createdAt).where(ConversationMessage.id == message_id)
+        ).scalar_one()
+
+        # Query the last 6 messages from the user before the anchor timestamp
         stmt = (
             select(ConversationMessage)
-            .where(ConversationMessage.userId == user_id)
+            .where(
+                ConversationMessage.userId == user_id,
+                ConversationMessage.createdAt <= anchor_timestamp
+            )
             .order_by(ConversationMessage.createdAt.desc())
-            .limit(5)
+            .limit(6)
         )
+
         result = db.execute(stmt)
         messages = result.scalars().all()
         contents = [message.content for message in messages]
