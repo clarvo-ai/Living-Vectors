@@ -31,8 +31,14 @@ def test_save_user_message(db_session: Session):
     sender = MessageSender.USER
     content = "Hello world"
 
+    test_user = User(
+        id=user_id, 
+        email=f"{uuid.uuid4()}@example.com", 
+        name="Test User", 
+        createdAt=datetime.now(), 
+        updatedAt=datetime.now()
+    )
 
-    test_user = User(id=user_id, email=f"{uuid.uuid4()}@example.com", name="Test User", createdAt=datetime.now(), updatedAt=datetime.now())
     db_session.add(test_user)
     db_session.commit()
 
@@ -54,7 +60,14 @@ def test_save_ai_message(db_session: Session):
     sender = MessageSender.AI
     content = "Hello world"
 
-    test_user = User(id=user_id, email=f"{uuid.uuid4()}@example.com", name="Test User", createdAt=datetime.now(), updatedAt=datetime.now())
+    test_user = User(
+        id=user_id, 
+        email=f"{uuid.uuid4()}@example.com", 
+        name="Test User", 
+        createdAt=datetime.now(), 
+        updatedAt=datetime.now()
+    )
+
     db_session.add(test_user)
     db_session.commit()
 
