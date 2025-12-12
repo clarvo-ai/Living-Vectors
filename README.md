@@ -163,7 +163,7 @@ TIP: use Docker/Containers extension in Cursor to manage containers and see logs
 
 5. Start correct profile (usually LV-WEB)
 
-## 4. Torubleshooting: Fixing node_modules on macOS/Windows (Non-Linux Issue)
+## 4. Troubleshooting: Fixing node_modules on macOS/Windows (Non-Linux Issue)
 
 If Docker complains or node_modules mismatch occurs:
 
