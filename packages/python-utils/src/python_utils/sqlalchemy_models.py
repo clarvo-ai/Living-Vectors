@@ -1,4 +1,4 @@
-from sqlalchemy import String, DateTime, Boolean, Integer, BigInteger, ForeignKey, ForeignKeyConstraint, Table, ARRAY, Text, Float, Enum, text, func, event, Column
+from sqlalchemy import String, DateTime, Boolean, Integer, BigInteger, ForeignKey, ForeignKeyConstraint, Table, ARRAY, Text, Float, Enum, text, func, event
 from sqlalchemy.dialects.postgresql import UUID as PostgresUUID, TIMESTAMP, DOUBLE_PRECISION, ENUM
 from sqlalchemy.orm import DeclarativeBase, relationship, Mapped, mapped_column, Mapper
 from sqlalchemy.types import TypeDecorator
@@ -6,6 +6,13 @@ from uuid import UUID
 from typing import Optional, List, Any, Sequence
 from datetime import datetime
 import enum
+
+# Enum Classes
+class MessageSender(enum.Enum):
+    """Enum type for MessageSender"""
+    USER = 'USER'
+    AI = 'AI'
+
 
 
 # Base Class
@@ -71,6 +78,36 @@ class Authenticator(Base):
     user: Mapped["User"] = relationship("User", back_populates="authenticator", uselist=False)
 
 
+class ConversationMessage(Base):
+    __tablename__ = "ConversationMessage"
+    __table_args__ = {'schema': 'public'}
+
+    messageId: Mapped[UUID] = mapped_column(PostgresUUID(as_uuid=True), primary_key=True, nullable=False, server_default=text("gen_random_uuid()"))
+    userId: Mapped[UUID] = mapped_column(PostgresUUID(as_uuid=True), ForeignKey("public.User.id"), nullable=False)
+    sender: Mapped[MessageSender] = mapped_column(Enum(MessageSender), nullable=False)
+    content: Mapped[str] = mapped_column(Text, nullable=False)
+    createdAt: Mapped[datetime] = mapped_column(TIMESTAMP, nullable=False, server_default=func.now())
+
+    # Relationships
+    _ConversationMessageToLearning: Mapped[List["_ConversationMessageToLearning"]] = relationship("_ConversationMessageToLearning", back_populates="conversationMessage")
+    user: Mapped["User"] = relationship("User", back_populates="conversationMessage", uselist=False)
+
+
+class Learning(Base):
+    __tablename__ = "Learning"
+    __table_args__ = {'schema': 'public'}
+
+    id: Mapped[UUID] = mapped_column(PostgresUUID(as_uuid=True), primary_key=True, nullable=False, server_default=text("gen_random_uuid()"))
+    userId: Mapped[UUID] = mapped_column(PostgresUUID(as_uuid=True), ForeignKey("public.User.id"), nullable=False)
+    summary: Mapped[str] = mapped_column(Text, nullable=False)
+    createdAt: Mapped[datetime] = mapped_column(TIMESTAMP, nullable=False, server_default=func.now())
+    updatedAt: Mapped[datetime] = mapped_column(TIMESTAMP, nullable=False, server_default=func.now(), onupdate=func.now())
+
+    # Relationships
+    _ConversationMessageToLearning: Mapped[List["_ConversationMessageToLearning"]] = relationship("_ConversationMessageToLearning", back_populates="learning")
+    user: Mapped["User"] = relationship("User", back_populates="learning", uselist=False)
+
+
 class Session(Base):
     __tablename__ = "Session"
     __table_args__ = {'schema': 'public'}
@@ -107,9 +144,9 @@ class User(Base):
     account: Mapped[List["Account"]] = relationship("Account", back_populates="user")
     session: Mapped[List["Session"]] = relationship("Session", back_populates="user")
     authenticator: Mapped[List["Authenticator"]] = relationship("Authenticator", back_populates="user")
-    conversation_messages: Mapped[List["ConversationMessage"]] = relationship("ConversationMessage", back_populates="user")
-    learnings: Mapped[List["Learning"]] = relationship("Learning", back_populates="user")
-    
+    conversationMessage: Mapped[List["ConversationMessage"]] = relationship("ConversationMessage", back_populates="user")
+    learning: Mapped[List["Learning"]] = relationship("Learning", back_populates="user")
+
 class Vector(TypeDecorator):
     """Custom type for PostgreSQL vector type"""
     impl = String
@@ -138,6 +175,18 @@ class VerificationToken(Base):
     expires: Mapped[datetime] = mapped_column(TIMESTAMP, nullable=False)
 
 
+class _ConversationMessageToLearning(Base):
+    __tablename__ = "_ConversationMessageToLearning"
+    __table_args__ = {'schema': 'public'}
+
+    A: Mapped[UUID] = mapped_column(PostgresUUID(as_uuid=True), ForeignKey("public.ConversationMessage.messageId"), primary_key=True, nullable=False, server_default=text("gen_random_uuid()"))
+    B: Mapped[UUID] = mapped_column(PostgresUUID(as_uuid=True), ForeignKey("public.Learning.id"), primary_key=True, nullable=False, server_default=text("gen_random_uuid()"))
+
+    # Relationships
+    conversationMessage: Mapped["ConversationMessage"] = relationship("ConversationMessage", back_populates="_ConversationMessageToLearning", uselist=False)
+    learning: Mapped["Learning"] = relationship("Learning", back_populates="_ConversationMessageToLearning", uselist=False)
+
+
 class _prisma_migrations(Base):
     __tablename__ = "_prisma_migrations"
     __table_args__ = {'schema': 'public'}
@@ -151,42 +200,3 @@ class _prisma_migrations(Base):
     started_at: Mapped[datetime] = mapped_column(TIMESTAMP, nullable=False)
     applied_steps_count: Mapped[int] = mapped_column(Integer, nullable=False)
 
-class MessageSender(enum.Enum):
-    USER = "USER"
-    AI = "AI"
-
-# Relationship between ConversationMessage and Learning
-t_ConversationMessageToLearning = Table(
-    '_ConversationMessageToLearning', Base.metadata,
-    Column('A', PostgresUUID(as_uuid=True), ForeignKey('public.ConversationMessage.messageId'), primary_key=True, nullable=False),
-    Column('B', PostgresUUID(as_uuid=True), ForeignKey('public.Learning.id'), primary_key=True, nullable=False),
-    schema='public'
-)
-
-class ConversationMessage(Base):
-    __tablename__ = "ConversationMessage"
-    __table_args__ = {'schema': 'public'}
-
-    messageId: Mapped[UUID] = mapped_column(PostgresUUID(as_uuid=True), primary_key=True, nullable=False, server_default=text("gen_random_uuid()"))
-    userId: Mapped[UUID] = mapped_column(PostgresUUID(as_uuid=True), ForeignKey("public.User.id"), nullable=False)
-    sender: Mapped[MessageSender] = mapped_column(ENUM(MessageSender, name="MessageSender"), nullable=False)
-    content: Mapped[str] = mapped_column(Text, nullable=False)
-    createdAt: Mapped[datetime] = mapped_column(TIMESTAMP, nullable=False, server_default=func.now())
-
-    # Relationships
-    user: Mapped["User"] = relationship("User", back_populates="conversation_messages")
-    learnings: Mapped[List["Learning"]] = relationship("Learning", secondary=t_ConversationMessageToLearning, back_populates="messages")
-
-class Learning(Base):
-    __tablename__ = "Learning"
-    __table_args__ = {'schema': 'public'}
-
-    id: Mapped[UUID] = mapped_column(PostgresUUID(as_uuid=True), primary_key=True, nullable=False, server_default=text("gen_random_uuid()"))
-    userId: Mapped[UUID] = mapped_column(PostgresUUID(as_uuid=True), ForeignKey("public.User.id"), nullable=False)
-    summary: Mapped[str] = mapped_column(Text, nullable=False)
-    createdAt: Mapped[datetime] = mapped_column(TIMESTAMP, nullable=False, server_default=func.now())
-    updatedAt: Mapped[datetime] = mapped_column(TIMESTAMP, nullable=False, server_default=func.now(), onupdate=func.now())
-
-    # Relationships
-    user: Mapped["User"] = relationship("User", back_populates="learnings")
-    messages: Mapped[List["ConversationMessage"]] = relationship("ConversationMessage", secondary=t_ConversationMessageToLearning, back_populates="learnings")
