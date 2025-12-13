@@ -14,10 +14,8 @@ from message_save import save_message
 from python_utils.sqlalchemy_models import User, MessageSender, ConversationMessage
 from fastapi.responses import JSONResponse
 from learnings import get_messages_for_learnings
+from gemini_client import client
 
-
-# Load environment variables
-load_dotenv()
 
 # Create FastAPI app
 app = FastAPI(title="LV PyAPI", description="Living Vectors Python API", version="1.0.0")
@@ -30,8 +28,6 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
-
-client = genai.Client(api_key=os.getenv("GEMINI_API_KEY"))
 
 @app.get("/")
 async def hello():
@@ -98,7 +94,8 @@ async def get_gemini_response(
             ConversationMessage.userId == userId
             ).count()
 
-        if userId and count % 6 == 0:
+        if userId and count % 20 == 0:
+            print("Scheduling background task for learnings...")
             bg_tasks.add_task(get_messages_for_learnings, userId, messageID, SessionLocal)
 
         return {"message": response.text, "status": 200}
