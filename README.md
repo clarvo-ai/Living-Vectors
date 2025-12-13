@@ -90,8 +90,11 @@ npm run test:jest
 # Run Jest tests with coverage
 npm run test:jest:coverage
 
-# View coverage report
+# View coverage report (Mac/Linux)
 open apps/lv-web/coverage/lcov-report/index.html
+
+# View coverage report (Windows/WSL)
+powershell.exe -c start apps/lv-web/coverage/lcov-report/index.html
 ```
 
 ### Pytest (Python)
@@ -103,8 +106,11 @@ npm run test:pytest
 # Run Pytest test with coverage
 npm run test:pytest:coverage
 
-# View coverage report
+# View coverage report (Mac/Linux)
 open apps/lv-pyapi/htmlcov/index.html
+
+# View coverage report (Windows/WSL)
+powershell.exe -c start apps/lv-pyapi/htmlcov/index.html
 ```
 
 ### Coverage Reports

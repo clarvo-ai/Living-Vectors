@@ -20,6 +20,7 @@
     "test": "npm run test:jest && npm run test:pytest",
     "test:jest": "npm run test --workspace=apps/lv-web",
     "test:jest:coverage": "npm run test:coverage --workspace=apps/lv-web",
+    "test:watch": "npm run test:watch --workspace=apps/lv-web",
     "test:pytest": "docker compose --profile tests run --rm test-runner",
     "test:pytest:coverage": "docker compose --profile tests run --rm test-runner pytest  --cov=. --cov-report=term --cov-report=html",
     "test:all:coverage": "npm run test:jest:coverage && npm run test:pytest:coverage"
@@ -34,7 +35,8 @@
     "tsx": "4.19.3"
   },
   "overrides": {
-    "@radix-ui/react-focus-scope": "1.1.1"
+    "@radix-ui/react-focus-scope": "1.1.1",
+    "next": "^15.5.9"
   },
   "packageManager": "npm@10.2.4",
   "engines": {
