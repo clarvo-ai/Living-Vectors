@@ -67,6 +67,38 @@ PYTHONPATH=$PYTHONPATH:./packages/python-utils/src:./apps/lv-pyapi python -m fol
 
 ```
 
+## Running lv-web Without Docker
+
+For faster frontend development:
+
+### One-time Setup
+
+1. Create `apps/lv-web/.env.local` with:
+
+```
+DATABASE_URL=postgresql://postgres:postgres@localhost:3772/postgres
+DIRECT_DATABASE_URL=postgresql://postgres:postgres@localhost:3772/postgres
+```
+
+2. Regenerate Prisma for Mac:
+
+```bash
+rm -rf packages/database/prisma/generated
+cd packages/database/prisma && npx prisma generate
+```
+
+### Running
+
+```bash
+# Start database
+docker compose --profile lv-web up db -d
+
+# Start app
+npm run dev:lv-web -- --port=3045
+```
+
+Open http://localhost:3045
+
 ## Test Builds Locally
 
 ```bash
