@@ -2,7 +2,7 @@
 // add migrations to the schema to avoid the error:
 generator client {
   provider        = "prisma-client-js"
-  output = "../generated/client"
+  output          = "../generated/client"
   previewFeatures = ["postgresqlExtensions"]
 }
 
