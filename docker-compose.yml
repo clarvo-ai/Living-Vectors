@@ -91,6 +91,41 @@ services:
       - .:/app
       - /app/node_modules
 
+  mock-migrate:
+    profiles: ['mock-seed']
+    container_name: living-vectors-mock-db-migrate
+    build:
+      context: .
+      dockerfile: ./packages/database/Dockerfile.web
+    environment:
+      - DATABASE_URL=postgresql://postgres:postgres@mock-db:5432/postgres
+      - DIRECT_DATABASE_URL=postgresql://postgres:postgres@mock-db:5432/postgres
+      - NODE_ENV=development
+      - APP_SOURCE_NAME=${APP_SOURCE_NAME:-unknown}
+    depends_on:
+      - mock-db
+    command: sh -c "until pg_isready -h mock-db -U postgres; do sleep 1; done && cd packages/database && npx prisma migrate deploy && npm run db:generate"
+    volumes:
+      - .:/app
+      - /app/node_modules
+
+  mock-seed:
+    profiles: ['mock-seed']
+    container_name: living-vectors-mock-seed
+    build:
+      context: .
+      dockerfile: ./packages/database/Dockerfile.web
+    environment:
+      - DATABASE_URL=postgresql://postgres:postgres@mock-db:5432/postgres
+      - DIRECT_DATABASE_URL=postgresql://postgres:postgres@mock-db:5432/postgres
+      - NODE_ENV=development
+    depends_on:
+      - mock-migrate
+    command: sh -c "cd packages/database && npm run db:seed"
+    volumes:
+      - .:/app
+      - /app/node_modules
+
   python-typegen:
     profiles: ['python-typegen']
     container_name: living-vectors-python-typegen
@@ -138,7 +173,24 @@ services:
     volumes:
       - postgres_data:/var/lib/postgresql/data
       # - we can add create_db.sql
-  
+
+  mock-db:
+    profiles: ['mock-db', 'mock-seed']
+    container_name: lv-mock-db
+    image: lv-db
+    restart: always
+    build:
+      context: ./packages/database/prisma
+      dockerfile: Dockerfile
+    ports:
+      - '3773:5432'
+    environment:
+      - POSTGRES_USER=postgres
+      - POSTGRES_PASSWORD=postgres
+      - POSTGRES_DB=postgres
+    volumes:
+      - postgres_mock_data:/var/lib/postgresql/data
+
   test-postgres:
     profiles: ['tests']
     container_name: lv-test-db
@@ -152,7 +204,7 @@ services:
     volumes:
       - postgres_test_data:/var/lib/postgresql/data
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U postgres -d test_db"]
+      test: ['CMD-SHELL', 'pg_isready -U postgres -d test_db']
       interval: 5s
       timeout: 5s
       retries: 5
@@ -177,7 +229,7 @@ services:
     volumes:
       - .:/app
       - /app/node_modules
-  
+
   test-runner:
     profiles: ['tests']
     container_name: lv-test-runner
@@ -192,8 +244,8 @@ services:
     volumes:
       - .:/app
     command: pytest tests --asyncio-mode=auto
-    
-    
+
 volumes:
   postgres_data:
   postgres_test_data:
+  postgres_mock_data:

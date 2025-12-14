@@ -100,6 +100,28 @@ List all tables:
 \dt
 ```
 
+## Seed Mock Database with Test Data
+
+The project includes a seed script that populates a separate mock database with sample users, conversations, and learnings. This helps with quick project setup, testing, and onboarding.
+
+```bash
+## Set up mock database with test data (runs migrations and seeds data):
+docker compose --profile mock-seed up -d --build
+
+## Connect to mock database:
+sudo docker exec -it lv-mock-db psql -U postgres
+
+## Reseed the mock database (clear and start fresh):
+docker compose --profile mock-seed down -v
+docker compose --profile mock-seed up -d --build
+
+## Run seed script manually against any database:
+cd packages/database
+DATABASE_URL=postgresql://postgres:postgres@localhost:3773/postgres NODE_ENV=development npm run db:seed
+```
+
+The mock database runs on port `3773` (main database uses `3772`).
+
 ### Python Development
 
 Add the following to `.vscode/settings.json` after installing the Pylance extension for Python type checking and hints:
