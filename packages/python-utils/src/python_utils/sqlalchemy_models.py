@@ -87,6 +87,7 @@ class ConversationMessage(Base):
     sender: Mapped[MessageSender] = mapped_column(Enum(MessageSender), nullable=False)
     content: Mapped[str] = mapped_column(Text, nullable=False)
     createdAt: Mapped[datetime] = mapped_column(TIMESTAMP, nullable=False, server_default=func.now())
+    learnedFrom: Mapped[bool] = mapped_column(Boolean, nullable=False, server_default=text('false'))
 
     # Relationships
     _ConversationMessageToLearning: Mapped[List["_ConversationMessageToLearning"]] = relationship("_ConversationMessageToLearning", back_populates="conversationMessage")
