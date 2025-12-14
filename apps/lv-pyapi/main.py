@@ -13,7 +13,7 @@ from python_utils.sqlalchemy_models import User
 from message_save import save_message
 from python_utils.sqlalchemy_models import User, MessageSender, ConversationMessage
 from fastapi.responses import JSONResponse
-from learnings import get_messages_for_learnings
+from learnings import get_messages_for_learnings, check_and_trigger_learnings
 from gemini_client import client
 
 
@@ -75,7 +75,6 @@ async def get_gemini_response(
     db: Session = Depends(get_db)):
 
     """Query Gemini API"""
-    messageID = ""
     try:
         if userId:
             save_message(db, userId, MessageSender.USER, prompt)
@@ -88,15 +87,10 @@ async def get_gemini_response(
         ai_text = response.text or ""
 
         if userId:
-            messageID = save_message(db, userId, MessageSender.AI, ai_text).messageId
+            save_message(db, userId, MessageSender.AI, ai_text)
 
-        count = db.query(ConversationMessage).filter(
-            ConversationMessage.userId == userId
-            ).count()
-
-        if userId and count % 20 == 0:
-            print("Scheduling background task for learnings...")
-            bg_tasks.add_task(get_messages_for_learnings, userId, messageID, SessionLocal)
+            # Trigger background task to check if learnings generation is needed
+            bg_tasks.add_task(check_and_trigger_learnings, userId, SessionLocal)
 
         return {"message": response.text, "status": 200}
 

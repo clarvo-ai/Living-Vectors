@@ -1,7 +1,7 @@
-from typing import List
+from typing import List, Dict
 from fastapi import Depends, BackgroundTasks, HTTPException
 from sqlalchemy.orm import Session
-from sqlalchemy import select
+from sqlalchemy import select, update
 from python_utils.sqlalchemy_models import ConversationMessage, Learning, _ConversationMessageToLearning
 from database import get_db, SessionLocal
 from google.genai import types
@@ -10,23 +10,26 @@ from gemini_client import client
 
 
 # Function to save learnings to the database
-def save_learnings_to_db(user_id: str, learnings: List[str], message_ids: List[str], db: Session):
+def save_learnings_to_db(user_id: str, learnings: List[Dict[str, List[str]]], db: Session):
     """Save generated learnings to the database"""
+    for learning in learnings:
+        print(f"Learning: {learning['content']}, Message IDs: {learning['ids']}")
     try:
         rows = []
-        for learning_text in learnings:
+        for learning in learnings:
             l = Learning(
                 userId=user_id,
-                summary=learning_text,
+                summary=learning["content"],
                 updatedAt=datetime.utcnow())
             db.add(l)
             db.flush()  # To get the learning ID
 
-            for msg_id in message_ids:
+            for msg_id in learning["ids"]:
                 association = _ConversationMessageToLearning(
                     A=msg_id,
                     B=l.id
                 )
+                
                 db.add(association)
             rows.append(l)
         db.commit()
@@ -34,20 +37,49 @@ def save_learnings_to_db(user_id: str, learnings: List[str], message_ids: List[s
         db.rollback()
         print(f"Error saving learnings to DB: {str(e)}")
 
+
+# Function to mark all messages in the list as learned from
+def mark_messages_as_learned(message_ids: List[str], db: Session):
+    """Mark messages as learned from"""
+    try:
+        stmt = (
+            update(ConversationMessage)
+            .where(ConversationMessage.messageId.in_(message_ids))
+            .values(learnedFrom=True)
+        )
+
+        db.execute(stmt)
+        db.commit()
+    except Exception as e:
+        db.rollback()
+        print(f"Error marking messages as learned: {str(e)}")
+
+
 # Define the response schema for Gemini API
 schema = {
     "type": "object",
     "properties": {
         "learnings": {
             "type": "array",
-            "items": {"type": "string"}
+            "items": {
+                "type": "object",
+                "properties": {
+                    "text": {"type": "string"},
+                    "message_ids": {
+                        "type": "array",
+                        "items": {"type": "string"}
+                    }
+                },
+                "required": ["text", "message_ids"]
+            }
         }
     },
     "required": ["learnings"]
 }
 
+
 # Function to generate learnings using Gemini API
-def learnings_from_messages(messages: List[str]):
+def learnings_from_messages(messages: List[Dict[str, str]]):
     """Generate learnings from messages using Gemini API"""
     try:
         prompt = (
@@ -56,9 +88,12 @@ def learnings_from_messages(messages: List[str]):
             "Produce a list of concise, self-contained statements suitable for embedding into a vector "
             "database. Each statement should focus on a specific trait, preference, or career-relevant "
             "insight that can help match the user to their ideal job.\n\n"
-            + "\n".join(f"- {msg}" for msg in messages) +
-            "\n\nReturn the output as a plain list of short statements, each reflecting one actionable or "
-            "descriptive insight useful for job matching."
+            "For each insight, provide the list of message IDs it was derived from.\n\n"
+            + "\n".join(f"- ({msg['id']}) {msg['content']}" for msg in messages)
+            + "\n\n"
+            "Return the output as a JSON object with a 'learnings' field, which is an array of objects, "
+            "each containing 'text' (the insight) and 'message_ids' (list of IDs of messages that contributed)."
+            "If no learnings can be derived, return an empty list."
         )
         
         generation_config = types.GenerateContentConfig(
@@ -72,58 +107,78 @@ def learnings_from_messages(messages: List[str]):
             config=generation_config
         )
 
-        return response.parsed["learnings"]
+        learnings_list = [
+            {"content": l["text"], "ids": l["message_ids"]}
+            for l in response.parsed.get("learnings", [])
+        ]
+
+        return learnings_list
     except Exception as e:
         print(f"Error generating learnings: {str(e)}")
         return []
 
-# Background task to process learnings
-def process_learnings(user_id: str, message_contents: List[str], message_ids: List[str], db_session_factory):
+
+# Function to fetch messages for learnings
+def get_messages_for_learnings(user_id: str, db: Session):
+    """Fetch messages for new learnings"""
+    try:
+        stmt = select(ConversationMessage).where(
+                ConversationMessage.userId == user_id,
+                ConversationMessage.learnedFrom == False
+            ).order_by(ConversationMessage.createdAt.asc())
+
+        result = db.execute(stmt)
+        rows = result.scalars().all()
+
+        ids = [m.messageId for m in rows]
+
+        message_list = [
+            {"id": message.messageId, "content": message.content}
+            for message in rows
+        ]
+
+        return ids, message_list
+
+    except Exception as e:
+        print(f"Error fetching messages for learnings: {str(e)}")
+        return [], []
+
+
+# Function to process learnings for a user
+def process_learnings(user_id: str, db: Session):
     """Process messages to generate and save learnings"""
-    db = db_session_factory()
     try :
-        learnings = learnings_from_messages(message_contents)
-        save_learnings_to_db(user_id, learnings, message_ids, db)
+        messageIDs, messages = get_messages_for_learnings(user_id, db)
+        if not messages:
+            return
+
+        learnings = learnings_from_messages(messages)
+        if learnings:
+            save_learnings_to_db(user_id, learnings, db)
+        
+        if messageIDs:
+            mark_messages_as_learned(messageIDs, db)
+
     except Exception as e:
         db.rollback()
         print(f"Error processing learnings: {str(e)}")
-    finally:
-        db.close()
 
 
-# Should be triggered when every fifth message is added
-def get_messages_for_learnings(user_id: str, message_id: str, db_session_factory):
-    """Fetch messages for new learnings"""
-    print("Fetching messages for learnings...")
+# Function to check message count of unused messages and trigger learnings generation
+def check_and_trigger_learnings(user_id: str, db_session_factory):
+    """Check message count and trigger learnings generation if needed"""
     db = db_session_factory()
     try:
-        # Get the timestamp of the message with message_id
-        anchor_timestamp = db.execute(
-            select(ConversationMessage.createdAt).where(ConversationMessage.messageId == message_id)
-        ).scalar_one()
+        # Use a limited query to avoid a full table count; fetch up to 16 ids
+        rows = db.query(ConversationMessage.messageId).filter(
+            ConversationMessage.userId == user_id,
+            ConversationMessage.learnedFrom == False
+        ).limit(16).all()
 
-        # Query the last 6 messages from the user before the anchor timestamp
-        stmt = (
-            select(ConversationMessage)
-            .where(
-                ConversationMessage.userId == user_id,
-                ConversationMessage.createdAt <= anchor_timestamp
-            )
-            .order_by(ConversationMessage.createdAt.desc())
-            .limit(20)
-        )
+        if len(rows) > 15:
+            process_learnings(user_id, db)
 
-        result = db.execute(stmt)
-        messages = result.scalars().all()
-        contents = [message.content for message in messages]
-        ids = [message.messageId for message in messages]
-        ids.reverse()
-        contents.reverse()
     except Exception as e:
-        print(f"Error fetching messages for learnings: {str(e)}")
-        contents = []  
+        print(f"Error checking message count for learnings: {str(e)}")
     finally:
         db.close()
-
-    if contents:
-        process_learnings(user_id, contents, ids, db_session_factory)
