@@ -6,11 +6,12 @@ import { getGeminiResponse, getSTT, getTTS } from '@/lib/services/pyapi';
 import { Label } from '@repo/ui/components/label';
 import { Switch } from '@repo/ui/components/switch';
 import { Textarea } from '@repo/ui/components/textarea';
-import { Loader2, Mic, Volume2, VolumeX } from 'lucide-react';
+import { Loader2, Volume2, VolumeX } from 'lucide-react';
 import { useSession } from 'next-auth/react';
 import { useRouter } from 'next/navigation';
 import { useEffect, useRef, useState } from 'react';
 import { ChatMessage, Message } from './components/chatmessage';
+import { VoiceOnlyMode } from './components/voice-only-mode';
 import { VoiceRecorder } from './components/voice-recorder';
 
 export default function InterviewPage() {
@@ -115,7 +116,7 @@ export default function InterviewPage() {
 
       setMessages((prev) => [...prev, aiMessage]);
 
-      if (voiceMode) {
+      if (voiceMode || voiceOnlyMode) {
         try {
           const audioBlob = await getTTS(data.message);
           playAudio(audioBlob);
@@ -221,34 +222,11 @@ export default function InterviewPage() {
           </CardHeader>
           <CardContent className="flex-1 flex flex-col overflow-hidden">
             {voiceOnlyMode ? (
-              <div className="flex-1 flex flex-col items-center justify-center space-y-8">
-                <div
-                  className={`rounded-full p-8 transition-all duration-500 ${
-                    isAiSpeaking
-                      ? 'bg-blue-100 scale-110'
-                      : isUserRecording
-                        ? 'bg-red-100 scale-110'
-                        : 'bg-gray-100'
-                  }`}
-                >
-                  {isAiSpeaking ? (
-                    <Volume2 className="h-24 w-24 text-blue-500 animate-pulse" />
-                  ) : isUserRecording ? (
-                    <Mic className="h-24 w-24 text-red-500 animate-pulse" />
-                  ) : (
-                    <div className="h-24 w-24 flex items-center justify-center text-gray-400">
-                      <Mic className="h-12 w-12 opacity-50" />
-                    </div>
-                  )}
-                </div>
-                <div className="text-xl font-medium text-gray-600">
-                  {isAiSpeaking
-                    ? 'AI is speaking...'
-                    : isUserRecording
-                      ? 'Listening...'
-                      : 'Waiting for you...'}
-                </div>
-              </div>
+              <VoiceOnlyMode
+                isAiSpeaking={isAiSpeaking}
+                isUserRecording={isUserRecording}
+                isProcessing={isLoading || isTranscribing}
+              />
             ) : (
               <div className="flex-1 overflow-y-auto mb-4 space-y-4 min-h-0">
                 {/* This is a list of all the messages in the conversation */}
