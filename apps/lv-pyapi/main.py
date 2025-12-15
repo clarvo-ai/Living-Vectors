@@ -138,28 +138,26 @@ async def get_gemini_response(
     """Use Gemini with the user answer and save both (gemini answer and user answer) to the database """
     try:
 
+        # fetch metadata from the POST for the db save
+
+        goal_id = questionId["goalIndex"]
+        question_id = questionId["questionIndex"]
+
+        question_data = CAREER_QUESTIONS["goals"][goal_id]["questions"][question_id]
+
+        question_metadata = {
+            "question": question_data["question"],
+            "potentialInsight": question_data["potentialInsight"],
+            "goalCategory": CAREER_QUESTIONS["goals"][goal_id]["goal"],
+            "goalIndex": goal_id,
+            "questionIndex": question_id
+        }
+
         #if userId then save to db
         if userId:
-            # fetch metadata from the POST for the db save
-
-            goal_id = questionId["goalIndex"]
-            question_id = questionId["questionIndex"]
-
-            question_data = CAREER_QUESTIONS["goals"][goal_id]["questions"][question_id]
-
-            question_metadata = {
-                "question": question_data["question"],
-                "potentialInsight": question_data["potentialInsight"],
-                "goalCategory": CAREER_QUESTIONS["goals"][goal_id]["goal"],
-                "goalIndex": goal_id,
-                "questionIndex": question_id
-            }
-
             save_message(db, userId, MessageSender.USER, userAnswer, question_context=question_metadata)
 
         # Determine next question BEFORE calling Gemini
-        goal_id = questionId["goalIndex"]
-        question_id = questionId["questionIndex"]
         
         next_question_data = None
         is_completed = False
