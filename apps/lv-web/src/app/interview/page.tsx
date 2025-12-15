@@ -2,12 +2,16 @@
 
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { getGeminiResponse, getSTT, getTTS } from '@/lib/services/pyapi';
+import { Label } from '@repo/ui/components/label';
+import { Switch } from '@repo/ui/components/switch';
 import { Textarea } from '@repo/ui/components/textarea';
+import { Loader2, Volume2, VolumeX } from 'lucide-react';
 import { useSession } from 'next-auth/react';
 import { useRouter } from 'next/navigation';
 import { useEffect, useRef, useState } from 'react';
 import { ChatMessage, Message } from './components/chatmessage';
-import { getGeminiResponse } from '@/lib/services/pyapi';
+import { VoiceRecorder } from './components/voice-recorder';
 
 export default function InterviewPage() {
   const { data: session, status } = useSession();
@@ -22,7 +26,10 @@ export default function InterviewPage() {
   ]);
   const [input, setInput] = useState('');
   const [isLoading, setIsLoading] = useState(false);
+  const [isTranscribing, setIsTranscribing] = useState(false);
+  const [voiceMode, setVoiceMode] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
+  const audioRef = useRef<HTMLAudioElement | null>(null);
 
   // Require auth
   useEffect(() => {
@@ -35,6 +42,29 @@ export default function InterviewPage() {
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, [messages]);
+
+  const playAudio = (blob: Blob) => {
+    if (audioRef.current) {
+      audioRef.current.pause();
+      URL.revokeObjectURL(audioRef.current.src);
+    }
+    const url = URL.createObjectURL(blob);
+    const audio = new Audio(url);
+    audioRef.current = audio;
+    audio.play();
+  };
+
+  const handleVoiceRecording = async (blob: Blob) => {
+    setIsTranscribing(true);
+    try {
+      const { transcript } = await getSTT(blob);
+      setInput(transcript);
+    } catch (error) {
+      console.error('STT error:', error);
+    } finally {
+      setIsTranscribing(false);
+    }
+  };
 
   const handleSend = async () => {
     if (!input.trim() || isLoading) return;
@@ -73,6 +103,15 @@ export default function InterviewPage() {
       };
 
       setMessages((prev) => [...prev, aiMessage]);
+
+      if (voiceMode) {
+        try {
+          const audioBlob = await getTTS(data.message);
+          playAudio(audioBlob);
+        } catch (e) {
+          console.error('TTS error', e);
+        }
+      }
     } catch (error) {
       // In case an error occurs
       console.error('Error sending message:', error);
@@ -135,7 +174,16 @@ export default function InterviewPage() {
       <main className="max-w-4xl mx-auto py-6 px-4 sm:px-6 lg:px-8">
         <Card className="h-[calc(100vh-12rem)] flex flex-col">
           <CardHeader>
-            <CardTitle>AI interview</CardTitle>
+            <div className="flex justify-between items-center">
+              <CardTitle>AI interview</CardTitle>
+              <div className="flex items-center space-x-2">
+                <Switch id="voice-mode" checked={voiceMode} onCheckedChange={setVoiceMode} />
+                <Label htmlFor="voice-mode" className="flex items-center gap-2">
+                  {voiceMode ? <Volume2 className="h-4 w-4" /> : <VolumeX className="h-4 w-4" />}
+                  Voice Mode
+                </Label>
+              </div>
+            </div>
             {messages.length > 0 && (
               <p className="text-xs text-muted-foreground mt-1">
                 {messages.length} message{messages.length !== 1 ? 's' : ''}
@@ -181,15 +229,29 @@ export default function InterviewPage() {
                 placeholder="Type your response..."
                 className="resize-none"
                 rows={3}
-                disabled={isLoading}
+                disabled={isLoading || isTranscribing}
               />
-              <Button
-                data-testid="sendButton"
-                onClick={handleSend}
-                disabled={isLoading || !input.trim()}
-              >
-                Send
-              </Button>
+              <div className="flex flex-col gap-2">
+                <Button
+                  data-testid="sendButton"
+                  onClick={handleSend}
+                  disabled={isLoading || isTranscribing || !input.trim()}
+                >
+                  Send
+                </Button>
+                <div className="flex h-10 w-full items-center justify-center">
+                  {isTranscribing ? (
+                    <Loader2 className="h-5 w-5 animate-spin text-muted-foreground" />
+                  ) : (
+                    <div className={voiceMode ? '' : 'invisible'}>
+                      <VoiceRecorder
+                        onRecordingComplete={handleVoiceRecording}
+                        disabled={isLoading || !voiceMode}
+                      />
+                    </div>
+                  )}
+                </div>
+              </div>
             </div>
           </CardContent>
         </Card>
