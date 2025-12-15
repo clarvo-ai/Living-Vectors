@@ -153,13 +153,9 @@ async def get_gemini_response(
             "questionIndex": question_id
         }
 
-        print("Tää tapahtuu")
-
         #if userId then save to db
         if userId:
-            print("Entä toimiiko tää")
             save_message(db, userId, MessageSender.USER, userAnswer, question_context=question_metadata)
-            print("Nyt hajos")
 
         # Determine next question BEFORE calling Gemini
         
