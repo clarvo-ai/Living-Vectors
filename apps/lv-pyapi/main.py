@@ -14,6 +14,13 @@ from message_save import save_message
 from python_utils.sqlalchemy_models import User, MessageSender
 from fastapi.responses import JSONResponse
 
+import json
+from pathlib import Path
+
+#Load questions at backend startup:
+QUESTIONS_PATH = Path(__file__).parent.parent.parent / "packages" / "shared-data" / "career-conversation-questions.json"
+with open(QUESTIONS_PATH) as f:
+    CAREER_QUESTIONS = json.load(f)
 
 # Load environment variables
 load_dotenv()
@@ -64,8 +71,25 @@ async def get_user(user_id: str, db: Session = Depends(get_db)):
         raise
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Database error: {str(e)}")
+    
 
-@app.post("/api/gemini")
+@app.post("/api/chat/start")
+async def start_conversation(userId: str = Body(...), db: Session = Depends(get_db)):
+    """Start a new conversation and return the first question"""
+    """we can also think of something like this if we want separate chats with the AI: conversation_id = str(uuid.uuid4()) """
+    first_question = CAREER_QUESTIONS["goals"][0]["questions"][0]
+    
+    return {
+        """Should we rather send the whole bundle with both the question and the insight to the frontend?"""
+        "question": first_question["question"],
+        "goalCategory": CAREER_QUESTIONS["goals"][0]["goal"],
+        "questionId": {
+            "goalIndex": 0,
+            "questionIndex": 0
+        }
+    }
+
+@app.post("/api/chat/answer")
 async def get_gemini_response(
     # userId is optional, but only for testing (specifically test_gemini.py)
     # in real usage, the user is authenticated and the userId is always provided
@@ -73,28 +97,62 @@ async def get_gemini_response(
     # this should be removed in the future, when we have better gemini tests :)
     # TODO: fix this when we have better gemini tests (correct version: userId: str = Body(...))
     userId: Optional[str] = Body(default=None), 
-    prompt: str = Body(..., embed=True),
+    userAnswer: str = Body(..., embed=True),
+    questionId: dict = Body(...),
     db: Session = Depends(get_db)):
 
-    """Query Gemini API"""
+    """Use Gemini with the user answer and save both (gemini answer and user answer) to the database """
     try:
         if userId:
-            save_message(db, userId, MessageSender.USER, prompt)
+            # fetch metadata from the POST for the db save
 
+            goal_id = questionId["goalIndex"]
+            question_id = questionId["questionIndex"]
+
+            question_data = CAREER_QUESTIONS["goals"][goal_id]["questions"][question_id]
+
+            question_metadata = {
+                "question": question_data["question"],
+                "potentialInsight": question_data["potentialInsight"],
+                "goalCategory": CAREER_QUESTIONS["goals"][goal_id]["goal"],
+                "goalIndex": goal_id,
+                "questionIndex": question_id
+            }
+
+
+            save_message(db, userId, MessageSender.USER, userAnswer, question_context=question_metadata)
+
+            question_to_gemini = f"""You are a career guidance assistant. 
+            
+            Question: {question_data["question"]}
+
+            These are potential insights to take into consideration: {question_data["potentialInsight"]}
+
+            User's answer: {userAnswer}
+
+
+            Analyze the User's answer based on the question and the users answer.
+            Take potential insights into consideration. Answer like you were a career guidance assistant.
+            Your response should maintain a conversational tone and it should sound humane, natural and well flowing.
+            """
 
         response = client.models.generate_content(
             model="gemini-2.5-flash",
-            contents=prompt
+            contents=question_to_gemini
         )
         ai_text = response.text or ""
 
         if userId:
-            save_message(db, userId, MessageSender.AI, ai_text)
+
+            save_message(db, userId, MessageSender.AI, ai_text, question_context=question_metadata)
 
         return {"message": response.text, "status": 200}
 
     except Exception as e:
         return JSONResponse(status_code=500, content={"message": str(e), "status": 500})
+
+
+""" make endpoint for api/chat/next-question """
 
 if __name__ == "__main__":
     uvicorn.run(app, host="0.0.0.0", port=8080)
