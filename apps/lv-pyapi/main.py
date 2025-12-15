@@ -124,19 +124,57 @@ async def get_gemini_response(
 
             save_message(db, userId, MessageSender.USER, userAnswer, question_context=question_metadata)
 
-        question_to_gemini = f"""You are a career guidance assistant. 
+        # Determine next question BEFORE calling Gemini
+        goal_id = questionId["goalIndex"]
+        question_id = questionId["questionIndex"]
         
-        Question: {question_data["question"]}
+        next_question_data = None
+        is_completed = False
+        
+        if question_id + 1 < len(CAREER_QUESTIONS["goals"][goal_id]["questions"]):
+            next_question_id = question_id + 1
+            next_goal_id = goal_id
+        elif goal_id + 1 < len(CAREER_QUESTIONS["goals"]):
+            next_goal_id = goal_id + 1
+            next_question_id = 0
+        else:
+            is_completed = True
+        
+        if not is_completed:
+            next_question_raw = CAREER_QUESTIONS["goals"][next_goal_id]["questions"][next_question_id]
+            next_question_data = {
+                "question": next_question_raw["question"],
+                "potentialInsight": next_question_raw["potentialInsight"],
+                "goalCategory": CAREER_QUESTIONS["goals"][next_goal_id]["goal"],
+                "questionId": {
+                    "goalIndex": next_goal_id,
+                    "questionIndex": next_question_id
+                }
+            }
 
-        These are potential insights to take into consideration: {question_data["potentialInsight"]}
+        # Build prompt with next question context
+        prompt_parts = [
+            "You are a career guidance assistant conducting a conversational interview.",
+            f"\nCurrent Question: {question_data['question']}",
+            f"\nPotential Insights to consider: {question_data['potentialInsight']}",
+            f"\nUser's answer: {userAnswer}",
+            "\nYour task:",
+            "1. Acknowledge and analyze the user's answer thoughtfully",
+            "2. Provide brief insights based on their response"
+        ]
 
-        User's answer: {userAnswer}
+        if not is_completed and next_question_data:
+            prompt_parts.extend([
+                f"3. Naturally transition to the next question: '{next_question_data['question']}'",
+                f"   (This question explores: {next_question_data['potentialInsight']})",
+                "\nIMPORTANT: Blend your response and the next question into ONE flowing conversational message.",
+                "Use transition phrases like 'That's interesting... now I'm curious about...' or 'Building on that...'",
+                "Make it feel like a natural conversation, not separate blocks of text."
+            ])
+        else:
+            prompt_parts.append("3. Wrap up the conversation warmly, as this is the final question.")
 
-
-        Analyze the User's answer based on the question and the users answer.
-        Take potential insights into consideration. Answer like you were a career guidance assistant.
-        Your response should maintain a conversational tone and it should sound humane, natural and well flowing.
-        """
+        question_to_gemini = "\n".join(prompt_parts)
 
         response = client.models.generate_content(
             model="gemini-2.5-flash",
@@ -144,12 +182,16 @@ async def get_gemini_response(
         )
         ai_text = response.text or ""
 
-
         #if userId then save to db
         if userId:
             save_message(db, userId, MessageSender.AI, ai_text, question_context=question_metadata)
 
-        return {"message": response.text, "status": 200}
+        return {            
+                "message": ai_text,
+                "nextQuestionId": next_question_data["questionId"] if next_question_data else None,
+                "completed": is_completed,
+                "status": 200
+                }
 
     except Exception as e:
         return JSONResponse(status_code=500, content={"message": str(e), "status": 500})

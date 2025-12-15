@@ -45,7 +45,7 @@ export async function getGeminiResponse(
   goalIndex: number,
   questionIndex: number
 
-): Promise<{ message: string; status: number }> {
+): Promise<{ message: string; nextQuestionId: { goalIndex: number; questionIndex: number; }; completed: boolean; status: number }> {
   const response = await fetch(`${getBaseUrl()}/api/chat/answer`, {
     method: 'POST',
     headers: {

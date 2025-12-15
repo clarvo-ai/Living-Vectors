@@ -23,6 +23,8 @@ export default function InterviewPage() {
   const [input, setInput] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
+  const [goalIndex, setGoalIndex] = useState<number>(0);
+  const [questionIndex, setQuestionIndex] = useState<number>(0);
 
   // Require auth
   useEffect(() => {
@@ -34,6 +36,8 @@ export default function InterviewPage() {
   // Upon mount run the start script once (first time chatting)
   useEffect(() => {
     //Also fetching data can be here since this runs on mount
+
+    //Do data fetching before this
     firstChat()
 
   }, [])
@@ -47,6 +51,9 @@ export default function InterviewPage() {
           throw new Error('User ID missing');
         } */
         const request = await startConversation()
+
+
+
         setMessages([
           {      
             id: 'initial-ai-message',
@@ -88,9 +95,14 @@ export default function InterviewPage() {
         throw new Error('User ID missing');
       }
 
-      //frontend calls the backend API to get the AI response
+      //frontend calls the backend API to get the AI response + next question
       //this function also saves the message to the database
-      const data = await getGeminiResponse(userId, userMessage.content, 0, 0);
+      const data = await getGeminiResponse(userId, userMessage.content, goalIndex, questionIndex);
+
+      if (!data.completed && data.nextQuestionId) {
+        setGoalIndex(data.nextQuestionId.goalIndex);
+        setQuestionIndex(data.nextQuestionId.questionIndex);
+      }
 
       const aiMessage: Message = {
         id: Date.now().toString(),
@@ -100,6 +112,7 @@ export default function InterviewPage() {
       };
 
       setMessages((prev) => [...prev, aiMessage]);
+
     } catch (error) {
       // In case an error occurs
       console.error('Error sending message:', error);
