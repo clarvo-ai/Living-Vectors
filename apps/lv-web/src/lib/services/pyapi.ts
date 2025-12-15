@@ -70,7 +70,7 @@ export async function getGeminiResponse(
 
 export async function startConversation(
   /* userId: string, */
-): Promise<{ question: string; goalCategory: string; questionId: { goalIndex: number; questionIndex: number } }> {
+): Promise<{ message: string; goalCategory: string; questionId: { goalIndex: number; questionIndex: number } }> {
   const response = await fetch(`${getBaseUrl()}/api/chat/start`, {
     method: 'POST',
     headers: {

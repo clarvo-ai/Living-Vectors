@@ -58,7 +58,7 @@ export default function InterviewPage() {
           {      
             id: 'initial-ai-message',
             role: 'ai',
-            content: request.question,
+            content: request.message,
             timestamp: new Date(),
           }
         ])

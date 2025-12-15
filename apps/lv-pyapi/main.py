@@ -80,15 +80,48 @@ async def start_conversation():
     """we can also think of something like this if we want separate chats with the AI: conversation_id = str(uuid.uuid4()) """
     first_question = CAREER_QUESTIONS["goals"][0]["questions"][0]
     
-    """Should we rather send the whole bundle with both the question and the insight to the frontend?"""
-    return {
-        "question": first_question["question"],
-        "goalCategory": CAREER_QUESTIONS["goals"][0]["goal"],
-        "questionId": {
-            "goalIndex": 0,
-            "questionIndex": 0
+    introduction_prompt = f"""You are a friendly career guidance assistant helping users find their ideal career path and employment opportunities.
+
+Your task:
+1. Introduce yourself warmly as a career assistant who is here to help them discover their strengths and find the right job
+2. Explain that you'll ask them a series of questions to better understand their goals and aspirations
+3. Smoothly transition into asking the first question: "{first_question['question']}"
+
+Make it conversational and encouraging. Blend the introduction and first question into ONE flowing message."""
+
+    try:
+        response = client.models.generate_content(
+            model="gemini-2.5-flash",
+            contents=introduction_prompt
+        )
+        ai_introduction = response.text or ""
+
+        return {
+            "message": ai_introduction,
+            "goalCategory": CAREER_QUESTIONS["goals"][0]["goal"],
+            "questionId": {
+                "goalIndex": 0,
+                "questionIndex": 0
+            }
         }
-    }
+    
+    except Exception as e:
+        #if gemini fails (make this fallback better later)
+
+        return {
+            "message": f"{first_question['question']}",
+            "questionId": {
+                "goalIndex": 0,
+                "questionIndex": 0
+            }
+        }
+        
+    
+
+
+
+
+
 
 @app.post("/api/chat/answer")
 async def get_gemini_response(
