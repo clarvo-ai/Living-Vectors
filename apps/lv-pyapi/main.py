@@ -1,4 +1,4 @@
-from fastapi import FastAPI, Depends, HTTPException, Body
+from fastapi import FastAPI, Depends, HTTPException, Body, UploadFile, File, Response
 from sqlalchemy.orm import Session
 from sqlalchemy import select
 from typing import List, Optional
@@ -13,6 +13,7 @@ from python_utils.sqlalchemy_models import User
 from message_save import save_message
 from python_utils.sqlalchemy_models import User, MessageSender
 from fastapi.responses import JSONResponse
+from voice import text_to_speech, speech_to_text
 
 
 # Load environment variables
@@ -93,6 +94,25 @@ async def get_gemini_response(
 
         return {"message": response.text, "status": 200}
 
+    except Exception as e:
+        return JSONResponse(status_code=500, content={"message": str(e), "status": 500})
+
+@app.post("/api/tts")
+async def tts(text: str = Body(..., embed=True)):
+    """Text-to-Speech endpoint"""
+    try:
+        audio_content = text_to_speech(text)
+        return Response(content=audio_content, media_type="audio/mpeg")
+    except Exception as e:
+        return JSONResponse(status_code=500, content={"message": str(e), "status": 500})
+
+@app.post("/api/stt")
+async def stt(file: UploadFile = File(...)):
+    """Speech-to-Text endpoint"""
+    try:
+        content = await file.read()
+        transcript = speech_to_text(content)
+        return {"transcript": transcript}
     except Exception as e:
         return JSONResponse(status_code=500, content={"message": str(e), "status": 500})
 
