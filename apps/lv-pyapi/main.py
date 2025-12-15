@@ -197,43 +197,5 @@ async def get_gemini_response(
         return JSONResponse(status_code=500, content={"message": str(e), "status": 500})
 
 
-""" make endpoint for api/chat/next-question """
-@app.post("/api/conversation/next-question")
-async def get_next_question(
-    currentQuestionId: dict = Body(...),  # {goalIndex, questionIndex}
-    userId: str = Body(...),
-    db: Session = Depends(get_db)):
-    """Get the next question in the conversation flow"""
-    try:
-        goal_id = currentQuestionId["goalIndex"]
-        question_id = currentQuestionId["questionIndex"]
-        
-        # Try next question in current goal
-        if question_id + 1 < len(CAREER_QUESTIONS["goals"][goal_id]["questions"]):
-            next_question_id = question_id + 1
-            next_goal_id = goal_id
-        # Move to next goal's first question
-        elif goal_id + 1 < len(CAREER_QUESTIONS["goals"]):
-            next_goal_id = goal_id + 1
-            next_question_id = 0
-        else:
-            # Conversation complete
-            return {"completed": True, "message": "Conversation completed!"}
-        
-        next_question_data = CAREER_QUESTIONS["goals"][next_goal_id]["questions"][next_question_id]
-        
-        return {
-            "question": next_question_data["question"],
-            "goalCategory": CAREER_QUESTIONS["goals"][next_goal_id]["goal"],
-            "questionId": {
-                "goalIndex": next_goal_id,
-                "questionIndex": next_question_id
-            },
-            "completed": False
-        }
-        
-    except Exception as e:
-        return JSONResponse(status_code=500, content={"message": str(e), "status": 500})
-
 if __name__ == "__main__":
     uvicorn.run(app, host="0.0.0.0", port=8080)
