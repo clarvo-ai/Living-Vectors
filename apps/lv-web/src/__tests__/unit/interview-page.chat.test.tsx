@@ -64,6 +64,8 @@ describe('InterviewPage - Chat Interaction', () => {
     // Mock the AI's response
     (getGeminiResponse as jest.Mock).mockResolvedValueOnce({
       message: 'That is great to hear!',
+      nextQuestionId: { goalIndex: 0, questionIndex: 1 },
+      completed: false,
       status: 200,
     });
 
@@ -106,6 +108,8 @@ describe('InterviewPage - Chat Interaction', () => {
     // Mock AI response before pressing Enter
     (getGeminiResponse as jest.Mock).mockResolvedValueOnce({
       message: 'Received via Enter',
+      nextQuestionId: { goalIndex: 0, questionIndex: 1 },
+      completed: false,
       status: 200,
     });
 
