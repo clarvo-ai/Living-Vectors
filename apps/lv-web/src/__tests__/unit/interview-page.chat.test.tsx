@@ -2,7 +2,7 @@ import '@testing-library/jest-dom';
 import { fireEvent, render, screen, waitFor } from '@testing-library/react';
 import { useSession } from 'next-auth/react';
 import InterviewPage from '../../app/interview/page';
-import { getGeminiResponse } from '../../lib/services/pyapi';
+import { getGeminiResponse, startConversation } from '../../lib/services/pyapi';
 
 // Mock next-auth/react
 jest.mock('next-auth/react', () => ({
@@ -11,6 +11,7 @@ jest.mock('next-auth/react', () => ({
 
 jest.mock('../../lib/services/pyapi', () => ({
   getGeminiResponse: jest.fn(),
+  startConversation: jest.fn(),
 }));
 
 // Mock next/navigation
@@ -35,6 +36,13 @@ describe('InterviewPage - Chat Interaction', () => {
     (fetch as jest.Mock).mockClear();
     // Mock scrollIntoView
     Element.prototype.scrollIntoView = jest.fn();
+    
+    // Mock startConversation to return initial message
+    (startConversation as jest.Mock).mockResolvedValue({
+      message: "Hello! I'm here to figure you out. First, are you dedicated?",
+      goalCategory: "Career Goals",
+      questionId: { goalIndex: 0, questionIndex: 0 },
+    });
   });
 
   afterEach(() => {
@@ -50,8 +58,10 @@ describe('InterviewPage - Chat Interaction', () => {
     });
     render(<InterviewPage />);
 
-    // Check for the first AI message
-    expect(screen.getByText(/Hello!/));
+    // Wait for the initial AI message to appear
+    await waitFor(() => {
+      expect(screen.getByText(/Hello!/)).toBeInTheDocument();
+    });
 
     // Check that the send button is disabled initially
     expect(screen.getByTestId('sendButton')).toBeDisabled();
@@ -99,6 +109,11 @@ describe('InterviewPage - Chat Interaction', () => {
       status: 'authenticated',
     });
     render(<InterviewPage />);
+
+    // Wait for initial message to load
+    await waitFor(() => {
+      expect(screen.getByText(/Hello!/)).toBeInTheDocument();
+    });
 
     const textarea = screen.getByPlaceholderText(/Type your response.../i);
 
