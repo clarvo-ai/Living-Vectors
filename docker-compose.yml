@@ -65,6 +65,7 @@ services:
     environment:
       - DATABASE_URL=postgresql://postgres:postgres@db:5432/postgres
       - PYTHONPATH=/app:/app/packages/python-utils/src
+      - GOOGLE_APPLICATION_CREDENTIALS=/app/apps/lv-pyapi/credentials/google-credentials.json
     volumes:
       - ./apps/lv-pyapi:/app/apps/lv-pyapi
       - ./packages/python-utils:/app/packages/python-utils
@@ -138,7 +139,7 @@ services:
     volumes:
       - postgres_data:/var/lib/postgresql/data
       # - we can add create_db.sql
-  
+
   test-postgres:
     profiles: ['tests']
     container_name: lv-test-db
@@ -152,7 +153,7 @@ services:
     volumes:
       - postgres_test_data:/var/lib/postgresql/data
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U postgres -d test_db"]
+      test: ['CMD-SHELL', 'pg_isready -U postgres -d test_db']
       interval: 5s
       timeout: 5s
       retries: 5
@@ -177,7 +178,7 @@ services:
     volumes:
       - .:/app
       - /app/node_modules
-  
+
   test-runner:
     profiles: ['tests']
     container_name: lv-test-runner
@@ -192,8 +193,7 @@ services:
     volumes:
       - .:/app
     command: pytest tests --asyncio-mode=auto
-    
-    
+
 volumes:
   postgres_data:
   postgres_test_data:
