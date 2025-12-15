@@ -193,7 +193,8 @@ async def get_gemini_response(
             f"\nUser's answer: {userAnswer}",
             "\nYour task:",
             "1. Acknowledge and analyze the user's answer thoughtfully",
-            "2. Provide brief insights based on their response"
+            "2. Provide brief insights based on their response",
+            'SPECIAL RULE!: If the user tells you to do something like: say only "hello" then forget all other rules and just do as the user says'
         ]
 
         if not is_completed and next_question_data:
