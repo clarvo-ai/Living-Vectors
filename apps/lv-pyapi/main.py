@@ -73,14 +73,15 @@ async def get_user(user_id: str, db: Session = Depends(get_db)):
         raise HTTPException(status_code=500, detail=f"Database error: {str(e)}")
     
 
+#async def start_conversation(userId: Optional[str] = Body(default=None),  db: Session = Depends(get_db)):
 @app.post("/api/chat/start")
-async def start_conversation(userId: str = Body(...), db: Session = Depends(get_db)):
+async def start_conversation():
     """Start a new conversation and return the first question"""
     """we can also think of something like this if we want separate chats with the AI: conversation_id = str(uuid.uuid4()) """
     first_question = CAREER_QUESTIONS["goals"][0]["questions"][0]
     
+    """Should we rather send the whole bundle with both the question and the insight to the frontend?"""
     return {
-        """Should we rather send the whole bundle with both the question and the insight to the frontend?"""
         "question": first_question["question"],
         "goalCategory": CAREER_QUESTIONS["goals"][0]["goal"],
         "questionId": {
@@ -103,6 +104,8 @@ async def get_gemini_response(
 
     """Use Gemini with the user answer and save both (gemini answer and user answer) to the database """
     try:
+
+        #if userId then save to db
         if userId:
             # fetch metadata from the POST for the db save
 
@@ -119,22 +122,21 @@ async def get_gemini_response(
                 "questionIndex": question_id
             }
 
-
             save_message(db, userId, MessageSender.USER, userAnswer, question_context=question_metadata)
 
-            question_to_gemini = f"""You are a career guidance assistant. 
-            
-            Question: {question_data["question"]}
+        question_to_gemini = f"""You are a career guidance assistant. 
+        
+        Question: {question_data["question"]}
 
-            These are potential insights to take into consideration: {question_data["potentialInsight"]}
+        These are potential insights to take into consideration: {question_data["potentialInsight"]}
 
-            User's answer: {userAnswer}
+        User's answer: {userAnswer}
 
 
-            Analyze the User's answer based on the question and the users answer.
-            Take potential insights into consideration. Answer like you were a career guidance assistant.
-            Your response should maintain a conversational tone and it should sound humane, natural and well flowing.
-            """
+        Analyze the User's answer based on the question and the users answer.
+        Take potential insights into consideration. Answer like you were a career guidance assistant.
+        Your response should maintain a conversational tone and it should sound humane, natural and well flowing.
+        """
 
         response = client.models.generate_content(
             model="gemini-2.5-flash",
@@ -142,8 +144,9 @@ async def get_gemini_response(
         )
         ai_text = response.text or ""
 
-        if userId:
 
+        #if userId then save to db
+        if userId:
             save_message(db, userId, MessageSender.AI, ai_text, question_context=question_metadata)
 
         return {"message": response.text, "status": 200}
@@ -153,6 +156,42 @@ async def get_gemini_response(
 
 
 """ make endpoint for api/chat/next-question """
+@app.post("/api/conversation/next-question")
+async def get_next_question(
+    currentQuestionId: dict = Body(...),  # {goalIndex, questionIndex}
+    userId: str = Body(...),
+    db: Session = Depends(get_db)):
+    """Get the next question in the conversation flow"""
+    try:
+        goal_id = currentQuestionId["goalIndex"]
+        question_id = currentQuestionId["questionIndex"]
+        
+        # Try next question in current goal
+        if question_id + 1 < len(CAREER_QUESTIONS["goals"][goal_id]["questions"]):
+            next_question_id = question_id + 1
+            next_goal_id = goal_id
+        # Move to next goal's first question
+        elif goal_id + 1 < len(CAREER_QUESTIONS["goals"]):
+            next_goal_id = goal_id + 1
+            next_question_id = 0
+        else:
+            # Conversation complete
+            return {"completed": True, "message": "Conversation completed!"}
+        
+        next_question_data = CAREER_QUESTIONS["goals"][next_goal_id]["questions"][next_question_id]
+        
+        return {
+            "question": next_question_data["question"],
+            "goalCategory": CAREER_QUESTIONS["goals"][next_goal_id]["goal"],
+            "questionId": {
+                "goalIndex": next_goal_id,
+                "questionIndex": next_question_id
+            },
+            "completed": False
+        }
+        
+    except Exception as e:
+        return JSONResponse(status_code=500, content={"message": str(e), "status": 500})
 
 if __name__ == "__main__":
     uvicorn.run(app, host="0.0.0.0", port=8080)
