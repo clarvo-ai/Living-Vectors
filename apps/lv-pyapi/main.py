@@ -11,7 +11,7 @@ from google import genai
 from database import get_db, SessionLocal
 from python_utils.sqlalchemy_models import User
 from message_save import save_message
-from python_utils.sqlalchemy_models import User, MessageSender, ConversationMessage
+from python_utils.sqlalchemy_models import User, MessageSender
 from fastapi.responses import JSONResponse
 from learnings import get_messages_for_learnings, check_and_trigger_learnings
 from gemini_client import client
