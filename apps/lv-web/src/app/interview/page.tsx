@@ -6,7 +6,7 @@ import { getGeminiResponse, getSTT, getTTS } from '@/lib/services/pyapi';
 import { Label } from '@repo/ui/components/label';
 import { Switch } from '@repo/ui/components/switch';
 import { Textarea } from '@repo/ui/components/textarea';
-import { Loader2, Volume2, VolumeX } from 'lucide-react';
+import { Loader2, Mic, Volume2, VolumeX } from 'lucide-react';
 import { useSession } from 'next-auth/react';
 import { useRouter } from 'next/navigation';
 import { useEffect, useRef, useState } from 'react';
@@ -28,6 +28,9 @@ export default function InterviewPage() {
   const [isLoading, setIsLoading] = useState(false);
   const [isTranscribing, setIsTranscribing] = useState(false);
   const [voiceMode, setVoiceMode] = useState(false);
+  const [voiceOnlyMode, setVoiceOnlyMode] = useState(false);
+  const [isUserRecording, setIsUserRecording] = useState(false);
+  const [isAiSpeaking, setIsAiSpeaking] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const audioRef = useRef<HTMLAudioElement | null>(null);
 
@@ -51,14 +54,22 @@ export default function InterviewPage() {
     const url = URL.createObjectURL(blob);
     const audio = new Audio(url);
     audioRef.current = audio;
+
+    audio.onplay = () => setIsAiSpeaking(true);
+    audio.onended = () => setIsAiSpeaking(false);
+    audio.onpause = () => setIsAiSpeaking(false);
+
     audio.play();
   };
 
   const handleVoiceRecording = async (blob: Blob) => {
+    console.log('handleVoiceRecording called with blob size:', blob.size);
     setIsTranscribing(true);
     try {
       const { transcript } = await getSTT(blob);
+      console.log('STT transcript:', transcript);
       setInput(transcript);
+      handleSend(transcript);
     } catch (error) {
       console.error('STT error:', error);
     } finally {
@@ -66,18 +77,18 @@ export default function InterviewPage() {
     }
   };
 
-  const handleSend = async () => {
-    if (!input.trim() || isLoading) return;
+  const handleSend = async (content?: string) => {
+    const messageContent = typeof content === 'string' ? content : input;
+    if (!messageContent.trim() || isLoading) return;
 
     const userMessage: Message = {
       id: Date.now().toString(),
       role: 'user',
-      content: input.trim(),
+      content: messageContent.trim(),
       timestamp: new Date(),
     };
 
-    const updatedMessages = [...messages, userMessage];
-    setMessages(updatedMessages);
+    setMessages((prev) => [...prev, userMessage]);
     setInput('');
     setIsLoading(true);
 
@@ -176,12 +187,30 @@ export default function InterviewPage() {
           <CardHeader>
             <div className="flex justify-between items-center">
               <CardTitle>AI interview</CardTitle>
-              <div className="flex items-center space-x-2">
-                <Switch id="voice-mode" checked={voiceMode} onCheckedChange={setVoiceMode} />
-                <Label htmlFor="voice-mode" className="flex items-center gap-2">
-                  {voiceMode ? <Volume2 className="h-4 w-4" /> : <VolumeX className="h-4 w-4" />}
-                  Voice Mode
-                </Label>
+              <div className="flex items-center space-x-4">
+                {!voiceOnlyMode && (
+                  <div className="flex items-center space-x-2">
+                    <Switch id="voice-mode" checked={voiceMode} onCheckedChange={setVoiceMode} />
+                    <Label htmlFor="voice-mode" className="flex items-center gap-2">
+                      {voiceMode ? (
+                        <Volume2 className="h-4 w-4" />
+                      ) : (
+                        <VolumeX className="h-4 w-4" />
+                      )}
+                      AI Voice
+                    </Label>
+                  </div>
+                )}
+                <div className="flex items-center space-x-2">
+                  <Switch
+                    id="voice-only-mode"
+                    checked={voiceOnlyMode}
+                    onCheckedChange={setVoiceOnlyMode}
+                  />
+                  <Label htmlFor="voice-only-mode" className="flex items-center gap-2">
+                    Voice Only
+                  </Label>
+                </div>
               </div>
             </div>
             {messages.length > 0 && (
@@ -191,62 +220,97 @@ export default function InterviewPage() {
             )}
           </CardHeader>
           <CardContent className="flex-1 flex flex-col overflow-hidden">
-            {/* Messages Area */}
-            <div className="flex-1 overflow-y-auto mb-4 space-y-4 min-h-0">
-              {/* This is a list of all the messages in the conversation */}
-              {messages.map((message) => (
-                <ChatMessage key={message.id} message={message} />
-              ))}
-              {/* This is a loading indicator that is shown when the AI is generating a response */}
-              {isLoading && (
-                <div className="flex justify-start" data-testid="chat-loading-indicator">
-                  <div className="bg-gray-200 rounded-lg px-4 py-2">
-                    <div className="flex space-x-2">
-                      <div className="w-2 h-2 bg-gray-500 rounded-full animate-bounce"></div>
-                      <div
-                        className="w-2 h-2 bg-gray-500 rounded-full animate-bounce"
-                        style={{ animationDelay: '0.2s' }}
-                      ></div>
-                      <div
-                        className="w-2 h-2 bg-gray-500 rounded-full animate-bounce"
-                        style={{ animationDelay: '0.4s' }}
-                      ></div>
+            {voiceOnlyMode ? (
+              <div className="flex-1 flex flex-col items-center justify-center space-y-8">
+                <div
+                  className={`rounded-full p-8 transition-all duration-500 ${
+                    isAiSpeaking
+                      ? 'bg-blue-100 scale-110'
+                      : isUserRecording
+                        ? 'bg-red-100 scale-110'
+                        : 'bg-gray-100'
+                  }`}
+                >
+                  {isAiSpeaking ? (
+                    <Volume2 className="h-24 w-24 text-blue-500 animate-pulse" />
+                  ) : isUserRecording ? (
+                    <Mic className="h-24 w-24 text-red-500 animate-pulse" />
+                  ) : (
+                    <div className="h-24 w-24 flex items-center justify-center text-gray-400">
+                      <Mic className="h-12 w-12 opacity-50" />
+                    </div>
+                  )}
+                </div>
+                <div className="text-xl font-medium text-gray-600">
+                  {isAiSpeaking
+                    ? 'AI is speaking...'
+                    : isUserRecording
+                      ? 'Listening...'
+                      : 'Waiting for you...'}
+                </div>
+              </div>
+            ) : (
+              <div className="flex-1 overflow-y-auto mb-4 space-y-4 min-h-0">
+                {/* This is a list of all the messages in the conversation */}
+                {messages.map((message) => (
+                  <ChatMessage key={message.id} message={message} />
+                ))}
+                {/* This is a loading indicator that is shown when the AI is generating a response */}
+                {isLoading && (
+                  <div className="flex justify-start" data-testid="chat-loading-indicator">
+                    <div className="bg-gray-200 rounded-lg px-4 py-2">
+                      <div className="flex space-x-2">
+                        <div className="w-2 h-2 bg-gray-500 rounded-full animate-bounce"></div>
+                        <div
+                          className="w-2 h-2 bg-gray-500 rounded-full animate-bounce"
+                          style={{ animationDelay: '0.2s' }}
+                        ></div>
+                        <div
+                          className="w-2 h-2 bg-gray-500 rounded-full animate-bounce"
+                          style={{ animationDelay: '0.4s' }}
+                        ></div>
+                      </div>
                     </div>
                   </div>
-                </div>
-              )}
-              {/* This is a ref to the bottom of the messages area 
+                )}
+                {/* This is a ref to the bottom of the messages area 
                   Used to scroll to the bottom of the messages area when a new message is added*/}
-              <div ref={messagesEndRef} />
-            </div>
+                <div ref={messagesEndRef} />
+              </div>
+            )}
 
             {/* Input Area */}
-            <div className="flex gap-2">
-              <Textarea
-                value={input}
-                onChange={(e) => setInput(e.target.value)}
-                onKeyDown={handleKeyDown}
-                placeholder="Type your response..."
-                className="resize-none"
-                rows={3}
-                disabled={isLoading || isTranscribing}
-              />
+            <div className={`flex gap-2 ${voiceOnlyMode ? 'justify-center' : ''}`}>
+              {!voiceOnlyMode && (
+                <Textarea
+                  value={input}
+                  onChange={(e) => setInput(e.target.value)}
+                  onKeyDown={handleKeyDown}
+                  placeholder="Type your response..."
+                  className="resize-none"
+                  rows={3}
+                  disabled={isLoading || isTranscribing}
+                />
+              )}
               <div className="flex flex-col gap-2">
-                <Button
-                  data-testid="sendButton"
-                  onClick={handleSend}
-                  disabled={isLoading || isTranscribing || !input.trim()}
-                >
-                  Send
-                </Button>
+                {!voiceOnlyMode && (
+                  <Button
+                    data-testid="sendButton"
+                    onClick={handleSend}
+                    disabled={isLoading || isTranscribing || !input.trim()}
+                  >
+                    Send
+                  </Button>
+                )}
                 <div className="flex h-10 w-full items-center justify-center">
                   {isTranscribing ? (
                     <Loader2 className="h-5 w-5 animate-spin text-muted-foreground" />
                   ) : (
-                    <div className={voiceMode ? '' : 'invisible'}>
+                    <div>
                       <VoiceRecorder
                         onRecordingComplete={handleVoiceRecording}
-                        disabled={isLoading || !voiceMode}
+                        onRecordingStateChange={setIsUserRecording}
+                        disabled={isLoading}
                       />
                     </div>
                   )}
