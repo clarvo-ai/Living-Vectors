@@ -65,7 +65,7 @@ def test_save_learnings_and_mark_messages(db_session: Session):
     msg1 = save_message(db_session, user.id, sender, "alpha")
     msg2 = save_message(db_session, user.id, sender, "beta")
 
-    learnings_list = [{"content": "likes cats", "ids": [msg1.messageId, msg2.messageId]}]
+    learnings_list = [{"content": "likes cats", "ids": [str(msg1.messageId), str(msg2.messageId)]}]
 
     learnings.save_learnings_to_db(user.id, learnings_list, db_session)
 
@@ -97,7 +97,7 @@ def test_process_learnings_creates_and_marks(db_session: Session, monkeypatch):
 
     # monkeypatch the generation function to return expected learnings
     def fake_generate(messages):
-        return [{"content": "insight", "ids": [msg1.messageId, msg2.messageId]}]
+        return [{"content": "insight", "ids": [str(msg1.messageId), str(msg2.messageId)]}]
 
     monkeypatch.setattr(learnings, 'learnings_from_messages', fake_generate)
 

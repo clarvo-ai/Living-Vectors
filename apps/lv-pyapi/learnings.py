@@ -27,7 +27,7 @@ def save_learnings_to_db(user_id: str, learnings: List[Dict[str, List[str]]], db
 
             for msg_id in learning["ids"]:
                 association = _ConversationMessageToLearning(
-                    A=UUID(msg_id),
+                    A=UUID(msg_id), # Note that msg_id is a string since it comes from Gemini (if it's already an UUID, double conversion will break)
                     B=l.id
                 )
                 
