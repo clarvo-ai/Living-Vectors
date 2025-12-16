@@ -5,28 +5,29 @@ from sqlalchemy import select, update
 from python_utils.sqlalchemy_models import ConversationMessage, Learning, _ConversationMessageToLearning
 from database import get_db, SessionLocal
 from google.genai import types
-from datetime import datetime
+from datetime import datetime, timezone
 from gemini_client import client
+from uuid import UUID
 
 
 # Function to save learnings to the database
 def save_learnings_to_db(user_id: str, learnings: List[Dict[str, List[str]]], db: Session):
     """Save generated learnings to the database"""
-    for learning in learnings:
-        print(f"Learning: {learning['content']}, Message IDs: {learning['ids']}")
+    if not learnings:
+        return
     try:
         rows = []
         for learning in learnings:
             l = Learning(
                 userId=user_id,
                 summary=learning["content"],
-                updatedAt=datetime.utcnow())
+                updatedAt=datetime.now(timezone.utc))
             db.add(l)
             db.flush()  # To get the learning ID
 
             for msg_id in learning["ids"]:
                 association = _ConversationMessageToLearning(
-                    A=msg_id,
+                    A=UUID(msg_id),
                     B=l.id
                 )
                 
