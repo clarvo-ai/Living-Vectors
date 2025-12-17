@@ -121,7 +121,8 @@ def get_messages_for_learnings(user_id: str, message_id: str, db_session_factory
         contents.reverse()
     except Exception as e:
         print(f"Error fetching messages for learnings: {str(e)}")
-        contents = []  
+        contents = []
+        ids = []
     finally:
         db.close()
 
