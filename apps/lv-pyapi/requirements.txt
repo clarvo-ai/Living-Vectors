@@ -1,5 +1,4 @@
 fastapi==0.115.2
-python-multipart
 uvicorn>=0.24.0
 pydantic>=2.4.2
 python-dotenv==1.1.0
@@ -10,4 +9,6 @@ httpx==0.28.1
 google-genai==1.49.0
 google-cloud-texttospeech==2.33.0
 google-cloud-speech==2.34.0
+python-multipart==0.0.21
 pytest==9.0.0
+pytest-cov==4.1.0

@@ -189,6 +189,7 @@ services:
       - test-migrate
     environment:
       - TEST_DATABASE_URL=postgresql://postgres:postgres@test-postgres:5432/test_db
+      - DATABASE_URL=postgresql://postgres:postgres@test-postgres:5432/test_db
       - PYTHONPATH=/app/apps/lv-pyapi:/app/packages/python-utils/src
     volumes:
       - .:/app
