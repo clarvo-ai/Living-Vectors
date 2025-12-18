@@ -32,7 +32,6 @@ export default function InterviewPage() {
   const [isUserRecording, setIsUserRecording] = useState(false);
   const [isAiSpeaking, setIsAiSpeaking] = useState(false);
   const [isTranscribing, setIsTranscribing] = useState(false);
-  const [shouldAutoSend, setShouldAutoSend] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const audioRef = useRef<HTMLAudioElement | null>(null);
 
@@ -46,7 +45,7 @@ export default function InterviewPage() {
   // Scroll behaviour
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
-  }, [messages]);
+  }, [messages, voiceOnlyMode]);
 
   // TTS for the latest AI message in Voice Only Mode
   useEffect(() => {
@@ -66,16 +65,6 @@ export default function InterviewPage() {
       audioRef.current?.pause();
     }
   }, [isUserRecording, voiceOnlyMode, voiceMode]);
-
-  // Auto-send STT transcript
-  useEffect(() => {
-    if (shouldAutoSend && !isTranscribing && !isLoading) {
-      if (input.trim()) {
-        handleSend();
-      }
-      setShouldAutoSend(false);
-    }
-  }, [shouldAutoSend, isTranscribing, isLoading, input]);
 
   const playAudio = (blob: Blob) => {
     if (audioRef.current) {
@@ -98,9 +87,7 @@ export default function InterviewPage() {
     setIsTranscribing(true);
     try {
       const { transcript } = await getSTT(blob);
-      //console.log('STT transcript:', transcript);
-      setInput(transcript);
-      setShouldAutoSend(true);
+      handleSend(transcript);
     } catch (error) {
       console.error('STT error:', error);
     } finally {
@@ -109,17 +96,18 @@ export default function InterviewPage() {
   };
 
   const handleSend = async (content?: string) => {
-    const messageContent = typeof content === 'string' ? content : input;
-    if (!messageContent.trim() || isLoading) return;
+    const msgContent = typeof content === 'string' ? content : input;
+    if (!msgContent.trim() || isLoading) return;
 
     const userMessage: Message = {
       id: Date.now().toString(),
       role: 'user',
-      content: messageContent.trim(),
+      content: msgContent.trim(),
       timestamp: new Date(),
     };
 
-    setMessages((prev) => [...prev, userMessage]);
+    const updatedMessages = [...messages, userMessage];
+    setMessages(updatedMessages);
     setInput('');
     setIsLoading(true);
 
@@ -304,7 +292,7 @@ export default function InterviewPage() {
                 {!voiceOnlyMode && (
                   <Button
                     data-testid="sendButton"
-                    onClick={handleSend}
+                    onClick={() => handleSend()}
                     disabled={isLoading || isTranscribing || !input.trim()}
                   >
                     Send
