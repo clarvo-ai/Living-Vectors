@@ -27,11 +27,12 @@ export default function InterviewPage() {
   ]);
   const [input, setInput] = useState('');
   const [isLoading, setIsLoading] = useState(false);
-  const [isTranscribing, setIsTranscribing] = useState(false);
   const [voiceMode, setVoiceMode] = useState(false);
   const [voiceOnlyMode, setVoiceOnlyMode] = useState(false);
   const [isUserRecording, setIsUserRecording] = useState(false);
   const [isAiSpeaking, setIsAiSpeaking] = useState(false);
+  const [isTranscribing, setIsTranscribing] = useState(false);
+  const [shouldAutoSend, setShouldAutoSend] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const audioRef = useRef<HTMLAudioElement | null>(null);
 
@@ -46,6 +47,35 @@ export default function InterviewPage() {
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, [messages]);
+
+  // TTS for the latest AI message in Voice Only Mode
+  useEffect(() => {
+    if (voiceOnlyMode) {
+      const lastMessage = messages[messages.length - 1];
+      if (lastMessage?.role === 'ai') {
+        getTTS(lastMessage.content)
+          .then((blob) => playAudio(blob))
+          .catch((e) => console.error('TTS error', e));
+      }
+    }
+  }, [voiceOnlyMode, messages]);
+
+  // Pause audio when user starts recording or when voice modes are off
+  useEffect(() => {
+    if (isUserRecording || (!voiceOnlyMode && !voiceMode)) {
+      audioRef.current?.pause();
+    }
+  }, [isUserRecording, voiceOnlyMode, voiceMode]);
+
+  // Auto-send STT transcript
+  useEffect(() => {
+    if (shouldAutoSend && !isTranscribing && !isLoading) {
+      if (input.trim()) {
+        handleSend();
+      }
+      setShouldAutoSend(false);
+    }
+  }, [shouldAutoSend, isTranscribing, isLoading, input]);
 
   const playAudio = (blob: Blob) => {
     if (audioRef.current) {
@@ -68,9 +98,9 @@ export default function InterviewPage() {
     setIsTranscribing(true);
     try {
       const { transcript } = await getSTT(blob);
-      console.log('STT transcript:', transcript);
+      //console.log('STT transcript:', transcript);
       setInput(transcript);
-      handleSend(transcript);
+      setShouldAutoSend(true);
     } catch (error) {
       console.error('STT error:', error);
     } finally {
@@ -116,7 +146,7 @@ export default function InterviewPage() {
 
       setMessages((prev) => [...prev, aiMessage]);
 
-      if (voiceMode || voiceOnlyMode) {
+      if (voiceMode && !voiceOnlyMode) {
         try {
           const audioBlob = await getTTS(data.message);
           playAudio(audioBlob);
