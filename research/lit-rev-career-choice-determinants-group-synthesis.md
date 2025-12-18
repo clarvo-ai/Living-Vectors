@@ -160,7 +160,7 @@
 
 ---
 
-## VI. Raw Data per Article
+## VI. Raw Data
 
 ### Person–Job Fit (PJF)
 
