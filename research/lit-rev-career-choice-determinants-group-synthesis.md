@@ -155,3 +155,134 @@
 - Compensation works best when combined with growth and culture.
 - Risk tolerance is underrated but highly predictive.
 - Misalignment is often **non-linear**: small mismatches can cause big drops in performance.
+
+
+
+---
+
+## VI. Raw Data per Article
+
+### Person–Job Fit (PJF)
+
+- "Person-job fit is the match between an individual's skills and the job's demands."
+- "Need-supplies fit means the job satisfies the individual's goals."
+- "Demand-abilities fit means the job's demands match individual skills."
+- "Effective P-J fit is assessed during recruitment with resumes, interviews and tests."
+- "Job satisfaction depends on matching employees' tasks to their abilities."
+- "When tasks align with an employee's skills, it leads to higher satisfaction and better job performance."
+- "PJF has a positive impact on performance in matched environments."
+- "In mismatched environments, PJF has a negative impact on performance."
+- "Low PJF is sometimes fine if POF is high."
+- "Expectation alignment contributes more than skill alignment."
+
+### Person–Organization Fit (POF) and Culture
+
+- "PJF and POF are positively correlated."
+- "PJF does not guarantee POF and vice versa."
+- "POF has a bigger effect on job satisfaction and employee performance."
+- "Alignment between employee values and organizational norms boosts satisfaction, motivation and commitment."
+- "Strong organizational culture has a positive and significant effect on retention."
+- "Clear mission, vision and expectations strengthen employees' sense of security and confidence."
+- "Organizational culture affects performance directly."
+- "Companies with strong and clear values innovate more."
+- "Shared values increase collaboration and organizational performance."
+- "77% of job seekers evaluate culture before applying."
+
+### Values Alignment
+
+- "When a company's values are clear and actually practiced, employees feel trust and fit."
+- "When values feel fake or don't match the employee's values, satisfaction drops."
+- "Values alignment increases job satisfaction and retention."
+- "Employees behave in ways consistent with company values."
+- "Companies with a strong ethical culture have less unethical behaviour."
+- "Values alignment helps candidates choose companies where they are likely to stay longer."
+
+### Competing Values Framework and Culture Types
+
+- "The Competing Values Framework has four culture types: Clan, Hierarchy, Market, Adhocracy."
+- "Clan, adhocracy, and market cultures help improve job performance."
+- "Hierarchy culture does not help improve job performance."
+- "Adhocracy focuses on innovation and speed over stability and control."
+- "No rigid hierarchy exists in adhocracy culture."
+- "Tight leadership sets goals and boundaries, loose execution, tight review."
+
+### Compensation (General)
+
+- "Compensation and talent retention have a strong positive correlation."
+- "Competitive compensation increases employee satisfaction and reduces turnover intentions."
+- "Compensation includes salary, incentives, bonuses, allowances and insurance."
+- "Salary alone is not sufficient to predict whether a candidate will be happy."
+- "Compensation is divided into monetary and psychological parts."
+- "Psychological compensation includes personal growth, career growth and recognition."
+- "Poor compensation makes employees feel undervalued."
+
+### Compensation vs Retention and Attraction
+
+- "Compensation and benefits are the top factors that make a company attractive initially."
+- "Compensation is insufficient for long-term retention."
+- "A recent pay raise has zero impact on intention to stay."
+- "Organizations may improve satisfaction by decreasing employee frustrations rather than increasing salaries."
+- "Changing jobs does not usually equal more money."
+
+### Career Development
+
+- "Future career growth is the number one attractor for new hires."
+- "Career development is more important than compensation when accepting a job."
+- "Clear and structured career development opportunities strengthen satisfaction and commitment."
+- "Training, mentorship and clear advancement paths make employees feel valued."
+- "Lack of growth opportunities is a major cause of turnover."
+- "Employees remain longer if they see the company as a place to achieve career goals."
+
+### Management Quality
+
+- "Management matters."
+- "Excellent management is a primary retention tool."
+- "Employees are nearly twice as likely to remain when management is excellent."
+- "High-quality relationships with managers significantly reduce the likelihood of leaving."
+- "Employees are more likely to regret leaving if they had a great manager."
+- "Managers who support career development increase retention."
+
+### Risk Aversion and Risk Tolerance
+
+- "Risk-averse job seekers set lower reservation wages."
+- "Unemployment benefits increase reservation wages, but less for risk-averse people."
+- "Higher risk aversion significantly reduces the probability that pay is tied to performance."
+- "Risk-tolerant workers are more likely to receive performance-based pay."
+- "Risk-averse workers prefer fixed wages."
+- "Risk-averse workers may dislike monitoring."
+- "Risk attitude affects tolerance for uncertainty."
+
+### Performance Pay and Monitoring
+
+- "Incentive contracts are more common when uncertainty is low."
+- "Performance appraisal is less attractive for risk-averse workers."
+- "Performance appraisal without monetary consequences is not related to risk attitudes."
+- "Risk-taking increases the likelihood of performance appraisal."
+
+### Work-Life Balance, Stability, and Benefits
+
+- "Work-life balance significantly improves retention outcomes."
+- "Women rate work-life balance as a top reason for leaving."
+- "Men rate company stability as a key reason for leaving."
+- "Excellent health insurance is prioritized above cash compensation."
+- "Flexibility and hybrid work improve retention."
+
+### Recognition
+
+- "Align employee recognition with company values."
+- "Values-based recognition increases worker satisfaction."
+- "Recognition builds engagement and retention."
+- "Recognition helps employees understand how values apply to their work."
+
+### Regret and Turnover
+
+- "58% of job changers feel regret."
+- "Regret is higher when employees leave a great manager."
+- "Employees are more likely to regret leaving for purely financial reasons."
+
+### HR Practices
+
+- "Organizations cannot rely on culture alone."
+- "Selective hiring, training, and reward systems are needed."
+- "HR practices connect positive culture to better performance."
+- "Training employees increases retention."
