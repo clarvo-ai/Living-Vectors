@@ -1,4 +1,4 @@
-from fastapi import FastAPI, Depends, HTTPException, Body
+from fastapi import FastAPI, Depends, HTTPException, Body, BackgroundTasks
 from sqlalchemy.orm import Session
 from sqlalchemy import select
 from typing import List, Optional
@@ -8,11 +8,13 @@ from dotenv import load_dotenv
 from fastapi.middleware.cors import CORSMiddleware
 from google import genai
 
-from database import get_db
+from database import get_db, SessionLocal
 from python_utils.sqlalchemy_models import User
 from message_save import save_message
 from python_utils.sqlalchemy_models import User, MessageSender
 from fastapi.responses import JSONResponse
+from learnings import check_and_trigger_learnings
+from gemini_client import client
 
 import json
 from pathlib import Path
@@ -21,9 +23,6 @@ from pathlib import Path
 QUESTIONS_PATH = Path(__file__).parent.parent.parent / "packages" / "shared-data" / "career-conversation-questions.json"
 with open(QUESTIONS_PATH) as f:
     CAREER_QUESTIONS = json.load(f)
-
-# Load environment variables
-load_dotenv()
 
 # Create FastAPI app
 app = FastAPI(title="LV PyAPI", description="Living Vectors Python API", version="1.0.0")
@@ -36,8 +35,6 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
-
-client = genai.Client(api_key=os.getenv("GEMINI_API_KEY"))
 
 @app.get("/")
 async def hello():
@@ -125,6 +122,7 @@ Make it conversational and encouraging. Blend the introduction and first questio
 
 @app.post("/api/chat/answer")
 async def get_gemini_response(
+    bg_tasks: BackgroundTasks,
     # userId is optional, but only for testing (specifically test_gemini.py)
     # in real usage, the user is authenticated and the userId is always provided
     # so, messages are always saved
@@ -218,6 +216,9 @@ async def get_gemini_response(
         #if userId then save to db
         if userId:
             save_message(db, userId, MessageSender.AI, ai_text, question_context=question_metadata)
+
+            # Trigger background task to check if learnings generation is needed
+        bg_tasks.add_task(check_and_trigger_learnings, userId, SessionLocal)
 
         return {            
                 "message": ai_text,

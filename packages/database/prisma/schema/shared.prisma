@@ -95,6 +95,7 @@ model ConversationMessage {
   questionContext Json?   @db.JsonB
   createdAt DateTime      @default(now())
   user      User          @relation(fields: [userId], references: [id])
+  learnedFrom Boolean     @default(false)
   learnings Learning[]
 
   @@index([userId])
