@@ -1,5 +1,5 @@
 import { PrismaAdapter } from '@auth/prisma-adapter';
-import { prisma, Account as PrismaAccount } from '@repo/db';
+import { prisma, Account as PrismaAccount, UserRole } from '@repo/db';
 import { Account, AuthOptions, User } from 'next-auth';
 import { AdapterUser } from 'next-auth/adapters';
 import GoogleProvider from 'next-auth/providers/google';
@@ -14,6 +14,7 @@ declare module 'next-auth' {
       email: string | null;
       image: string | null;
       name: string | null;
+      role: UserRole;
     };
   }
 }
@@ -159,6 +160,7 @@ export const authOptions: AuthOptions = {
           user: {
             ...session.user,
             id: user.id,
+            role: user.role as UserRole,
           },
         };
       } catch (error) {
