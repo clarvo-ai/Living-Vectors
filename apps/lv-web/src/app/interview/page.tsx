@@ -1,28 +1,34 @@
 'use client';
 
-import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Textarea } from '@repo/ui/components/textarea';
+import { Card, CardContent, CardHeader } from '@/components/ui/card';
+import { getGeminiResponse, startConversation } from '@/lib/services/pyapi';
 import { useSession } from 'next-auth/react';
 import { useRouter } from 'next/navigation';
 import { useEffect, useRef, useState } from 'react';
-import { ChatMessage, Message } from './components/chatmessage';
-import { getGeminiResponse } from '@/lib/services/pyapi';
+import { ChatHeader } from './components/ChatHeader';
+import { ChatInput } from './components/ChatInput';
+import { Message } from './components/ChatMessage';
+import { EndInterviewDialog } from './components/EndInterviewDialog';
+import { InterviewHeader } from './components/InterviewHeader';
+import { MessagesList } from './components/MessagesList';
 
 export default function InterviewPage() {
   const { data: session, status } = useSession();
   const router = useRouter();
   const [messages, setMessages] = useState<Message[]>([
-    {
+/*     {
       id: 'initial-ai-message',
       role: 'ai',
       content: "Hello! I'm here to figure you out. First, are you dedicated?",
       timestamp: new Date(),
-    },
+    }, */
   ]);
   const [input, setInput] = useState('');
   const [isLoading, setIsLoading] = useState(false);
+  const [showEndInterviewDialog, setShowEndInterviewDialog] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
+  const [goalIndex, setGoalIndex] = useState<number>(0);
+  const [questionIndex, setQuestionIndex] = useState<number>(0);
 
   // Require auth
   useEffect(() => {
@@ -30,6 +36,38 @@ export default function InterviewPage() {
       router.push('/login');
     }
   }, [status, router]);
+
+  // Upon mount run the start script once (first time chatting)
+  useEffect(() => {
+    //Also fetching data can be here since this runs on mount
+
+    //Do data fetching before this
+    firstChat()
+
+  }, [])
+
+  async function firstChat()
+  {
+    if(messages.length === 0)
+      {
+/*         const userId = session?.user?.id;
+        if (!userId) {
+          throw new Error('User ID missing');
+        } */
+        const request = await startConversation()
+
+
+
+        setMessages([
+          {      
+            id: 'initial-ai-message',
+            role: 'ai',
+            content: request.message,
+            timestamp: new Date(),
+          }
+        ])
+      }
+  }
 
   // Scroll behaviour
   useEffect(() => {
@@ -61,9 +99,14 @@ export default function InterviewPage() {
         throw new Error('User ID missing');
       }
 
-      //frontend calls the backend API to get the AI response
+      //frontend calls the backend API to get the AI response + next question
       //this function also saves the message to the database
-      const data = await getGeminiResponse(userId, userMessage.content);
+      const data = await getGeminiResponse(userId, userMessage.content, goalIndex, questionIndex);
+
+      if (!data.completed && data.nextQuestionId) {
+        setGoalIndex(data.nextQuestionId.goalIndex);
+        setQuestionIndex(data.nextQuestionId.questionIndex);
+      }
 
       const aiMessage: Message = {
         id: Date.now().toString(),
@@ -73,6 +116,7 @@ export default function InterviewPage() {
       };
 
       setMessages((prev) => [...prev, aiMessage]);
+
     } catch (error) {
       // In case an error occurs
       console.error('Error sending message:', error);
@@ -96,13 +140,17 @@ export default function InterviewPage() {
     }
   };
 
+  const handleEndInterview = () => {
+    router.push('/dashboard');
+  };
+
   if (status === 'loading') {
     return (
       <div className="min-h-screen flex items-center justify-center">
-        <div
-          data-testid="loading-spinner"
-          className="animate-spin rounded-full h-32 w-32 border-b-2 border-gray-900"
-        ></div>
+      <div
+        data-testid="loading-spinner"
+        className="animate-spin rounded-full h-32 w-32 border-b-2 border-gray-900"
+      ></div>
       </div>
     );
   }
@@ -112,88 +160,44 @@ export default function InterviewPage() {
   }
 
   return (
-    <div className="min-h-screen bg-gray-50">
-      {/* Header */}
-      <header className="bg-white shadow">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex justify-between items-center py-6">
-            <div className="flex items-center">
-              <a href="/dashboard" className="hover:underline focus:outline-none">
-                <h1 className="text-3xl font-bold text-gray-900 cursor-pointer">Interview</h1>
-              </a>
-            </div>
-            <div className="flex items-center space-x-4">
-              <span className="text-sm text-gray-700">
-                {session.user?.name || session.user?.email}
-              </span>
-            </div>
-          </div>
-        </div>
-      </header>
+    <div
+      className="min-h-screen"
+      style={{
+        background: `linear-gradient(45deg, var(--bg-gradient-start) 0%, var(--bg-gradient-middle) 50%, var(--bg-gradient-end) 100%)`,
+      }}
+    >
+      <InterviewHeader
+        onEndInterviewClick={() => setShowEndInterviewDialog(true)}
+        userName={session.user?.name || session.user?.email}
+      />
 
-      {/* Main Content */}
       <main className="max-w-4xl mx-auto py-6 px-4 sm:px-6 lg:px-8">
-        <Card className="h-[calc(100vh-12rem)] flex flex-col">
-          <CardHeader>
-            <CardTitle>AI interview</CardTitle>
-            {messages.length > 0 && (
-              <p className="text-xs text-muted-foreground mt-1">
-                {messages.length} message{messages.length !== 1 ? 's' : ''}
-              </p>
-            )}
+        <Card className="h-[calc(100vh-12rem)] flex flex-col shadow-lg">
+          <CardHeader className="border-b pb-4">
+            <ChatHeader currentGoal="Build Trust & Explore Current Motivation" />
           </CardHeader>
-          <CardContent className="flex-1 flex flex-col overflow-hidden">
-            {/* Messages Area */}
-            <div className="flex-1 overflow-y-auto mb-4 space-y-4 min-h-0">
-              {/* This is a list of all the messages in the conversation */}
-              {messages.map((message) => (
-                <ChatMessage key={message.id} message={message} />
-              ))}
-              {/* This is a loading indicator that is shown when the AI is generating a response */}
-              {isLoading && (
-                <div className="flex justify-start" data-testid="chat-loading-indicator">
-                  <div className="bg-gray-200 rounded-lg px-4 py-2">
-                    <div className="flex space-x-2">
-                      <div className="w-2 h-2 bg-gray-500 rounded-full animate-bounce"></div>
-                      <div
-                        className="w-2 h-2 bg-gray-500 rounded-full animate-bounce"
-                        style={{ animationDelay: '0.2s' }}
-                      ></div>
-                      <div
-                        className="w-2 h-2 bg-gray-500 rounded-full animate-bounce"
-                        style={{ animationDelay: '0.4s' }}
-                      ></div>
-                    </div>
-                  </div>
-                </div>
-              )}
-              {/* This is a ref to the bottom of the messages area 
-                  Used to scroll to the bottom of the messages area when a new message is added*/}
-              <div ref={messagesEndRef} />
-            </div>
-
-            {/* Input Area */}
-            <div className="flex gap-2">
-              <Textarea
-                value={input}
-                onChange={(e) => setInput(e.target.value)}
-                onKeyDown={handleKeyDown}
-                placeholder="Type your response..."
-                className="resize-none"
-                rows={3}
-                disabled={isLoading}
-              />
-              <Button
-                data-testid="sendButton"
-                onClick={handleSend}
-                disabled={isLoading || !input.trim()}
-              >
-                Send
-              </Button>
-            </div>
+          <CardContent className="flex-1 flex flex-col overflow-hidden pt-6">
+            <MessagesList
+              messages={messages}
+              isLoading={isLoading}
+              messagesEndRef={messagesEndRef}
+            />
+            <ChatInput
+              value={input}
+              onChange={setInput}
+              onSend={handleSend}
+              isLoading={isLoading}
+              onKeyDown={handleKeyDown}
+            />
           </CardContent>
         </Card>
       </main>
+
+      <EndInterviewDialog
+        open={showEndInterviewDialog}
+        onOpenChange={setShowEndInterviewDialog}
+        onConfirm={handleEndInterview}
+      />
     </div>
   );
 }
