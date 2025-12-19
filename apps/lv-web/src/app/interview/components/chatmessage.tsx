@@ -1,5 +1,4 @@
 import { Bot, User } from 'lucide-react';
-
 export interface Message {
   id: string;
   role: 'user' | 'ai';
