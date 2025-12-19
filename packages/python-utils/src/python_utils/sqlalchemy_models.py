@@ -1,6 +1,5 @@
 from sqlalchemy import String, DateTime, Boolean, Integer, BigInteger, ForeignKey, ForeignKeyConstraint, Table, ARRAY, Text, Float, Enum, text, func, event
 from sqlalchemy.dialects.postgresql import UUID as PostgresUUID, TIMESTAMP, DOUBLE_PRECISION, ENUM
-from sqlalchemy.dialects.postgresql import JSONB
 from sqlalchemy.orm import DeclarativeBase, relationship, Mapped, mapped_column, Mapper
 from sqlalchemy.types import TypeDecorator
 from uuid import UUID
@@ -88,7 +87,8 @@ class ConversationMessage(Base):
     sender: Mapped[MessageSender] = mapped_column(Enum(MessageSender), nullable=False)
     content: Mapped[str] = mapped_column(Text, nullable=False)
     createdAt: Mapped[datetime] = mapped_column(TIMESTAMP, nullable=False, server_default=func.now())
-    questionContext: Mapped[Optional[dict]] = mapped_column(JSONB, nullable=True)
+    questionContext: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
+
     # Relationships
     _ConversationMessageToLearning: Mapped[List["_ConversationMessageToLearning"]] = relationship("_ConversationMessageToLearning", back_populates="conversationMessage")
     user: Mapped["User"] = relationship("User", back_populates="conversationMessage", uselist=False)
@@ -142,11 +142,12 @@ class User(Base):
     bio: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
 
     # Relationships
+    conversationMessage: Mapped[List["ConversationMessage"]] = relationship("ConversationMessage", back_populates="user")
     account: Mapped[List["Account"]] = relationship("Account", back_populates="user")
     session: Mapped[List["Session"]] = relationship("Session", back_populates="user")
     authenticator: Mapped[List["Authenticator"]] = relationship("Authenticator", back_populates="user")
-    conversationMessage: Mapped[List["ConversationMessage"]] = relationship("ConversationMessage", back_populates="user")
     learning: Mapped[List["Learning"]] = relationship("Learning", back_populates="user")
+
 
 class Vector(TypeDecorator):
     """Custom type for PostgreSQL vector type"""
@@ -174,7 +175,6 @@ class VerificationToken(Base):
     identifier: Mapped[str] = mapped_column(Text, primary_key=True, nullable=False)
     token: Mapped[str] = mapped_column(Text, primary_key=True, nullable=False)
     expires: Mapped[datetime] = mapped_column(TIMESTAMP, nullable=False)
-
 
 class _ConversationMessageToLearning(Base):
     __tablename__ = "_ConversationMessageToLearning"
