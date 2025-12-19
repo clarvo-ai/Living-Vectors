@@ -44,7 +44,7 @@ export default function InterviewPage() {
 
   async function firstChat()
   {
-    if(messages.length === 0)
+    if (messages.length === 0)
       {
 /*         const userId = session?.user?.id;
         if (!userId) {
