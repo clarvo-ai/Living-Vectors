@@ -220,7 +220,6 @@ async def get_gemini_response(
             # Trigger background task to check if learnings generation is needed
         bg_tasks.add_task(check_and_trigger_learnings, userId, SessionLocal)
 
-        return {"message": response.text, "status": 200}
         return {            
                 "message": ai_text,
                 "nextQuestionId": next_question_data["questionId"] if next_question_data else None,
