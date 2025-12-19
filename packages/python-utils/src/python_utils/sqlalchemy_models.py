@@ -87,8 +87,9 @@ class ConversationMessage(Base):
     sender: Mapped[MessageSender] = mapped_column(Enum(MessageSender), nullable=False)
     content: Mapped[str] = mapped_column(Text, nullable=False)
     createdAt: Mapped[datetime] = mapped_column(TIMESTAMP, nullable=False, server_default=func.now())
-    questionContext: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
+    learnedFrom: Mapped[bool] = mapped_column(Boolean, nullable=False, server_default=text('false'))
 
+    questionContext: Mapped[Optional[dict]] = mapped_column(JSONB, nullable=True)
     # Relationships
     _ConversationMessageToLearning: Mapped[List["_ConversationMessageToLearning"]] = relationship("_ConversationMessageToLearning", back_populates="conversationMessage")
     user: Mapped["User"] = relationship("User", back_populates="conversationMessage", uselist=False)
