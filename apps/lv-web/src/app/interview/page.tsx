@@ -1,7 +1,7 @@
 'use client';
 
 import { Card, CardContent, CardHeader } from '@/components/ui/card';
-import { getGeminiResponse } from '@/lib/services/pyapi';
+import { getGeminiResponse, startConversation } from '@/lib/services/pyapi';
 import { useSession } from 'next-auth/react';
 import { useRouter } from 'next/navigation';
 import { useEffect, useRef, useState } from 'react';
@@ -16,17 +16,19 @@ export default function InterviewPage() {
   const { data: session, status } = useSession();
   const router = useRouter();
   const [messages, setMessages] = useState<Message[]>([
-    {
+/*     {
       id: 'initial-ai-message',
       role: 'ai',
       content: "Hello! I'm here to figure you out. First, are you dedicated?",
       timestamp: new Date(),
-    },
+    }, */
   ]);
   const [input, setInput] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const [showEndInterviewDialog, setShowEndInterviewDialog] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
+  const [goalIndex, setGoalIndex] = useState<number>(0);
+  const [questionIndex, setQuestionIndex] = useState<number>(0);
 
   // Require auth
   useEffect(() => {
@@ -34,6 +36,38 @@ export default function InterviewPage() {
       router.push('/login');
     }
   }, [status, router]);
+
+  // Upon mount run the start script once (first time chatting)
+  useEffect(() => {
+    //Also fetching data can be here since this runs on mount
+
+    //Do data fetching before this
+    firstChat()
+
+  }, [])
+
+  async function firstChat()
+  {
+    if(messages.length === 0)
+      {
+/*         const userId = session?.user?.id;
+        if (!userId) {
+          throw new Error('User ID missing');
+        } */
+        const request = await startConversation()
+
+
+
+        setMessages([
+          {      
+            id: 'initial-ai-message',
+            role: 'ai',
+            content: request.message,
+            timestamp: new Date(),
+          }
+        ])
+      }
+  }
 
   // Scroll behaviour
   useEffect(() => {
@@ -65,9 +99,14 @@ export default function InterviewPage() {
         throw new Error('User ID missing');
       }
 
-      //frontend calls the backend API to get the AI response
+      //frontend calls the backend API to get the AI response + next question
       //this function also saves the message to the database
-      const data = await getGeminiResponse(userId, userMessage.content);
+      const data = await getGeminiResponse(userId, userMessage.content, goalIndex, questionIndex);
+
+      if (!data.completed && data.nextQuestionId) {
+        setGoalIndex(data.nextQuestionId.goalIndex);
+        setQuestionIndex(data.nextQuestionId.questionIndex);
+      }
 
       const aiMessage: Message = {
         id: Date.now().toString(),
@@ -77,6 +116,7 @@ export default function InterviewPage() {
       };
 
       setMessages((prev) => [...prev, aiMessage]);
+
     } catch (error) {
       // In case an error occurs
       console.error('Error sending message:', error);
