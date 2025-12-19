@@ -1,4 +1,7 @@
 Project Board: https://github.com/orgs/clarvo-ai/projects/9/views/1
+
+Retro Board: https://www.figma.com/board/R6PzwUSjbwYNWdy1eFeJ6n/LVP-Retro?node-id=0-1&p=f
+
 > 📖 **For project documentation including folder structure and architecture overview, see [DOCUMENTATION.md](./DOCUMENTATION.md)**
 
 
@@ -132,7 +135,63 @@ docker compose --profile lv-web up -d --build
 docker compose --profile lv-web-build up -d --build
 ```
 
+
+## Running Tests
+
+The project uses **Jest** for JavaScript/TypeScript tests and **Pytest** for python tests.
+
+### Quick Commands
+
+```bash
+# Run ALL tests (Jest + Pytest)
+npm run test
+
+# Run ALL tests with coverage reports
+npm run test:all:coverage
+```
+
+### Jest (JavaScript/TypeScript)
+
+```bash
+# Run Jest tests only
+npm run test:jest
+
+# Run Jest tests with coverage
+npm run test:jest:coverage
+
+# View coverage report (Mac/Linux)
+open apps/lv-web/coverage/lcov-report/index.html
+
+# View coverage report (Windows/WSL)
+powershell.exe -c start apps/lv-web/coverage/lcov-report/index.html
+```
+
+### Pytest (Python)
+
+```bash
+# Run Pytest tests only (requires Docker)
+npm run test:pytest
+
+# Run Pytest test with coverage
+npm run test:pytest:coverage
+
+# View coverage report (Mac/Linux)
+open apps/lv-pyapi/htmlcov/index.html
+
+# View coverage report (Windows/WSL)
+powershell.exe -c start apps/lv-pyapi/htmlcov/index.html
+```
+
+### Coverage Reports
+
+- **Jest:** 'apps/lv-web/coverage/lcov-report/index.html'
+- **Pytest:** 'apps/lv-pyapi/htmlcov/index.html'
+- **CI:** Coverage reports are uploaded as artifacts in GitHub Actions
+
+## Test Builds Locally
+
 **LV-PYAPI (Python API only):**
+
 
 ```bash
 docker compose --profile lv-pyapi up -d --build
