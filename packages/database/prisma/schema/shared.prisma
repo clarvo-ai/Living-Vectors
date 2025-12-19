@@ -92,6 +92,7 @@ model ConversationMessage {
   userId    String        @db.Uuid
   sender    MessageSender
   content   String
+  questionContext Json?   @db.JsonB
   createdAt DateTime      @default(now())
   user      User          @relation(fields: [userId], references: [id])
   learnedFrom Boolean     @default(false)
