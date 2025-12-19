@@ -83,7 +83,7 @@ export default function InterviewPage() {
   };
 
   const handleVoiceRecording = async (blob: Blob) => {
-    console.log('handleVoiceRecording called with blob size:', blob.size);
+    //console.log('handleVoiceRecording called with blob size:', blob.size);
     setIsTranscribing(true);
     try {
       const { transcript } = await getSTT(blob);
