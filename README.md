@@ -228,6 +228,30 @@ docker exec -it lv-web npm run build
 docker compose --profile lv-web-build build
 ```
 
+## Testing
+
+We use Jest and React Testing Library for unit and component testing.
+
+### Running Tests
+
+To run the test suite, go to `apps/lv-web` and run:
+
+```bash
+npm test
+```
+
+To run tests in watch mode (interactive):
+
+```bash
+npm run test:watch
+```
+
+### Writing Tests
+
+- Place test files in `src/__tests__` or colocated with components (e.g., `component.test.tsx`).
+- Use the `.test.tsx` or `.spec.tsx` extension.
+- We use `jest-environment-jsdom` for component tests.
+
 ## 6. Adding a shadcn Component
 
 Inside the LV-WEB app folder:
