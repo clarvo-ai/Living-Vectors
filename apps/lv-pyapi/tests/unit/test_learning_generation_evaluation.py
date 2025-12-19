@@ -9,20 +9,27 @@ def evaluate_learning_quality(learning: str, source_conversation: list):
 
     # This prompt is step one: Define criteria
     prompt = f"""
-Evaluate the following learning statement based on the conversation it was derived from.
+You are an impartial evaluator judging the quality of learning statements.
+    
+Evaluate learning quality. Example:
 
+Conversation: 
+- "I love coding web apps." 
+- "What excites you?"
+- "UI design and tweaking interfaces"
+
+Learning: 
+"Enjoys UI-focused web projects. Spends time improving interfaces."
+
+Scores:
+accuracy=1.0, relevance=1.0, coherence=1.0, overall_score=1.0, feedback="Perfectly summarizes conversation"
+
+Now evaluate:
 Learning: "{learning}"
+Conversation: {chr(10).join(f"- {msg}" for msg in source_conversation)}
 
-Source Conversation:
-{chr(10).join(f"- {msg}" for msg in source_conversation)}
-
-Rate the learning on these dimensions (0.0 to 1.0):
-- Accuracy:  Does it correctly reflect what was said?
-- Relevance: Is it useful for job matching/personalization?
-- Coherence: Is it clear and well-formed?
-
-Return JSON with scores and brief feedback. 
-"""
+Rate (0.0-1.0): Accuracy (reflects conversation?), Relevance (useful for job matching?), Coherence (clear/well-formed?).
+Return JSON only: accuracy, relevance, coherence, overall_score, feedback."""
     schema = {
         "type": "object",
         "properties": {
