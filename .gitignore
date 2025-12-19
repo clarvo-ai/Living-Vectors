@@ -20,6 +20,8 @@ packages/database/prisma/generated
 # testing
 /coverage
 **/coverage
+.coverage
+**/.coverage
 /.nyc_output
 
 # next.js

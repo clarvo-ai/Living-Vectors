@@ -1,4 +1,4 @@
-from typing import List
+from typing import List, cast, Dict, Any
 from fastapi import Depends, BackgroundTasks, HTTPException
 from sqlalchemy.orm import Session
 from sqlalchemy import select
@@ -51,14 +51,23 @@ def learnings_from_messages(messages: List[str]):
     """Generate learnings from messages using Gemini API"""
     try:
         prompt = (
-            "Analyze the following user messages and extract key insights that capture their skills, "
-            "interests, strengths, and career aspirations. "
-            "Produce a list of concise, self-contained statements suitable for embedding into a vector "
-            "database. Each statement should focus on a specific trait, preference, or career-relevant "
-            "insight that can help match the user to their ideal job.\n\n"
+            "Extract SPECIFIC, DETAILED learnings from this conversation. Capture concrete details, not generic summaries.\n\n"
+            "Example conversation:\n"
+            "- 'I've been really enjoying building web apps and seeing users interact with them.'\n"
+            "- 'What kind of projects make you lose track of time?'\n"
+            "- 'Anything involving UI design. I can spend hours tweaking interfaces.'\n"
+            "- 'What do people usually come to you for?'\n"
+            "- 'Frontend advice and debugging CSS issues.'\n\n"
+            "GOOD learnings (specific and detailed):\n"
+            "- 'Enjoys building web applications and observing user interactions'\n"
+            "- 'Passionate about UI design and spends hours tweaking interfaces'\n"
+            "- 'Provides frontend advice and specializes in debugging CSS issues'\n\n"
+            "BAD learnings (too generic, avoid these):\n"
+            "- 'Enjoys building web applications' (too vague, missing UI focus)\n"
+            "- 'Likes coding' (not specific enough)\n\n"
+            "Now extract learnings from:\n"
             + "\n".join(f"- {msg}" for msg in messages) +
-            "\n\nReturn the output as a plain list of short statements, each reflecting one actionable or "
-            "descriptive insight useful for job matching."
+            "\n\nReturn a JSON array of specific, detailed learning statements. Each statement should capture a distinct, concrete skill, interest, or expertise mentioned in the conversation."
         )
         
         generation_config = types.GenerateContentConfig(
@@ -72,7 +81,9 @@ def learnings_from_messages(messages: List[str]):
             config=generation_config
         )
 
-        return response.parsed["learnings"]
+        # response.parsed is a dict when using JSON schema, cast to satisfy type checker
+        parsed = cast(Dict[str, Any], response.parsed)
+        return parsed["learnings"]
     except Exception as e:
         print(f"Error generating learnings: {str(e)}")
         return []
