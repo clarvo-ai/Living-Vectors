@@ -50,38 +50,12 @@ jest.mock('../../app/interview/components/voice-recorder', () => ({
 global.URL.createObjectURL = jest.fn(() => 'mock-url');
 global.URL.revokeObjectURL = jest.fn();
 
-// Mock Audio class
-class MockAudio {
-  src: string;
-  onplay: (() => void) | null = null;
-  onended: (() => void) | null = null;
-  onpause: (() => void) | null = null;
-
-  constructor(src: string) {
-    this.src = src;
-  }
-
-  play() {
-    if (this.onplay) this.onplay();
-    // Simulate audio ending after a short delay
-    setTimeout(() => {
-      if (this.onended) this.onended();
-    }, 100);
-  }
-
-  pause() {
-    if (this.onpause) this.onpause();
-  }
-}
-
-global.Audio = MockAudio as typeof Audio;
-
 // Mock scrollIntoView
 Element.prototype.scrollIntoView = jest.fn();
 
 const mockUseSession = useSession as jest.Mock;
 
-describe('InterviewPage - Voice Only Mode', () => {
+describe('InterviewPage - Voice Errors', () => {
   beforeEach(() => {
     jest.clearAllMocks();
     mockUseSession.mockReturnValue({
@@ -90,52 +64,46 @@ describe('InterviewPage - Voice Only Mode', () => {
     });
   });
 
-  it('should handle voice interaction flow', async () => {
-    (getSTT as jest.Mock).mockImplementation(async () => {
-      await new Promise((resolve) => setTimeout(resolve, 100));
-      return { transcript: 'Hello AI' };
-    });
-
-    (getGeminiResponse as jest.Mock).mockImplementation(async () => {
-      await new Promise((resolve) => setTimeout(resolve, 100));
-      return {
-        message: 'Hello Human',
-        status: 200,
-      };
-    });
-    (getTTS as jest.Mock).mockResolvedValue(new Blob(['audio'], { type: 'audio/mp3' }));
+  it('should handle STT error', async () => {
+    const consoleSpy = jest.spyOn(console, 'error').mockImplementation(() => {});
+    (getSTT as jest.Mock).mockRejectedValue(new Error('STT Failed'));
 
     render(<InterviewPage />);
-
-    // Switch to Voice Only
-    const voiceOnlySwitch = screen.getByLabelText(/Voice Only/i);
-    fireEvent.click(voiceOnlySwitch);
-
-    // Wait for mode switch
-    await waitFor(() => {
-      expect(screen.getByText("Let's talk!")).toBeInTheDocument();
-    });
 
     const recordButton = screen.getByTestId('mock-voice-recorder');
     fireEvent.click(recordButton);
 
-    // Recorder gone
     await waitFor(() => {
-      expect(screen.queryByTestId('mock-voice-recorder')).not.toBeInTheDocument();
+      expect(consoleSpy).toHaveBeenCalledWith('STT error:', expect.any(Error));
     });
 
-    await waitFor(() => {
-      expect(screen.getByText('Waiting for AI...')).toBeInTheDocument();
+    consoleSpy.mockRestore();
+  });
+
+  it('should handle TTS error in voice mode', async () => {
+    const consoleSpy = jest.spyOn(console, 'error').mockImplementation(() => {});
+    (getGeminiResponse as jest.Mock).mockResolvedValue({
+      message: 'Hello Human',
+      status: 200,
     });
+    (getTTS as jest.Mock).mockRejectedValue(new Error('TTS Failed'));
+
+    render(<InterviewPage />);
+
+    // Enable Voice Mode
+    const voiceModeSwitch = screen.getByLabelText(/AI Voice/i);
+    fireEvent.click(voiceModeSwitch);
+
+    // Send message
+    const input = screen.getByPlaceholderText(/Type your response.../i);
+    fireEvent.change(input, { target: { value: 'Hello' } });
+    const sendButton = screen.getByTestId('sendButton');
+    fireEvent.click(sendButton);
 
     await waitFor(() => {
-      expect(getSTT).toHaveBeenCalled();
-      expect(getGeminiResponse).toHaveBeenCalledWith('test-user-id', 'Hello AI');
-      expect(getTTS).toHaveBeenCalledWith('Hello Human');
+      expect(consoleSpy).toHaveBeenCalledWith('TTS error', expect.any(Error));
     });
 
-    await waitFor(() => {
-      expect(screen.getByText('AI is speaking...')).toBeInTheDocument();
-    });
+    consoleSpy.mockRestore();
   });
 });
