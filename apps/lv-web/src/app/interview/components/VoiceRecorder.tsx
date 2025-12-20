@@ -1,6 +1,6 @@
 import { Button } from '@/components/ui/button';
 import { Mic, Square } from 'lucide-react';
-import { useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 
 interface VoiceRecorderProps {
   onRecordingComplete: (blob: Blob) => void;
@@ -52,19 +52,19 @@ export function VoiceRecorder({
     }
   };
 
-  const stopRecording = () => {
+  const stopRecording = useCallback(() => {
     if (mediaRecorderRef.current && isRecording) {
       mediaRecorderRef.current.stop();
       setIsRecording(false);
       onRecordingStateChangeRef.current?.(false);
     }
-  };
+  }, [isRecording]);
 
   useEffect(() => {
     if (disabled && isRecording) {
       stopRecording();
     }
-  }, [disabled, isRecording]);
+  }, [disabled, isRecording, stopRecording]);
 
   return (
     <Button

@@ -15,6 +15,7 @@ RUN pip install --no-cache-dir -r requirements.txt
 # Copy the application code
 COPY apps/lv-pyapi/ /app/apps/lv-pyapi/
 COPY packages/python-utils/ /app/packages/python-utils/
+COPY packages/shared-data/ /app/packages/shared-data/
 
 # Set the working directory to the app
 WORKDIR /app/apps/lv-pyapi

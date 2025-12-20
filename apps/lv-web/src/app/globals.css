@@ -24,6 +24,40 @@
     --input: 214.3 31.8% 91.4%;
     --ring: 222.2 84% 4.9%;
     --radius: 0.5rem;
+
+    /* Primary gradient colors */
+    --gradient-primary-start: #155DFC;
+    --gradient-primary-end: #4F39F6;
+
+    /* Background gradient colors */
+    --bg-gradient-start: #EFF6FF;
+    --bg-gradient-middle: rgba(238, 242, 255, 0.3);
+    --bg-gradient-end: #FAFBFC;
+
+    /* Border gradient colors */
+    --border-gradient-primary: rgba(190, 219, 255, 1);
+    --border-gradient-secondary: rgba(21, 93, 252, 0.5);
+    --border-gradient-accent: rgba(96, 165, 250, 1);
+    --border-bg: #DBEAFE;
+
+    /* Box shadow colors */
+    --shadow-blue-light: rgba(40, 130, 252, 1);
+    --shadow-blue-medium: rgba(21, 93, 252, 0.25);
+    --shadow-blue-hover: rgba(21, 93, 252, 0.4);
+
+    /* Red/destructive colors */
+    --red-bg-light: rgba(255, 0, 0, 0.12);
+    --red-bg-medium: rgba(255, 0, 0, 0.25);
+    --red-border-light: rgba(255, 0, 0, 0.35);
+    --red-border-medium: rgba(255, 0, 0, 0.6);
+    --red-700: #b91c1c;
+    --red-800: #991b1b;
+
+    /* Default gradient colors (animated border) */
+    --gradient-default-primary: #584827;
+    --gradient-default-secondary: #c7a03c;
+    --gradient-default-accent: #f9de90;
+    --gradient-default-bg: #2d230f;
   }
 
   .dark {
@@ -56,4 +90,50 @@
   body {
     @apply bg-background text-foreground;
   }
+}
+
+/* Safari support for rotating gradient border */
+/* Register CSS custom property for animation (Safari support) */
+@property --gradient-angle {
+  syntax: '<angle>';
+  initial-value: 0deg;
+  inherits: false;
+}
+
+/* Gradient border animations */
+@keyframes gradient-rotate {
+  from {
+    --gradient-angle: 0deg;
+  }
+  to {
+    --gradient-angle: 360deg;
+  }
+}
+
+.gradient-border-component {
+  --gradient-angle: 0deg;
+}
+
+.gradient-border-auto {
+  animation: gradient-rotate var(--animation-duration, 5s) linear infinite;
+  -webkit-animation: gradient-rotate var(--animation-duration, 5s) linear infinite;
+}
+
+.gradient-border-hover {
+  transition: animation 0.3s ease;
+}
+
+.gradient-border-hover:hover {
+  animation: gradient-rotate var(--animation-duration, 5s) linear infinite;
+  -webkit-animation: gradient-rotate var(--animation-duration, 5s) linear infinite;
+}
+
+.gradient-border-stop-hover {
+  animation: gradient-rotate var(--animation-duration, 5s) linear infinite;
+  -webkit-animation: gradient-rotate var(--animation-duration, 5s) linear infinite;
+}
+
+.gradient-border-stop-hover:hover {
+  animation-play-state: paused;
+  -webkit-animation-play-state: paused;
 }

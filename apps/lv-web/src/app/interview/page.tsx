@@ -1,29 +1,32 @@
 'use client';
 
-import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { getGeminiResponse, getSTT, getTTS } from '@/lib/services/pyapi';
+import { Card, CardContent, CardHeader } from '@/components/ui/card';
+import { getGeminiResponse, getSTT, getTTS, startConversation } from '@/lib/services/pyapi';
 import { Label } from '@repo/ui/components/label';
 import { Switch } from '@repo/ui/components/switch';
-import { Textarea } from '@repo/ui/components/textarea';
 import { Loader2, Volume2, VolumeX } from 'lucide-react';
 import { useSession } from 'next-auth/react';
 import { useRouter } from 'next/navigation';
-import { useEffect, useRef, useState } from 'react';
-import { ChatMessage, Message } from './components/chatmessage';
-import { VoiceOnlyMode } from './components/voice-only-mode';
-import { VoiceRecorder } from './components/voice-recorder';
+import { useCallback, useEffect, useRef, useState } from 'react';
+import { ChatHeader } from './components/ChatHeader';
+import { ChatInput } from './components/ChatInput';
+import { Message } from './components/ChatMessage';
+import { EndInterviewDialog } from './components/EndInterviewDialog';
+import { InterviewHeader } from './components/InterviewHeader';
+import { MessagesList } from './components/MessagesList';
+import { VoiceOnlyMode } from './components/VoiceOnlyMode';
+import { VoiceRecorder } from './components/VoiceRecorder';
 
 export default function InterviewPage() {
   const { data: session, status } = useSession();
   const router = useRouter();
   const [messages, setMessages] = useState<Message[]>([
-    {
+    /*     {
       id: 'initial-ai-message',
       role: 'ai',
       content: "Hello! I'm here to figure you out. First, are you dedicated?",
       timestamp: new Date(),
-    },
+    }, */
   ]);
   const [input, setInput] = useState('');
   const [isLoading, setIsLoading] = useState(false);
@@ -32,8 +35,11 @@ export default function InterviewPage() {
   const [isUserRecording, setIsUserRecording] = useState(false);
   const [isAiSpeaking, setIsAiSpeaking] = useState(false);
   const [isTranscribing, setIsTranscribing] = useState(false);
-  const messagesEndRef = useRef<HTMLDivElement>(null);
   const audioRef = useRef<HTMLAudioElement | null>(null);
+  const [showEndInterviewDialog, setShowEndInterviewDialog] = useState(false);
+  const messagesEndRef = useRef<HTMLDivElement>(null);
+  const [goalIndex, setGoalIndex] = useState<number>(0);
+  const [questionIndex, setQuestionIndex] = useState<number>(0);
 
   // Require auth
   useEffect(() => {
@@ -42,10 +48,59 @@ export default function InterviewPage() {
     }
   }, [status, router]);
 
+  // Upon mount run the start script once (first time chatting)
+  useEffect(() => {
+    //Also fetching data can be here since this runs on mount
+
+    //Do data fetching before this
+    firstChat();
+  }, []);
+
+  async function firstChat() {
+    if (messages.length === 0) {
+      setIsLoading(true);
+      try {
+        const request = await startConversation();
+
+        setMessages([
+          {
+            id: 'initial-ai-message',
+            role: 'ai',
+            content: request.message,
+            timestamp: new Date(),
+          },
+        ]);
+      } finally {
+        setIsLoading(false);
+      }
+    }
+  }
+
   // Scroll behaviour
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, [messages, voiceOnlyMode]);
+
+  const stopAudio = () => {
+    if (audioRef.current) {
+      audioRef.current.pause();
+      URL.revokeObjectURL(audioRef.current.src);
+      audioRef.current = null;
+    }
+  };
+
+  const playAudio = useCallback((blob: Blob) => {
+    stopAudio();
+    const url = URL.createObjectURL(blob);
+    const audio = new Audio(url);
+    audioRef.current = audio;
+
+    audio.onplay = () => setIsAiSpeaking(true);
+    audio.onended = () => setIsAiSpeaking(false);
+    audio.onpause = () => setIsAiSpeaking(false);
+
+    audio.play();
+  }, []);
 
   // TTS for the latest AI message in Voice Only Mode
   useEffect(() => {
@@ -57,7 +112,7 @@ export default function InterviewPage() {
           .catch((e) => console.error('TTS error', e));
       }
     }
-  }, [voiceOnlyMode, messages]);
+  }, [voiceOnlyMode, messages, playAudio]);
 
   // Pause audio when user starts recording or when voice modes are off
   useEffect(() => {
@@ -65,22 +120,6 @@ export default function InterviewPage() {
       audioRef.current?.pause();
     }
   }, [isUserRecording, voiceOnlyMode, voiceMode]);
-
-  const playAudio = (blob: Blob) => {
-    if (audioRef.current) {
-      audioRef.current.pause();
-      URL.revokeObjectURL(audioRef.current.src);
-    }
-    const url = URL.createObjectURL(blob);
-    const audio = new Audio(url);
-    audioRef.current = audio;
-
-    audio.onplay = () => setIsAiSpeaking(true);
-    audio.onended = () => setIsAiSpeaking(false);
-    audio.onpause = () => setIsAiSpeaking(false);
-
-    audio.play();
-  };
 
   const handleVoiceRecording = async (blob: Blob) => {
     //console.log('handleVoiceRecording called with blob size:', blob.size);
@@ -121,9 +160,14 @@ export default function InterviewPage() {
         throw new Error('User ID missing');
       }
 
-      //frontend calls the backend API to get the AI response
+      //frontend calls the backend API to get the AI response + next question
       //this function also saves the message to the database
-      const data = await getGeminiResponse(userId, userMessage.content);
+      const data = await getGeminiResponse(userId, userMessage.content, goalIndex, questionIndex);
+
+      if (!data.completed && data.nextQuestionId) {
+        setGoalIndex(data.nextQuestionId.goalIndex);
+        setQuestionIndex(data.nextQuestionId.questionIndex);
+      }
 
       const aiMessage: Message = {
         id: Date.now().toString(),
@@ -133,14 +177,12 @@ export default function InterviewPage() {
       };
 
       setMessages((prev) => [...prev, aiMessage]);
+      setIsLoading(false);
 
       if (voiceMode && !voiceOnlyMode) {
-        try {
-          const audioBlob = await getTTS(data.message);
-          playAudio(audioBlob);
-        } catch (e) {
-          console.error('TTS error', e);
-        }
+        getTTS(data.message)
+          .then((audioBlob) => playAudio(audioBlob))
+          .catch((e) => console.error('TTS error', e));
       }
     } catch (error) {
       // In case an error occurs
@@ -152,7 +194,6 @@ export default function InterviewPage() {
         timestamp: new Date(),
       };
       setMessages((prev) => [...prev, errorMessage]);
-    } finally {
       setIsLoading(false);
     }
   };
@@ -163,6 +204,15 @@ export default function InterviewPage() {
       e.preventDefault();
       handleSend();
     }
+  };
+
+  const handleEndInterview = () => {
+    if (audioRef.current) {
+      audioRef.current.pause();
+      URL.revokeObjectURL(audioRef.current.src);
+      audioRef.current = null;
+    }
+    router.push('/dashboard');
   };
 
   if (status === 'loading') {
@@ -181,32 +231,23 @@ export default function InterviewPage() {
   }
 
   return (
-    <div className="min-h-screen bg-gray-50">
-      {/* Header */}
-      <header className="bg-white shadow">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex justify-between items-center py-6">
-            <div className="flex items-center">
-              <a href="/dashboard" className="hover:underline focus:outline-none">
-                <h1 className="text-3xl font-bold text-gray-900 cursor-pointer">Interview</h1>
-              </a>
-            </div>
-            <div className="flex items-center space-x-4">
-              <span className="text-sm text-gray-700">
-                {session.user?.name || session.user?.email}
-              </span>
-            </div>
-          </div>
-        </div>
-      </header>
+    <div
+      className="min-h-screen"
+      style={{
+        background: `linear-gradient(45deg, var(--bg-gradient-start) 0%, var(--bg-gradient-middle) 50%, var(--bg-gradient-end) 100%)`,
+      }}
+    >
+      <InterviewHeader
+        onEndInterviewClick={() => setShowEndInterviewDialog(true)}
+        userName={session.user?.name || session.user?.email}
+      />
 
-      {/* Main Content */}
       <main className="max-w-4xl mx-auto py-6 px-4 sm:px-6 lg:px-8">
-        <Card className="h-[calc(100vh-12rem)] flex flex-col">
-          <CardHeader>
-            <div className="flex justify-between items-center">
-              <CardTitle>AI interview</CardTitle>
-              <div className="flex items-center space-x-4">
+        <Card className="h-[calc(100vh-12rem)] flex flex-col shadow-lg">
+          <CardHeader className="border-b pb-4">
+            <div className="flex flex-col gap-4">
+              <ChatHeader currentGoal="Build Trust & Explore Current Motivation" />
+              <div className="flex justify-end items-center space-x-4">
                 {!voiceOnlyMode && (
                   <div className="flex items-center space-x-2">
                     <Switch id="voice-mode" checked={voiceMode} onCheckedChange={setVoiceMode} />
@@ -232,90 +273,67 @@ export default function InterviewPage() {
                 </div>
               </div>
             </div>
-            {messages.length > 0 && (
-              <p className="text-xs text-muted-foreground mt-1">
-                {messages.length} message{messages.length !== 1 ? 's' : ''}
-              </p>
-            )}
           </CardHeader>
-          <CardContent className="flex-1 flex flex-col overflow-hidden">
+          <CardContent className="flex-1 flex flex-col overflow-hidden pt-6">
             {voiceOnlyMode ? (
-              <VoiceOnlyMode
-                isAiSpeaking={isAiSpeaking}
-                isUserRecording={isUserRecording}
-                isProcessing={isLoading || isTranscribing}
-              />
-            ) : (
-              <div className="flex-1 overflow-y-auto mb-4 space-y-4 min-h-0">
-                {/* This is a list of all the messages in the conversation */}
-                {messages.map((message) => (
-                  <ChatMessage key={message.id} message={message} />
-                ))}
-                {/* This is a loading indicator that is shown when the AI is generating a response */}
-                {isLoading && (
-                  <div className="flex justify-start" data-testid="chat-loading-indicator">
-                    <div className="bg-gray-200 rounded-lg px-4 py-2">
-                      <div className="flex space-x-2">
-                        <div className="w-2 h-2 bg-gray-500 rounded-full animate-bounce"></div>
-                        <div
-                          className="w-2 h-2 bg-gray-500 rounded-full animate-bounce"
-                          style={{ animationDelay: '0.2s' }}
-                        ></div>
-                        <div
-                          className="w-2 h-2 bg-gray-500 rounded-full animate-bounce"
-                          style={{ animationDelay: '0.4s' }}
-                        ></div>
-                      </div>
-                    </div>
-                  </div>
-                )}
-                {/* This is a ref to the bottom of the messages area 
-                  Used to scroll to the bottom of the messages area when a new message is added*/}
-                <div ref={messagesEndRef} />
-              </div>
-            )}
-
-            {/* Input Area */}
-            <div className={`flex gap-2 ${voiceOnlyMode ? 'justify-center' : ''}`}>
-              {!voiceOnlyMode && (
-                <Textarea
-                  value={input}
-                  onChange={(e) => setInput(e.target.value)}
-                  onKeyDown={handleKeyDown}
-                  placeholder="Type your response..."
-                  className="resize-none"
-                  rows={3}
-                  disabled={isLoading || isTranscribing}
+              <div className="flex-1 flex flex-col items-center">
+                <VoiceOnlyMode
+                  isAiSpeaking={isAiSpeaking}
+                  isUserRecording={isUserRecording}
+                  isProcessing={isLoading || isTranscribing}
                 />
-              )}
-              <div className="flex flex-col gap-2">
-                {!voiceOnlyMode && (
-                  <Button
-                    data-testid="sendButton"
-                    onClick={() => handleSend()}
-                    disabled={isLoading || isTranscribing || !input.trim()}
-                  >
-                    Send
-                  </Button>
-                )}
-                <div className="flex h-10 w-full items-center justify-center">
+                <div className="flex justify-center pb-4">
                   {isTranscribing ? (
-                    <Loader2 className="h-5 w-5 animate-spin text-muted-foreground" />
+                    <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
                   ) : (
-                    <div>
-                      <VoiceRecorder
-                        onRecordingComplete={handleVoiceRecording}
-                        onRecordingStateChange={setIsUserRecording}
-                        disabled={isLoading}
-                      />
-                    </div>
+                    <VoiceRecorder
+                      onRecordingComplete={handleVoiceRecording}
+                      onRecordingStateChange={setIsUserRecording}
+                      disabled={isLoading || messages.length === 0}
+                    />
                   )}
                 </div>
               </div>
-            </div>
+            ) : (
+              <>
+                <MessagesList
+                  messages={messages}
+                  isLoading={isLoading}
+                  messagesEndRef={messagesEndRef}
+                />
+                <div className="flex gap-2 items-start">
+                  <div className="flex-1">
+                    <ChatInput
+                      value={input}
+                      onChange={setInput}
+                      onSend={() => handleSend()}
+                      isLoading={isLoading}
+                      onKeyDown={handleKeyDown}
+                    />
+                  </div>
+                  <div className="flex h-10 items-center justify-center">
+                    {isTranscribing ? (
+                      <Loader2 className="h-5 w-5 animate-spin text-muted-foreground" />
+                    ) : (
+                      <VoiceRecorder
+                        onRecordingComplete={handleVoiceRecording}
+                        onRecordingStateChange={setIsUserRecording}
+                        disabled={isLoading || messages.length === 0}
+                      />
+                    )}
+                  </div>
+                </div>
+              </>
+            )}
           </CardContent>
         </Card>
       </main>
+
+      <EndInterviewDialog
+        open={showEndInterviewDialog}
+        onOpenChange={setShowEndInterviewDialog}
+        onConfirm={handleEndInterview}
+      />
     </div>
   );
 }
