@@ -2,8 +2,9 @@ import { prisma, User } from '@repo/db';
 import {requireAdminAuth} from '@repo/lib';
 import { NextResponse } from 'next/server';
 
-export type AdminUserListItem = Pick<User, 'id' | 'name' | 'email' | 'role'>;
+export type AdminUserListItem = Pick<User, 'id' | 'name' | 'email' | 'role' | 'createdAt'>;
 
+// return all users for the /admin/users page
 export async function GET() {
     const authError = await requireAdminAuth();
     if (authError) {
@@ -17,6 +18,7 @@ export async function GET() {
                 name: true,
                 email: true,
                 role: true,
+                createdAt: true,
             },
             orderBy: {
                 createdAt: 'desc',
