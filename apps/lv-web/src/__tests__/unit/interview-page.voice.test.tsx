@@ -30,7 +30,7 @@ interface VoiceRecorderProps {
   onRecordingStateChange: (isRecording: boolean) => void;
 }
 
-jest.mock('../../app/interview/components/voice-recorder', () => ({
+jest.mock('../../app/interview/components/VoiceRecorder', () => ({
   VoiceRecorder: ({ onRecordingComplete, onRecordingStateChange }: VoiceRecorderProps) => (
     <button
       data-testid="mock-voice-recorder"
