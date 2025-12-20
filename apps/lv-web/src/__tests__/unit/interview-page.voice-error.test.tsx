@@ -2,7 +2,7 @@ import '@testing-library/jest-dom';
 import { fireEvent, render, screen, waitFor } from '@testing-library/react';
 import { useSession } from 'next-auth/react';
 import InterviewPage from '../../app/interview/page';
-import { getGeminiResponse, getSTT, getTTS } from '../../lib/services/pyapi';
+import { getGeminiResponse, getSTT, getTTS, startConversation } from '../../lib/services/pyapi';
 
 // Mock next-auth/react
 jest.mock('next-auth/react', () => ({
@@ -14,6 +14,7 @@ jest.mock('../../lib/services/pyapi', () => ({
   getGeminiResponse: jest.fn(),
   getSTT: jest.fn(),
   getTTS: jest.fn(),
+  startConversation: jest.fn(),
 }));
 
 // Mock next/navigation
@@ -62,6 +63,11 @@ describe('InterviewPage - Voice Errors', () => {
       data: { user: { id: 'test-user-id', name: 'Test User' } },
       status: 'authenticated',
     });
+    (startConversation as jest.Mock).mockResolvedValue({
+      message: 'Welcome! Let me ask you some questions.',
+      goalCategory: 'career',
+      questionId: { goalIndex: 0, questionIndex: 0 },
+    });
   });
 
   it('should handle STT error', async () => {
@@ -84,11 +90,18 @@ describe('InterviewPage - Voice Errors', () => {
     const consoleSpy = jest.spyOn(console, 'error').mockImplementation(() => {});
     (getGeminiResponse as jest.Mock).mockResolvedValue({
       message: 'Hello Human',
+      nextQuestionId: { goalIndex: 0, questionIndex: 1 },
+      completed: false,
       status: 200,
     });
     (getTTS as jest.Mock).mockRejectedValue(new Error('TTS Failed'));
 
     render(<InterviewPage />);
+
+    // Wait for initial AI message to load
+    await waitFor(() => {
+      expect(screen.getByText(/Welcome!/)).toBeInTheDocument();
+    });
 
     // Enable Voice Mode
     const voiceModeSwitch = screen.getByLabelText(/AI Voice/i);

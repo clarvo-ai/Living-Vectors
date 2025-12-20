@@ -2,7 +2,7 @@ import '@testing-library/jest-dom';
 import { fireEvent, render, screen, waitFor } from '@testing-library/react';
 import { useSession } from 'next-auth/react';
 import InterviewPage from '../../app/interview/page';
-import { getTTS } from '../../lib/services/pyapi';
+import { getTTS, startConversation } from '../../lib/services/pyapi';
 
 // Mock next-auth/react
 jest.mock('next-auth/react', () => ({
@@ -14,6 +14,7 @@ jest.mock('../../lib/services/pyapi', () => ({
   getGeminiResponse: jest.fn(),
   getSTT: jest.fn(),
   getTTS: jest.fn(),
+  startConversation: jest.fn(),
 }));
 
 // Mock next/navigation
@@ -87,6 +88,11 @@ describe('InterviewPage - UI Switch', () => {
     mockUseSession.mockReturnValue({
       data: { user: { id: 'test-user-id', name: 'Test User' } },
       status: 'authenticated',
+    });
+    (startConversation as jest.Mock).mockResolvedValue({
+      message: 'Welcome! Let me ask you some questions.',
+      goalCategory: 'career',
+      questionId: { goalIndex: 0, questionIndex: 0 },
     });
   });
 
