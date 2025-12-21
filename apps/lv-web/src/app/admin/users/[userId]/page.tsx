@@ -2,9 +2,9 @@
 
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { MessageSender, UserRole } from '@repo/db';
 import { useRouter } from 'next/navigation';
 import { useEffect, useState } from 'react';
-import { UserRole } from '@repo/db';
 
 // User data returned by /api/admin/users/[userId]
 interface AdminUserDetail {
@@ -23,6 +23,14 @@ interface AdminUserStats {
   learningCount: number;
 }
 
+// Messages data returned by /api/admin/users/[userId]/messages
+interface AdminUserMessage {
+  messageId: string;
+  sender: MessageSender;
+  content: string;
+  createdAt: string;
+}
+
 interface AdminUserDetailPageProps {
   params: {
     userId: string;
@@ -36,6 +44,9 @@ export default function AdminUserDetailPage({ params }: AdminUserDetailPageProps
   const [loading, setLoading] = useState(true);
   const [statsLoading, setStatsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [messages, setMessages] = useState<AdminUserMessage[]>([]);
+  const [messagesLoading, setMessagesLoading] = useState(true);
+  const [expandedMessages, setExpandedMessages] = useState<Set<string>>(new Set());
 
   // Fetch user data and stats from the API
   useEffect(() => {
@@ -61,7 +72,30 @@ export default function AdminUserDetailPage({ params }: AdminUserDetailPageProps
       .then(setStats)
       .catch((err) => console.error('Stats error:', err.message))
       .finally(() => setStatsLoading(false));
+
+    // Fetch user messages
+    fetch(`/api/admin/users/${params.userId}/messages`)
+      .then((res) => {
+        if (!res.ok) throw new Error('Failed to fetch messages');
+        return res.json();
+      })
+      .then(setMessages)
+      .catch((err) => console.error('Messages error:', err.message))
+      .finally(() => setMessagesLoading(false));
   }, [params.userId]);
+
+  // Helper to toggle message expansion
+  const toggleMessage = (messageId: string) => {
+    setExpandedMessages((prev) => {
+      const next = new Set(prev);
+      if (next.has(messageId)) {
+        next.delete(messageId);
+      } else {
+        next.add(messageId);
+      }
+      return next;
+    });
+  };
 
   if (loading) {
     return <p className="p-8 text-muted-foreground">Loading user…</p>;
@@ -194,6 +228,57 @@ export default function AdminUserDetailPage({ params }: AdminUserDetailPageProps
               <dd className="mt-1">{user.last_name || '—'}</dd>
             </div>
           </dl>
+        </CardContent>
+      </Card>
+
+      {/* Chat History Card */}
+      <Card className="mt-6">
+        <CardHeader>
+          <CardTitle>Chat History</CardTitle>
+        </CardHeader>
+        <CardContent>
+          {messagesLoading ? (
+            <p className="text-muted-foreground">Loading messages…</p>
+          ) : messages.length === 0 ? (
+            <p className="text-muted-foreground">No messages yet</p>
+          ) : (
+            <div className="space-y-3 max-h-[600px] overflow-y-auto">
+              {messages.map((msg) => {
+                const isExpanded = expandedMessages.has(msg.messageId);
+                const isLong = msg.content.length > 200;
+                const displayContent =
+                  isLong && !isExpanded ? msg.content.slice(0, 200) + '…' : msg.content;
+
+                return (
+                  <div key={msg.messageId} className="border rounded-lg p-3 bg-muted/30">
+                    <div className="flex items-center gap-2 mb-2">
+                      <span
+                        className={`inline-flex items-center rounded-full px-2 py-0.5 text-xs font-medium ${
+                          msg.sender === 'USER'
+                            ? 'bg-blue-100 text-blue-700'
+                            : 'bg-purple-100 text-purple-700'
+                        }`}
+                      >
+                        {msg.sender}
+                      </span>
+                      <span className="text-xs text-muted-foreground">
+                        {new Date(msg.createdAt).toLocaleString()}
+                      </span>
+                    </div>
+                    <p className="text-sm whitespace-pre-wrap">{displayContent}</p>
+                    {isLong && (
+                      <button
+                        onClick={() => toggleMessage(msg.messageId)}
+                        className="text-xs text-primary hover:underline mt-1"
+                      >
+                        {isExpanded ? 'Show less' : 'Show more'}
+                      </button>
+                    )}
+                  </div>
+                );
+              })}
+            </div>
+          )}
         </CardContent>
       </Card>
     </div>
