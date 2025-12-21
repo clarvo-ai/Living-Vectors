@@ -161,6 +161,23 @@ export default function DashboardPage() {
               </CardContent>
             </Card>
 
+            {/* Admin Tools Card - Only visible to admins */}
+            {session.user.role === 'ADMIN' && (
+              <Card>
+                <CardHeader>
+                  <CardTitle>Admin Tools</CardTitle>
+                  <p className="text-sm text-muted-foreground">
+                    Manage users and inspect system activity
+                  </p>
+                </CardHeader>
+                <CardContent className="space-y-3">
+                  <Button className="w-full" onClick={() => router.push('/admin/users')}>
+                    Go to Users
+                  </Button>
+                </CardContent>
+              </Card>
+            )}
+
             <div className="flex justify-end mt-4">
               <Link href="/interview">
                 <Button size="sm" variant="default">
