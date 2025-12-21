@@ -207,11 +207,7 @@ export default function InterviewPage() {
   };
 
   const handleEndInterview = () => {
-    if (audioRef.current) {
-      audioRef.current.pause();
-      URL.revokeObjectURL(audioRef.current.src);
-      audioRef.current = null;
-    }
+    stopAudio();
     router.push('/dashboard');
   };
 

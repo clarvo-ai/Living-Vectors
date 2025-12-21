@@ -3,6 +3,7 @@ import { fireEvent, render, screen, waitFor } from '@testing-library/react';
 import { useSession } from 'next-auth/react';
 import InterviewPage from '../../app/interview/page';
 import { getTTS, startConversation } from '../../lib/services/pyapi';
+import { setupVoiceMocks } from '../mocks/voice-mocks';
 
 // Mock next-auth/react
 jest.mock('next-auth/react', () => ({
@@ -26,21 +27,12 @@ jest.mock('next/navigation', () => ({
 }));
 
 // Mock VoiceRecorder component
-interface VoiceRecorderProps {
-  onRecordingComplete: (blob: Blob) => void;
-  onRecordingStateChange: (isRecording: boolean) => void;
-}
-
 jest.mock('../../app/interview/components/VoiceRecorder', () => ({
-  VoiceRecorder: ({ onRecordingComplete, onRecordingStateChange }: VoiceRecorderProps) => (
+  VoiceRecorder: ({ onRecordingComplete }: { onRecordingComplete: (blob: Blob) => void }) => (
     <button
       data-testid="mock-voice-recorder"
       onClick={() => {
-        if (onRecordingStateChange) onRecordingStateChange(true);
-        setTimeout(() => {
-          if (onRecordingStateChange) onRecordingStateChange(false);
-          onRecordingComplete(new Blob(['test audio'], { type: 'audio/webm' }));
-        }, 0);
+        onRecordingComplete(new Blob(['test audio'], { type: 'audio/webm' }));
       }}
     >
       Mock Record
@@ -48,37 +40,8 @@ jest.mock('../../app/interview/components/VoiceRecorder', () => ({
   ),
 }));
 
-global.URL.createObjectURL = jest.fn(() => 'mock-url');
-global.URL.revokeObjectURL = jest.fn();
-
-// Mock Audio class
-class MockAudio {
-  src: string;
-  onplay: (() => void) | null = null;
-  onended: (() => void) | null = null;
-  onpause: (() => void) | null = null;
-
-  constructor(src: string) {
-    this.src = src;
-  }
-
-  play() {
-    if (this.onplay) this.onplay();
-    // Simulate audio ending after a short delay
-    setTimeout(() => {
-      if (this.onended) this.onended();
-    }, 100);
-  }
-
-  pause() {
-    if (this.onpause) this.onpause();
-  }
-}
-
-global.Audio = MockAudio as typeof Audio;
-
-// Mock scrollIntoView
-Element.prototype.scrollIntoView = jest.fn();
+// Setup voice mocks (Audio, URL, scrollIntoView)
+setupVoiceMocks();
 
 const mockUseSession = useSession as jest.Mock;
 

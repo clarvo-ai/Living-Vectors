@@ -36,11 +36,11 @@ describe('InterviewPage - Error Handling', () => {
     (fetch as jest.Mock).mockClear();
     // Mock scrollIntoView
     Element.prototype.scrollIntoView = jest.fn();
-    
+
     // Mock successful startConversation by default
     (startConversation as jest.Mock).mockResolvedValue({
       message: "Hello! I'm here to figure you out.",
-      goalCategory: "Career Goals",
+      goalCategory: 'Career Goals',
       questionId: { goalIndex: 0, questionIndex: 0 },
     });
   });

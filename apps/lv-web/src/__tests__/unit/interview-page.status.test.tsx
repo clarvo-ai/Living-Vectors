@@ -36,7 +36,7 @@ describe('InterviewPage - Auth & Loading', () => {
     (fetch as jest.Mock).mockClear();
     // Mock scrollIntoView
     Element.prototype.scrollIntoView = jest.fn();
-    
+
     // Mock startConversation to prevent errors during render
     (startConversation as jest.Mock).mockResolvedValue({
       message: 'Hello!',
