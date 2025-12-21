@@ -1,8 +1,9 @@
 'use client';
 
-import { useEffect, useState } from 'react';
-import { useRouter } from 'next/navigation';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import Link from 'next/link';
+import { useRouter } from 'next/navigation';
+import { useEffect, useState } from 'react';
 
 //user data returned by /api/admin/users
 interface AdminUserListItem {
@@ -42,6 +43,12 @@ export default function AdminUsersPage() {
 
   return (
     <div className="p-8">
+      <Link
+        href="/dashboard"
+        className="mb-4 inline-flex items-center gap-1 text-sm text-muted-foreground hover:text-foreground"
+      >
+        ← Back to Dashboard
+      </Link>
       <Card>
         <CardHeader>
           <CardTitle>Users</CardTitle>
@@ -62,7 +69,6 @@ export default function AdminUsersPage() {
             <tbody>
               {users.map((user) => (
                 <tr
-                  
                   key={user.id}
                   onClick={() => router.push(`/admin/users/${user.id}`)}
                   className="cursor-pointer border-b last:border-0 hover:bg-muted/50"
