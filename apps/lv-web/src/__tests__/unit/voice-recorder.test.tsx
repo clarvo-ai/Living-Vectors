@@ -64,11 +64,9 @@ describe('VoiceRecorder', () => {
     const button = screen.getByRole('button');
     fireEvent.click(button);
 
-    await waitFor(() => {
-      expect(mockGetUserMedia).toHaveBeenCalledWith({ audio: true });
-      expect(mockStart).toHaveBeenCalled();
-      expect(mockOnRecordingStateChange).toHaveBeenCalledWith(true);
-    });
+    await waitFor(() => expect(mockGetUserMedia).toHaveBeenCalledWith({ audio: true }));
+    await waitFor(() => expect(mockStart).toHaveBeenCalled());
+    await waitFor(() => expect(mockOnRecordingStateChange).toHaveBeenCalledWith(true));
 
     // Stop recording
     fireEvent.click(button);
@@ -81,11 +79,9 @@ describe('VoiceRecorder', () => {
       mockOnstop();
     }
 
-    await waitFor(() => {
-      expect(mockStop).toHaveBeenCalled();
-      expect(mockOnRecordingStateChange).toHaveBeenCalledWith(false);
-      expect(mockOnRecordingComplete).toHaveBeenCalled();
-    });
+    await waitFor(() => expect(mockStop).toHaveBeenCalled());
+    await waitFor(() => expect(mockOnRecordingStateChange).toHaveBeenCalledWith(false));
+    await waitFor(() => expect(mockOnRecordingComplete).toHaveBeenCalled());
   });
 
   it('should handle microphone access error', async () => {
@@ -134,9 +130,7 @@ describe('VoiceRecorder', () => {
       />
     );
 
-    await waitFor(() => {
-      expect(mockStop).toHaveBeenCalled();
-      expect(mockOnRecordingStateChange).toHaveBeenCalledWith(false);
-    });
+    await waitFor(() => expect(mockStop).toHaveBeenCalled());
+    await waitFor(() => expect(mockOnRecordingStateChange).toHaveBeenCalledWith(false));
   });
 });

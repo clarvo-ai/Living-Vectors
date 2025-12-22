@@ -1,22 +1,17 @@
-// Shared mocks for voice-related tests
+// Mocks for voice tests
 
 // Mock Audio class for testing audio playback
 export class MockAudio {
-  src: string;
   onplay: (() => void) | null = null;
   onended: (() => void) | null = null;
   onpause: (() => void) | null = null;
-
-  constructor(src: string) {
-    this.src = src;
-  }
 
   play() {
     if (this.onplay) this.onplay();
     // Simulate audio ending after a short delay
     setTimeout(() => {
       if (this.onended) this.onended();
-    }, 100);
+    }, 0);
   }
 
   pause() {

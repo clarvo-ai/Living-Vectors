@@ -40,7 +40,7 @@ jest.mock('../../app/interview/components/VoiceRecorder', () => ({
   ),
 }));
 
-// Setup voice mocks (Audio, URL, scrollIntoView)
+// Setup voice mocks
 setupVoiceMocks();
 
 const mockUseSession = useSession as jest.Mock;
@@ -63,7 +63,6 @@ describe('InterviewPage - UI Switch', () => {
     (getTTS as jest.Mock).mockResolvedValue(new Blob(['audio'], { type: 'audio/mp3' }));
     render(<InterviewPage />);
 
-    // Initially chat input visible
     expect(screen.getByPlaceholderText(/Type your response.../i)).toBeInTheDocument();
 
     // Switch to Voice Only
@@ -71,14 +70,18 @@ describe('InterviewPage - UI Switch', () => {
     fireEvent.click(voiceOnlySwitch);
     await waitFor(() => {
       expect(screen.queryByPlaceholderText(/Type your response.../i)).not.toBeInTheDocument();
-      expect(screen.getByText("Let's talk!")).toBeInTheDocument();
+    });
+    await waitFor(() => {
+      expect(screen.getByTestId('voice-only-mode')).toBeInTheDocument();
     });
 
     // Back to Chat
     fireEvent.click(voiceOnlySwitch);
     await waitFor(() => {
       expect(screen.getByPlaceholderText(/Type your response.../i)).toBeInTheDocument();
-      expect(screen.queryByText("Let's talk!")).not.toBeInTheDocument();
+    });
+    await waitFor(() => {
+      expect(screen.queryByTestId('voice-only-mode')).not.toBeInTheDocument();
     });
   });
 });

@@ -8,7 +8,10 @@ interface VoiceOnlyModeProps {
 
 export function VoiceOnlyMode({ isAiSpeaking, isUserRecording, isProcessing }: VoiceOnlyModeProps) {
   return (
-    <div className="flex-1 w-full flex flex-col items-center justify-center space-y-8">
+    <div
+      data-testid="voice-only-mode"
+      className="flex-1 w-full flex flex-col items-center justify-center space-y-8"
+    >
       <div
         className={`rounded-full p-8 transition-all duration-500 ${
           isAiSpeaking

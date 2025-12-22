@@ -28,16 +28,28 @@ jest.mock('next/navigation', () => ({
 
 // Mock VoiceRecorder component
 jest.mock('../../app/interview/components/VoiceRecorder', () => ({
-  VoiceRecorder: ({ onRecordingComplete }: { onRecordingComplete: (blob: Blob) => void }) => (
-    <button
-      data-testid="mock-voice-recorder"
-      onClick={() => {
-        onRecordingComplete(new Blob(['test audio'], { type: 'audio/webm' }));
-      }}
-    >
-      Mock Record
-    </button>
-  ),
+  VoiceRecorder: ({
+    onRecordingComplete,
+    onRecordingStateChange,
+  }: {
+    onRecordingComplete: (blob: Blob) => void;
+    onRecordingStateChange?: (isRecording: boolean) => void;
+  }) => {
+    return (
+      <button
+        data-testid="mock-voice-recorder"
+        onClick={() => {
+          onRecordingStateChange?.(true);
+          setTimeout(() => {
+            onRecordingStateChange?.(false);
+            onRecordingComplete(new Blob(['test audio'], { type: 'audio/webm' }));
+          }, 0);
+        }}
+      >
+        Mock Record
+      </button>
+    );
+  },
 }));
 
 // Setup voice mocks
@@ -80,31 +92,33 @@ describe('InterviewPage - Voice Only Mode', () => {
     const voiceOnlySwitch = screen.getByLabelText(/Voice Only/i);
     fireEvent.click(voiceOnlySwitch);
 
-    // Wait for mode switch
     await waitFor(() => {
-      expect(screen.getByText("Let's talk!")).toBeInTheDocument();
+      expect(screen.getByTestId('voice-only-mode')).toBeInTheDocument();
     });
 
     const recordButton = screen.getByTestId('mock-voice-recorder');
     fireEvent.click(recordButton);
 
-    // Recorder gone
     await waitFor(() => {
-      expect(screen.queryByTestId('mock-voice-recorder')).not.toBeInTheDocument();
+      expect(screen.getByText('Listening...')).toBeInTheDocument();
     });
 
     await waitFor(() => {
       expect(screen.getByText('Waiting for AI...')).toBeInTheDocument();
     });
 
-    await waitFor(() => {
-      expect(getSTT).toHaveBeenCalled();
-      expect(getGeminiResponse).toHaveBeenCalledWith('test-user-id', 'Hello AI', 0, 0);
-      expect(getTTS).toHaveBeenCalledWith('Hello Human');
-    });
+    await waitFor(() => expect(getSTT).toHaveBeenCalled());
+    await waitFor(() =>
+      expect(getGeminiResponse).toHaveBeenCalledWith('test-user-id', 'Hello AI', 0, 0)
+    );
+    await waitFor(() => expect(getTTS).toHaveBeenCalledWith('Hello Human'));
 
     await waitFor(() => {
       expect(screen.getByText('AI is speaking...')).toBeInTheDocument();
+    });
+
+    await waitFor(() => {
+      expect(screen.getByTestId('mock-voice-recorder')).toBeInTheDocument();
     });
   });
 });

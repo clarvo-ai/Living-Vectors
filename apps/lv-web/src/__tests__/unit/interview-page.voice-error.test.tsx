@@ -40,7 +40,7 @@ jest.mock('../../app/interview/components/VoiceRecorder', () => ({
   ),
 }));
 
-// Setup voice mocks (Audio, URL, scrollIntoView)
+// Setup voice mocks
 setupVoiceMocks();
 
 const mockUseSession = useSession as jest.Mock;
@@ -87,12 +87,10 @@ describe('InterviewPage - Voice Errors', () => {
 
     render(<InterviewPage />);
 
-    // Wait for initial AI message to load
     await waitFor(() => {
       expect(screen.getByText(/Welcome!/)).toBeInTheDocument();
     });
 
-    // Enable Voice Mode
     const voiceModeSwitch = screen.getByLabelText(/AI Voice/i);
     fireEvent.click(voiceModeSwitch);
 
