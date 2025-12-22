@@ -2,11 +2,13 @@ name: Auto Assign PR Reviewers
 
 on:
   pull_request:
-    branches: [main, dev] 
-    types: [opened, ready_for_review]
+    types: [opened,ready_for_review]
+    branches: 
+      - 'dev'
+      - 'main'
 
 jobs:
-  assign:
+  assignReviewers:
     permissions:
       pull-requests: write
       contents: read
@@ -58,7 +60,7 @@ jobs:
       - name: Assign Reviewers
         uses: hkusu/review-assign-action@v1
         with:
-          assignees: ${{ github.actor }}
+          assignees: ${{ github.event.pull_request.user.login }}
           reviewers: ${{ steps.filter.outputs.result }}
           max-num-of-reviewers: 2
           ready-comment: 'PR #${{ github.event.pull_request.number }} is Ready for review'
