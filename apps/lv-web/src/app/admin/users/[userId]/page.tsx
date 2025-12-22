@@ -4,7 +4,7 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { MessageSender, UserRole } from '@repo/db';
 import { useRouter } from 'next/navigation';
-import { useEffect, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 
 // User data returned by /api/admin/users/[userId]
 interface AdminUserDetail {
@@ -68,6 +68,20 @@ export default function AdminUserDetailPage({ params }: AdminUserDetailPageProps
   const [learningConnectionsLoading, setLearningConnectionsLoading] = useState(true);
   const [expandedLearnings, setExpandedLearnings] = useState<Set<string>>(new Set());
   const [expandedLearningMessages, setExpandedLearningMessages] = useState<Set<string>>(new Set());
+
+  // View mode state: 'list' or 'visual'
+  const [viewMode, setViewMode] = useState<'list' | 'visual'>('list');
+
+  // Visual mode state
+  const [selectedLearningId, setSelectedLearningId] = useState<string | null>(null);
+  const [highlightedMessageIds, setHighlightedMessageIds] = useState<Set<string>>(new Set());
+
+  // Refs for scrolling and SVG lines
+  const chatContainerRef = useRef<HTMLDivElement>(null);
+  const messageRefs = useRef<Map<string, HTMLDivElement>>(new Map());
+  const learningRefs = useRef<Map<string, HTMLButtonElement>>(new Map());
+  const svgContainerRef = useRef<SVGSVGElement>(null);
+  const visualContainerRef = useRef<HTMLDivElement>(null);
 
   // Fetch user data and stats from the API
   useEffect(() => {
@@ -153,6 +167,93 @@ export default function AdminUserDetailPage({ params }: AdminUserDetailPageProps
       return next;
     });
   };
+
+  // Handle learning selection in visual mode
+  const handleLearningSelect = useCallback(
+    (learning: LearningConnection) => {
+      const isDeselecting = selectedLearningId === learning.id;
+
+      if (isDeselecting) {
+        setSelectedLearningId(null);
+        setHighlightedMessageIds(new Set());
+        return;
+      }
+
+      setSelectedLearningId(learning.id);
+      const messageIds = new Set(learning.messages.map((m) => m.messageId));
+      setHighlightedMessageIds(messageIds);
+
+      // Auto-scroll to first related message
+      if (learning.messages.length > 0) {
+        const firstMessageId = learning.messages[0].messageId;
+        const messageEl = messageRefs.current.get(firstMessageId);
+        if (messageEl && chatContainerRef.current) {
+          messageEl.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        }
+      }
+    },
+    [selectedLearningId]
+  );
+
+  // Draw SVG connection lines
+  const drawConnectionLines = useCallback(() => {
+    if (!svgContainerRef.current || !visualContainerRef.current || !selectedLearningId) {
+      return [];
+    }
+
+    const selectedLearning = learningConnections.find((l) => l.id === selectedLearningId);
+    if (!selectedLearning) return [];
+
+    const learningEl = learningRefs.current.get(selectedLearningId);
+    if (!learningEl) return [];
+
+    const containerRect = visualContainerRef.current.getBoundingClientRect();
+    const learningRect = learningEl.getBoundingClientRect();
+
+    const lines: { x1: number; y1: number; x2: number; y2: number; messageId: string }[] = [];
+
+    selectedLearning.messages.forEach((msg) => {
+      const messageEl = messageRefs.current.get(msg.messageId);
+      if (messageEl) {
+        const messageRect = messageEl.getBoundingClientRect();
+
+        // Calculate positions relative to the container
+        const x1 = learningRect.left - containerRect.left;
+        const y1 = learningRect.top - containerRect.top + learningRect.height / 2;
+        const x2 = messageRect.right - containerRect.left;
+        const y2 = messageRect.top - containerRect.top + messageRect.height / 2;
+
+        lines.push({ x1, y1, x2, y2, messageId: msg.messageId });
+      }
+    });
+
+    return lines;
+  }, [selectedLearningId, learningConnections]);
+
+  // State for SVG lines
+  const [svgLines, setSvgLines] = useState<
+    { x1: number; y1: number; x2: number; y2: number; messageId: string }[]
+  >([]);
+
+  // Update SVG lines when selection changes or on scroll
+  useEffect(() => {
+    const updateLines = () => {
+      if (viewMode === 'visual' && selectedLearningId) {
+        setSvgLines(drawConnectionLines());
+      } else {
+        setSvgLines([]);
+      }
+    };
+
+    updateLines();
+
+    // Also update on scroll
+    const chatContainer = chatContainerRef.current;
+    if (chatContainer) {
+      chatContainer.addEventListener('scroll', updateLines);
+      return () => chatContainer.removeEventListener('scroll', updateLines);
+    }
+  }, [viewMode, selectedLearningId, drawConnectionLines, messages, learningConnections]);
 
   if (loading) {
     return <p className="p-8 text-muted-foreground">Loading user…</p>;
@@ -288,194 +389,467 @@ export default function AdminUserDetailPage({ params }: AdminUserDetailPageProps
         </CardContent>
       </Card>
 
-      {/* Chat History Card */}
-      <Card className="mt-6">
-        <CardHeader>
-          <CardTitle>💬 Chat History</CardTitle>
-        </CardHeader>
-        <CardContent>
-          {messagesLoading ? (
-            <p className="text-muted-foreground">Loading messages…</p>
-          ) : messages.length === 0 ? (
-            <p className="text-muted-foreground">No messages yet</p>
-          ) : (
-            <div className="space-y-3 max-h-[600px] overflow-y-auto">
-              {messages.map((msg) => {
-                const isExpanded = expandedMessages.has(msg.messageId);
-                const isLong = msg.content.length > 200;
+      {/* View Mode Toggle */}
+      <div className="mt-6 flex items-center gap-4">
+        <span className="text-sm font-medium text-muted-foreground">View:</span>
+        <div className="inline-flex rounded-lg border border-gray-200 bg-gray-50 p-1">
+          <button
+            onClick={() => {
+              setViewMode('list');
+              setSelectedLearningId(null);
+              setHighlightedMessageIds(new Set());
+            }}
+            className={`px-4 py-1.5 text-sm font-medium rounded-md transition-all ${
+              viewMode === 'list'
+                ? 'bg-white text-gray-900 shadow-sm'
+                : 'text-gray-500 hover:text-gray-700'
+            }`}
+          >
+            <span className="flex items-center gap-1.5">
+              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth={2}
+                  d="M4 6h16M4 12h16M4 18h16"
+                />
+              </svg>
+              List
+            </span>
+          </button>
+          <button
+            onClick={() => setViewMode('visual')}
+            className={`px-4 py-1.5 text-sm font-medium rounded-md transition-all ${
+              viewMode === 'visual'
+                ? 'bg-white text-gray-900 shadow-sm'
+                : 'text-gray-500 hover:text-gray-700'
+            }`}
+          >
+            <span className="flex items-center gap-1.5">
+              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth={2}
+                  d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m-.758-4.899a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1"
+                />
+              </svg>
+              Visual
+            </span>
+          </button>
+        </div>
+        {viewMode === 'visual' && (
+          <span className="text-xs text-muted-foreground">
+            Click a learning card to see connected messages
+          </span>
+        )}
+      </div>
 
-                return (
-                  <div key={msg.messageId} className="border rounded-lg p-3 bg-muted/30">
-                    <div className="flex items-center gap-2 mb-2">
-                      <span
-                        className={`inline-flex items-center rounded-full px-2 py-0.5 text-xs font-medium ${
-                          msg.sender === 'USER'
-                            ? 'bg-blue-100 text-blue-700'
-                            : 'bg-purple-100 text-purple-700'
-                        }`}
-                      >
-                        {msg.sender}
-                      </span>
-                      <span className="text-xs text-muted-foreground">
-                        {new Date(msg.createdAt).toLocaleString()}
-                      </span>
-                    </div>
-                    <p className="text-sm whitespace-pre-wrap">
-                      {isLong && !isExpanded ? msg.content.slice(0, 200) + '…' : msg.content}
-                    </p>
-                    {isLong && !isExpanded && (
-                      <button
-                        onClick={() => toggleMessage(msg.messageId)}
-                        className="text-xs text-muted-foreground hover:text-primary hover:underline mt-1"
-                      >
-                        Show more
-                      </button>
-                    )}
-                    {isLong && isExpanded && (
-                      <button
-                        onClick={() => toggleMessage(msg.messageId)}
-                        className="text-xs text-primary hover:underline mt-1"
-                      >
-                        Show less
-                      </button>
-                    )}
-                  </div>
-                );
-              })}
-            </div>
-          )}
-        </CardContent>
-      </Card>
+      {/* LIST MODE */}
+      {viewMode === 'list' && (
+        <>
+          {/* Chat History Card */}
+          <Card className="mt-6">
+            <CardHeader>
+              <CardTitle>💬 Chat History</CardTitle>
+            </CardHeader>
+            <CardContent>
+              {messagesLoading ? (
+                <p className="text-muted-foreground">Loading messages…</p>
+              ) : messages.length === 0 ? (
+                <p className="text-muted-foreground">No messages yet</p>
+              ) : (
+                <div className="space-y-3 max-h-[600px] overflow-y-auto">
+                  {messages.map((msg) => {
+                    const isExpanded = expandedMessages.has(msg.messageId);
+                    const isLong = msg.content.length > 200;
 
-      {/* Learning Connections Card */}
-      <Card className="mt-6">
-        <CardHeader>
-          <CardTitle>🔗 Learning Connections</CardTitle>
-        </CardHeader>
-        <CardContent>
-          {learningConnectionsLoading ? (
-            <p className="text-muted-foreground">Loading learning connections…</p>
-          ) : learningConnections.length === 0 ? (
-            <p className="text-muted-foreground">No learnings yet</p>
-          ) : (
-            <div className="space-y-4 max-h-[600px] overflow-y-auto">
-              {learningConnections.map((learning) => {
-                const isExpanded = expandedLearnings.has(learning.id);
+                    return (
+                      <div key={msg.messageId} className="border rounded-lg p-3 bg-muted/30">
+                        <div className="flex items-center gap-2 mb-2">
+                          <span
+                            className={`inline-flex items-center rounded-full px-2 py-0.5 text-xs font-medium ${
+                              msg.sender === 'USER'
+                                ? 'bg-blue-100 text-blue-700'
+                                : 'bg-purple-100 text-purple-700'
+                            }`}
+                          >
+                            {msg.sender}
+                          </span>
+                          <span className="text-xs text-muted-foreground">
+                            {new Date(msg.createdAt).toLocaleString()}
+                          </span>
+                        </div>
+                        <p className="text-sm whitespace-pre-wrap">
+                          {isLong && !isExpanded ? msg.content.slice(0, 200) + '…' : msg.content}
+                        </p>
+                        {isLong && !isExpanded && (
+                          <button
+                            onClick={() => toggleMessage(msg.messageId)}
+                            className="text-xs text-muted-foreground hover:text-primary hover:underline mt-1"
+                          >
+                            Show more
+                          </button>
+                        )}
+                        {isLong && isExpanded && (
+                          <button
+                            onClick={() => toggleMessage(msg.messageId)}
+                            className="text-xs text-primary hover:underline mt-1"
+                          >
+                            Show less
+                          </button>
+                        )}
+                      </div>
+                    );
+                  })}
+                </div>
+              )}
+            </CardContent>
+          </Card>
 
-                return (
+          {/* Learning Connections Card */}
+          <Card className="mt-6">
+            <CardHeader>
+              <CardTitle>🔗 Learning Connections</CardTitle>
+            </CardHeader>
+            <CardContent>
+              {learningConnectionsLoading ? (
+                <p className="text-muted-foreground">Loading learning connections…</p>
+              ) : learningConnections.length === 0 ? (
+                <p className="text-muted-foreground">No learnings yet</p>
+              ) : (
+                <div className="space-y-4 max-h-[600px] overflow-y-auto">
+                  {learningConnections.map((learning) => {
+                    const isExpanded = expandedLearnings.has(learning.id);
+
+                    return (
+                      <div
+                        key={learning.id}
+                        className="border rounded-lg overflow-hidden bg-gradient-to-br from-emerald-50/50 to-teal-50/50 border-emerald-200"
+                      >
+                        {/* Learning Header - Clickable */}
+                        <button
+                          onClick={() => toggleLearning(learning.id)}
+                          className="w-full p-4 text-left hover:bg-emerald-100/30 transition-colors"
+                        >
+                          <div className="flex items-start justify-between gap-3">
+                            <div className="flex-1">
+                              <div className="flex items-center gap-2 mb-2">
+                                <span className="inline-flex items-center rounded-full bg-emerald-100 px-2.5 py-0.5 text-xs font-medium text-emerald-700">
+                                  💡 Learning
+                                </span>
+                                <span className="text-xs text-muted-foreground">
+                                  {new Date(learning.createdAt).toLocaleString()}
+                                </span>
+                              </div>
+                              <p className="text-sm font-medium text-emerald-900">
+                                {learning.summary}
+                              </p>
+                              <p className="text-xs text-muted-foreground mt-1">
+                                {learning.messages.length} connected message
+                                {learning.messages.length !== 1 ? 's' : ''}
+                              </p>
+                            </div>
+                            <svg
+                              className={`w-5 h-5 text-emerald-600 transition-transform ${
+                                isExpanded ? 'rotate-180' : ''
+                              }`}
+                              fill="none"
+                              stroke="currentColor"
+                              viewBox="0 0 24 24"
+                            >
+                              <path
+                                strokeLinecap="round"
+                                strokeLinejoin="round"
+                                strokeWidth={2}
+                                d="M19 9l-7 7-7-7"
+                              />
+                            </svg>
+                          </div>
+                        </button>
+
+                        {/* Connected Messages - Expandable */}
+                        {isExpanded && learning.messages.length > 0 && (
+                          <div className="border-t border-emerald-200 bg-white/50 p-4">
+                            <p className="text-xs font-medium text-muted-foreground mb-3 uppercase tracking-wide">
+                              Source Messages
+                            </p>
+                            <div className="space-y-2 pl-4 border-l-2 border-emerald-300">
+                              {learning.messages.map((msg) => {
+                                const isMessageExpanded = expandedLearningMessages.has(
+                                  msg.messageId
+                                );
+                                const isMessageLong = msg.content.length > 300;
+
+                                return (
+                                  <div
+                                    key={msg.messageId}
+                                    className="bg-white rounded-md p-3 border border-gray-100 shadow-sm"
+                                  >
+                                    <div className="flex items-center gap-2 mb-1">
+                                      <span
+                                        className={`inline-flex items-center rounded-full px-2 py-0.5 text-xs font-medium ${
+                                          msg.sender === 'USER'
+                                            ? 'bg-blue-100 text-blue-700'
+                                            : 'bg-purple-100 text-purple-700'
+                                        }`}
+                                      >
+                                        {msg.sender}
+                                      </span>
+                                      <span className="text-xs text-muted-foreground">
+                                        {new Date(msg.createdAt).toLocaleString()}
+                                      </span>
+                                    </div>
+                                    <p className="text-sm whitespace-pre-wrap text-gray-700">
+                                      {isMessageLong && !isMessageExpanded
+                                        ? msg.content.slice(0, 300) + '…'
+                                        : msg.content}
+                                    </p>
+                                    {isMessageLong && !isMessageExpanded && (
+                                      <button
+                                        onClick={(e) => {
+                                          e.stopPropagation();
+                                          toggleLearningMessage(msg.messageId);
+                                        }}
+                                        className="text-xs text-muted-foreground hover:text-primary hover:underline mt-1"
+                                      >
+                                        Show more
+                                      </button>
+                                    )}
+                                    {isMessageLong && isMessageExpanded && (
+                                      <button
+                                        onClick={(e) => {
+                                          e.stopPropagation();
+                                          toggleLearningMessage(msg.messageId);
+                                        }}
+                                        className="text-xs text-primary hover:underline mt-1"
+                                      >
+                                        Show less
+                                      </button>
+                                    )}
+                                  </div>
+                                );
+                              })}
+                            </div>
+                          </div>
+                        )}
+                      </div>
+                    );
+                  })}
+                </div>
+              )}
+            </CardContent>
+          </Card>
+        </>
+      )}
+
+      {/* VISUAL MODE */}
+      {viewMode === 'visual' && (
+        <div
+          ref={visualContainerRef}
+          className="mt-6 relative flex gap-6"
+          style={{ minHeight: '700px' }}
+        >
+          {/* SVG Layer for Connection Lines */}
+          <svg
+            ref={svgContainerRef}
+            className="absolute inset-0 pointer-events-none z-10"
+            style={{ width: '100%', height: '100%' }}
+          >
+            <defs>
+              <linearGradient id="lineGradient" x1="0%" y1="0%" x2="100%" y2="0%">
+                <stop offset="0%" stopColor="#10b981" stopOpacity="0.6" />
+                <stop offset="100%" stopColor="#10b981" stopOpacity="0.2" />
+              </linearGradient>
+            </defs>
+            {svgLines.map((line, idx) => {
+              // Calculate control points for a smooth curve
+              const midX = (line.x1 + line.x2) / 2;
+              const path = `M ${line.x2} ${line.y2} C ${midX} ${line.y2}, ${midX} ${line.y1}, ${line.x1} ${line.y1}`;
+
+              return (
+                <g key={`${line.messageId}-${idx}`}>
+                  <path
+                    d={path}
+                    fill="none"
+                    stroke="url(#lineGradient)"
+                    strokeWidth="2"
+                    strokeDasharray="6 4"
+                    className="transition-opacity duration-300"
+                  />
+                  {/* Small dot at message end */}
+                  <circle cx={line.x2} cy={line.y2} r="4" fill="#10b981" opacity="0.6" />
+                </g>
+              );
+            })}
+          </svg>
+
+          {/* Chat Timeline - Left Side */}
+          <div className="flex-1 min-w-0">
+            <Card className="h-full">
+              <CardHeader className="pb-3">
+                <CardTitle className="text-base">💬 Chat Timeline</CardTitle>
+              </CardHeader>
+              <CardContent className="p-0">
+                {messagesLoading ? (
+                  <p className="text-muted-foreground p-4">Loading messages…</p>
+                ) : messages.length === 0 ? (
+                  <p className="text-muted-foreground p-4">No messages yet</p>
+                ) : (
                   <div
-                    key={learning.id}
-                    className="border rounded-lg overflow-hidden bg-gradient-to-br from-emerald-50/50 to-teal-50/50 border-emerald-200"
+                    ref={chatContainerRef}
+                    className="space-y-3 max-h-[600px] overflow-y-auto p-4"
                   >
-                    {/* Learning Header - Clickable */}
-                    <button
-                      onClick={() => toggleLearning(learning.id)}
-                      className="w-full p-4 text-left hover:bg-emerald-100/30 transition-colors"
-                    >
-                      <div className="flex items-start justify-between gap-3">
-                        <div className="flex-1">
+                    {messages.map((msg) => {
+                      const isExpanded = expandedMessages.has(msg.messageId);
+                      const isLong = msg.content.length > 200;
+                      const isHighlighted = highlightedMessageIds.has(msg.messageId);
+
+                      return (
+                        <div
+                          key={msg.messageId}
+                          ref={(el) => {
+                            if (el) messageRefs.current.set(msg.messageId, el);
+                          }}
+                          data-message-id={msg.messageId}
+                          className={`border rounded-lg p-3 transition-all duration-300 ${
+                            isHighlighted
+                              ? 'bg-emerald-50 border-emerald-300 shadow-md shadow-emerald-100 ring-2 ring-emerald-200/50'
+                              : 'bg-muted/30 border-gray-200'
+                          }`}
+                        >
                           <div className="flex items-center gap-2 mb-2">
-                            <span className="inline-flex items-center rounded-full bg-emerald-100 px-2.5 py-0.5 text-xs font-medium text-emerald-700">
-                              💡 Learning
+                            {isHighlighted && (
+                              <span className="inline-flex items-center rounded-full bg-emerald-500 px-1.5 py-0.5 text-[10px] font-medium text-white">
+                                💡
+                              </span>
+                            )}
+                            <span
+                              className={`inline-flex items-center rounded-full px-2 py-0.5 text-xs font-medium ${
+                                msg.sender === 'USER'
+                                  ? 'bg-blue-100 text-blue-700'
+                                  : 'bg-purple-100 text-purple-700'
+                              }`}
+                            >
+                              {msg.sender}
                             </span>
                             <span className="text-xs text-muted-foreground">
-                              {new Date(learning.createdAt).toLocaleString()}
+                              {new Date(msg.createdAt).toLocaleString()}
                             </span>
                           </div>
-                          <p className="text-sm font-medium text-emerald-900">{learning.summary}</p>
-                          <p className="text-xs text-muted-foreground mt-1">
-                            {learning.messages.length} connected message
-                            {learning.messages.length !== 1 ? 's' : ''}
+                          <p className="text-sm whitespace-pre-wrap">
+                            {isLong && !isExpanded ? msg.content.slice(0, 200) + '…' : msg.content}
                           </p>
+                          {isLong && !isExpanded && (
+                            <button
+                              onClick={() => toggleMessage(msg.messageId)}
+                              className="text-xs text-muted-foreground hover:text-primary hover:underline mt-1"
+                            >
+                              Show more
+                            </button>
+                          )}
+                          {isLong && isExpanded && (
+                            <button
+                              onClick={() => toggleMessage(msg.messageId)}
+                              className="text-xs text-primary hover:underline mt-1"
+                            >
+                              Show less
+                            </button>
+                          )}
                         </div>
-                        <svg
-                          className={`w-5 h-5 text-emerald-600 transition-transform ${
-                            isExpanded ? 'rotate-180' : ''
-                          }`}
-                          fill="none"
-                          stroke="currentColor"
-                          viewBox="0 0 24 24"
-                        >
-                          <path
-                            strokeLinecap="round"
-                            strokeLinejoin="round"
-                            strokeWidth={2}
-                            d="M19 9l-7 7-7-7"
-                          />
-                        </svg>
-                      </div>
-                    </button>
+                      );
+                    })}
+                  </div>
+                )}
+              </CardContent>
+            </Card>
+          </div>
 
-                    {/* Connected Messages - Expandable */}
-                    {isExpanded && learning.messages.length > 0 && (
-                      <div className="border-t border-emerald-200 bg-white/50 p-4">
-                        <p className="text-xs font-medium text-muted-foreground mb-3 uppercase tracking-wide">
-                          Source Messages
-                        </p>
-                        <div className="space-y-2 pl-4 border-l-2 border-emerald-300">
-                          {learning.messages.map((msg) => {
-                            const isMessageExpanded = expandedLearningMessages.has(msg.messageId);
-                            const isMessageLong = msg.content.length > 300;
+          {/* Learning Cards - Right Sidebar */}
+          <div className="w-80 shrink-0">
+            <div className="sticky top-8">
+              <Card className="h-full">
+                <CardHeader className="pb-3">
+                  <CardTitle className="text-base">💡 Learnings</CardTitle>
+                </CardHeader>
+                <CardContent className="p-0">
+                  {learningConnectionsLoading ? (
+                    <p className="text-muted-foreground p-4">Loading learnings…</p>
+                  ) : learningConnections.length === 0 ? (
+                    <p className="text-muted-foreground p-4">No learnings yet</p>
+                  ) : (
+                    <div className="space-y-2 max-h-[550px] overflow-y-auto p-4">
+                      {learningConnections.map((learning) => {
+                        const isSelected = selectedLearningId === learning.id;
 
-                            return (
-                              <div
-                                key={msg.messageId}
-                                className="bg-white rounded-md p-3 border border-gray-100 shadow-sm"
-                              >
-                                <div className="flex items-center gap-2 mb-1">
+                        return (
+                          <button
+                            key={learning.id}
+                            ref={(el) => {
+                              if (el) learningRefs.current.set(learning.id, el);
+                            }}
+                            onClick={() => handleLearningSelect(learning)}
+                            className={`w-full text-left p-3 rounded-lg border transition-all duration-200 ${
+                              isSelected
+                                ? 'bg-emerald-100 border-emerald-400 shadow-lg shadow-emerald-100/50 scale-[1.02]'
+                                : 'bg-gradient-to-br from-emerald-50/50 to-teal-50/50 border-emerald-200 hover:border-emerald-300 hover:shadow-md'
+                            }`}
+                          >
+                            <div className="flex items-start gap-2">
+                              <span className={`text-lg ${isSelected ? 'animate-pulse' : ''}`}>
+                                💡
+                              </span>
+                              <div className="flex-1 min-w-0">
+                                <p
+                                  className={`text-sm font-medium leading-snug ${
+                                    isSelected ? 'text-emerald-900' : 'text-emerald-800'
+                                  }`}
+                                >
+                                  {learning.summary.length > 100
+                                    ? learning.summary.slice(0, 100) + '…'
+                                    : learning.summary}
+                                </p>
+                                <div className="flex items-center gap-2 mt-2">
                                   <span
-                                    className={`inline-flex items-center rounded-full px-2 py-0.5 text-xs font-medium ${
-                                      msg.sender === 'USER'
-                                        ? 'bg-blue-100 text-blue-700'
-                                        : 'bg-purple-100 text-purple-700'
+                                    className={`inline-flex items-center rounded-full px-2 py-0.5 text-[10px] font-medium ${
+                                      isSelected
+                                        ? 'bg-emerald-200 text-emerald-800'
+                                        : 'bg-emerald-100 text-emerald-700'
                                     }`}
                                   >
-                                    {msg.sender}
+                                    {learning.messages.length} message
+                                    {learning.messages.length !== 1 ? 's' : ''}
                                   </span>
-                                  <span className="text-xs text-muted-foreground">
-                                    {new Date(msg.createdAt).toLocaleString()}
+                                  <span className="text-[10px] text-muted-foreground">
+                                    {new Date(learning.createdAt).toLocaleDateString()}
                                   </span>
                                 </div>
-                                <p className="text-sm whitespace-pre-wrap text-gray-700">
-                                  {isMessageLong && !isMessageExpanded
-                                    ? msg.content.slice(0, 300) + '…'
-                                    : msg.content}
-                                </p>
-                                {isMessageLong && !isMessageExpanded && (
-                                  <button
-                                    onClick={(e) => {
-                                      e.stopPropagation();
-                                      toggleLearningMessage(msg.messageId);
-                                    }}
-                                    className="text-xs text-muted-foreground hover:text-primary hover:underline mt-1"
-                                  >
-                                    Show more
-                                  </button>
-                                )}
-                                {isMessageLong && isMessageExpanded && (
-                                  <button
-                                    onClick={(e) => {
-                                      e.stopPropagation();
-                                      toggleLearningMessage(msg.messageId);
-                                    }}
-                                    className="text-xs text-primary hover:underline mt-1"
-                                  >
-                                    Show less
-                                  </button>
-                                )}
                               </div>
-                            );
-                          })}
-                        </div>
-                      </div>
-                    )}
-                  </div>
-                );
-              })}
+                              {isSelected && (
+                                <svg
+                                  className="w-4 h-4 text-emerald-600 shrink-0"
+                                  fill="currentColor"
+                                  viewBox="0 0 20 20"
+                                >
+                                  <path
+                                    fillRule="evenodd"
+                                    d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z"
+                                    clipRule="evenodd"
+                                  />
+                                </svg>
+                              )}
+                            </div>
+                          </button>
+                        );
+                      })}
+                    </div>
+                  )}
+                </CardContent>
+              </Card>
             </div>
-          )}
-        </CardContent>
-      </Card>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
