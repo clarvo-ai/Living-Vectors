@@ -1,8 +1,7 @@
 name: Testing and Linting
 on:
   push:
-    branches:
-      - '**'
+    branches: [dev]
   pull_request:
     types:
       - opened
