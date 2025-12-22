@@ -2,9 +2,9 @@ name: Auto Assign PR Reviewers
 
 on:
   pull_request:
-    types: 
-      - opened 
-      - ready_for_review
+    # types: 
+    #   - opened 
+    #   - ready_for_review
     branches: 
       - 'dev'
       - 'main'
