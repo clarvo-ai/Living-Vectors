@@ -67,6 +67,7 @@ export default function AdminUserDetailPage({ params }: AdminUserDetailPageProps
   const [learningConnections, setLearningConnections] = useState<LearningConnection[]>([]);
   const [learningConnectionsLoading, setLearningConnectionsLoading] = useState(true);
   const [expandedLearnings, setExpandedLearnings] = useState<Set<string>>(new Set());
+  const [expandedLearningMessages, setExpandedLearningMessages] = useState<Set<string>>(new Set());
 
   // Fetch user data and stats from the API
   useEffect(() => {
@@ -135,6 +136,19 @@ export default function AdminUserDetailPage({ params }: AdminUserDetailPageProps
         next.delete(learningId);
       } else {
         next.add(learningId);
+      }
+      return next;
+    });
+  };
+
+  // Helper to toggle learning message expansion
+  const toggleLearningMessage = (messageId: string) => {
+    setExpandedLearningMessages((prev) => {
+      const next = new Set(prev);
+      if (next.has(messageId)) {
+        next.delete(messageId);
+      } else {
+        next.add(messageId);
       }
       return next;
     });
@@ -289,8 +303,6 @@ export default function AdminUserDetailPage({ params }: AdminUserDetailPageProps
               {messages.map((msg) => {
                 const isExpanded = expandedMessages.has(msg.messageId);
                 const isLong = msg.content.length > 200;
-                const displayContent =
-                  isLong && !isExpanded ? msg.content.slice(0, 200) + '…' : msg.content;
 
                 return (
                   <div key={msg.messageId} className="border rounded-lg p-3 bg-muted/30">
@@ -308,13 +320,23 @@ export default function AdminUserDetailPage({ params }: AdminUserDetailPageProps
                         {new Date(msg.createdAt).toLocaleString()}
                       </span>
                     </div>
-                    <p className="text-sm whitespace-pre-wrap">{displayContent}</p>
-                    {isLong && (
+                    <p className="text-sm whitespace-pre-wrap">
+                      {isLong && !isExpanded ? msg.content.slice(0, 200) + '…' : msg.content}
+                    </p>
+                    {isLong && !isExpanded && (
+                      <button
+                        onClick={() => toggleMessage(msg.messageId)}
+                        className="text-xs text-muted-foreground hover:text-primary hover:underline mt-1"
+                      >
+                        Show more
+                      </button>
+                    )}
+                    {isLong && isExpanded && (
                       <button
                         onClick={() => toggleMessage(msg.messageId)}
                         className="text-xs text-primary hover:underline mt-1"
                       >
-                        {isExpanded ? 'Show less' : 'Show more'}
+                        Show less
                       </button>
                     )}
                   </div>
@@ -391,32 +413,59 @@ export default function AdminUserDetailPage({ params }: AdminUserDetailPageProps
                           Source Messages
                         </p>
                         <div className="space-y-2 pl-4 border-l-2 border-emerald-300">
-                          {learning.messages.map((msg) => (
-                            <div
-                              key={msg.messageId}
-                              className="bg-white rounded-md p-3 border border-gray-100 shadow-sm"
-                            >
-                              <div className="flex items-center gap-2 mb-1">
-                                <span
-                                  className={`inline-flex items-center rounded-full px-2 py-0.5 text-xs font-medium ${
-                                    msg.sender === 'USER'
-                                      ? 'bg-blue-100 text-blue-700'
-                                      : 'bg-purple-100 text-purple-700'
-                                  }`}
-                                >
-                                  {msg.sender}
-                                </span>
-                                <span className="text-xs text-muted-foreground">
-                                  {new Date(msg.createdAt).toLocaleString()}
-                                </span>
+                          {learning.messages.map((msg) => {
+                            const isMessageExpanded = expandedLearningMessages.has(msg.messageId);
+                            const isMessageLong = msg.content.length > 300;
+
+                            return (
+                              <div
+                                key={msg.messageId}
+                                className="bg-white rounded-md p-3 border border-gray-100 shadow-sm"
+                              >
+                                <div className="flex items-center gap-2 mb-1">
+                                  <span
+                                    className={`inline-flex items-center rounded-full px-2 py-0.5 text-xs font-medium ${
+                                      msg.sender === 'USER'
+                                        ? 'bg-blue-100 text-blue-700'
+                                        : 'bg-purple-100 text-purple-700'
+                                    }`}
+                                  >
+                                    {msg.sender}
+                                  </span>
+                                  <span className="text-xs text-muted-foreground">
+                                    {new Date(msg.createdAt).toLocaleString()}
+                                  </span>
+                                </div>
+                                <p className="text-sm whitespace-pre-wrap text-gray-700">
+                                  {isMessageLong && !isMessageExpanded
+                                    ? msg.content.slice(0, 300) + '…'
+                                    : msg.content}
+                                </p>
+                                {isMessageLong && !isMessageExpanded && (
+                                  <button
+                                    onClick={(e) => {
+                                      e.stopPropagation();
+                                      toggleLearningMessage(msg.messageId);
+                                    }}
+                                    className="text-xs text-muted-foreground hover:text-primary hover:underline mt-1"
+                                  >
+                                    Show more
+                                  </button>
+                                )}
+                                {isMessageLong && isMessageExpanded && (
+                                  <button
+                                    onClick={(e) => {
+                                      e.stopPropagation();
+                                      toggleLearningMessage(msg.messageId);
+                                    }}
+                                    className="text-xs text-primary hover:underline mt-1"
+                                  >
+                                    Show less
+                                  </button>
+                                )}
                               </div>
-                              <p className="text-sm whitespace-pre-wrap text-gray-700">
-                                {msg.content.length > 300
-                                  ? msg.content.slice(0, 300) + '…'
-                                  : msg.content}
-                              </p>
-                            </div>
-                          ))}
+                            );
+                          })}
                         </div>
                       </div>
                     )}
