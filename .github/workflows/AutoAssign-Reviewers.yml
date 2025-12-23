@@ -2,7 +2,7 @@ name: Auto Assign PR Reviewers
 
 on:
   pull_request:
-    types: [opened,ready_for_review, synchronize]
+    types: [opened, ready_for_review, synchronize]
     branches: 
       - 'dev'
       - 'main'
@@ -20,53 +20,38 @@ jobs:
         uses: actions/github-script@v7
         with:
           script: |
-            const reviewers = ${{ vars.REVIEWERS }}
-            const author = context.payload.pull_request.user.login
-
+            const reviewers = ${{ vars.REVIEWERS }};
+            const author = context.payload.pull_request.user.login;
             const { data: openPRs } = await github.rest.pulls.list({
               owner: context.repo.owner,
               repo: context.repo.repo,
               state: 'open',
             });
-
-            const assignedPRsperReviewer = {}
-            reviewers.forEach(r => assignedPRsperReviewer[r] = 0)
-
+            const assignedPRsperReviewer = {};
+            reviewers.forEach(r => assignedPRsperReviewer[r] = 0);
             for (const pr of openPRs) {
               if (pr.number === context.payload.pull_request.number) continue;
-
               const { data: requested } = await github.rest.pulls.listRequestedReviewers({
                 owner: context.repo.owner,
                 repo: context.repo.repo,
                 pull_number: pr.number
               });
-
               // Update counts for each reviewer
               requested.users.forEach(user => {
                 if (reviewers.includes(user.login)) {
-                  assignedPRsperReviewer[user.login] += 1
+                  assignedPRsperReviewer[user.login] += 1;
                 }
               });
             }
             // Get relevant reviewers
             const finalReviewers = reviewers.filter(r => r !== author)
-            .filter(r => assignedPRsperReviewer[r] < 2)
-
+              .filter(r => assignedPRsperReviewer[r] < 2);
             console.log('Review counts:', assignedPRsperReviewer);
             console.log('Eligible reviewers:', finalReviewers);
             
-            return finalReviewers.join(', ')
+            return finalReviewers.join(',');
           result-encoding: string
-
-      - name: Assign Reviewers
-        uses: hkusu/review-assign-action@v1
-        with:
-          assignees: ${{ github.event.pull_request.user.login }}
-          reviewers: ${{ steps.filter.outputs.result }}
-          max-num-of-reviewers: 2
-          ready-comment: 'PR #${{ github.event.pull_request.number }} is Ready for review'
-          merged-comment: 'PR #${{ github.event.pull_request.number }} was merged. Thanks for your review :wink:'
-
+      
       - name: Notify if no reviewers available
         if: steps.filter.outputs.result == ''
         uses: actions/github-script@v7
@@ -78,3 +63,27 @@ jobs:
               issue_number: context.payload.pull_request.number,
               body: '**No reviewers available** - All eligible reviewers currently have 2 or more PRs assigned. Please assign a reviewer manually or wait for current reviews to be completed.'
             });
+      
+      - name: Assign Reviewers
+        if: steps.filter.outputs.result != ''
+        uses: actions/github-script@v7
+        with:
+          script: |
+            var reviewers = '${{ steps.filter.outputs.result }}'.split(',');
+            var i = reviewers.length, j, temp;
+            while(--i > 0){
+              j = Math.floor(Math.random()*(i+1));
+              temp = reviewers[j];
+              reviewers[j] = reviewers[i];
+              reviewers[i] = temp;
+            }
+            
+            reviewers = reviewers.slice(0,2);
+            await github.rest.pulls.requestReviewers({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              pull_number: context.payload.pull_request.number,
+              reviewers: reviewers
+            });
+            console.log('Set reviewers:', reviewers);
+            
