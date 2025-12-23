@@ -146,7 +146,7 @@ The `/api/agent` endpoint uses the OpenAI Agents SDK with Gemini backend. To tes
 
    ```bash
    cd apps/lv-pyapi
-   python3 tests/test_agent_manual.py
+   python3 tests/manual_test_agent.py
    ```
 
 3. **Expected output:**
