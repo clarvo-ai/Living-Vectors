@@ -4,8 +4,6 @@ Retro Board: https://www.figma.com/board/R6PzwUSjbwYNWdy1eFeJ6n/LVP-Retro?node-i
 
 > 📖 **For project documentation including folder structure and architecture overview, see [DOCUMENTATION.md](./DOCUMENTATION.md)**
 
-
-
 # How to Run the Project Locally
 
 ## 1. Prerequisites
@@ -61,6 +59,7 @@ docker compose --profile tests down -v
 docker compose --profile tests up -d test-postgres
 docker compose --profile tests run --rm test-migrate
 ```
+
 2. Run the tests (root folder)
 
 ```bash
@@ -68,17 +67,21 @@ docker compose --profile tests run --rm test-runner
 ```
 
 ## Unit Testing - Frontend
+
 1. Navigate into the correct directory
+
 ```bash
 cd apps/lv-web
 ```
 
 2. Install dependencies (if not already done)
+
 ```bash
 npm install
 ```
 
 3. Run the tests
+
 ```bash
 npm test
 ```
@@ -93,10 +96,12 @@ npm test
 
 2. Send messages in the chat UI
 
-3. Connect to DB 
+3. Connect to DB
+
 ```bash
 sudo docker exec -it $(docker ps -q --filter name=lv-db) psql -U postgres
 ```
+
 Once connected, you can use:
 
 - `\dt` - list tables
@@ -108,6 +113,59 @@ Once connected, you can use:
    ```
 
 5. Verify both user and AI messages appear
+
+## Testing the Agent Endpoint
+
+The `/api/agent` endpoint uses the OpenAI Agents SDK with Gemini backend. To test it manually:
+
+### Prerequisites
+
+1. Make sure you have `GEMINI_API_KEY` set in your `.env` file in `apps/lv-pyapi/`
+2. Install Python dependencies:
+   ```bash
+   cd apps/lv-pyapi
+   pip install -r requirements.txt
+   ```
+
+### Quick Test
+
+1. **Start the server** (in one terminal):
+
+   ```bash
+   cd apps/lv-pyapi
+   python3 -m uvicorn main:app --host 0.0.0.0 --port 8080 --reload
+   ```
+
+2. **Run the test script** (in another terminal, from project root):
+
+   ```bash
+   npm run test:agent
+   ```
+
+   Or manually:
+
+   ```bash
+   cd apps/lv-pyapi
+   python3 tests/test_agent_manual.py
+   ```
+
+3. **Expected output:**
+   ```
+   Status Code: 200
+   Response: {'message': 'Hello! How can I help you today?', 'status': 200}
+   ```
+
+### Using curl
+
+You can also test directly with curl:
+
+```bash
+curl -X POST http://localhost:8080/api/agent \
+  -H "Content-Type: application/json" \
+  -d '{"prompt": "Say hello"}'
+```
+
+**Note:** The first API call may take 10-30 seconds as it initializes the agent and makes the LLM API call.
 
 # Additional Information
 
@@ -134,7 +192,6 @@ docker compose --profile lv-web up -d --build
 ```bash
 docker compose --profile lv-web-build up -d --build
 ```
-
 
 ## Running lv-web Without Docker
 
@@ -173,14 +230,16 @@ Open http://localhost:3045
 
 **LV-PYAPI (Python API only):**
 
-
 ```bash
 docker compose --profile lv-pyapi up -d --build
 ```
+
 LOGS:
+
 ```bash
 docker compose logs -f $(docker compose ps --services --filter "status=running")
 ```
+
 TIP: use Docker/Containers extension in Cursor to manage containers and see logs
 
 ## 3. Initial Setup on a New Laptop
@@ -319,11 +378,12 @@ git push
 ### Merge Strategy
 
 Merge feature to dev (Squash)
+
 - Create a PR, ask for reviews, and select "Squash and merge"
 
 Deploy to prod
-- Create a PR from dev to main, ask for reviews, and select "Create a merge commit"
 
+- Create a PR from dev to main, ask for reviews, and select "Create a merge commit"
 
 ### Fix Hanging Migrations When Switching Branches
 

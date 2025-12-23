@@ -23,7 +23,8 @@
     "test:watch": "npm run test:watch --workspace=apps/lv-web",
     "test:pytest": "docker compose --profile tests run --rm test-runner",
     "test:pytest:coverage": "docker compose --profile tests run --rm test-runner pytest  --cov=. --cov-report=term --cov-report=html",
-    "test:all:coverage": "npm run test:jest:coverage && npm run test:pytest:coverage"
+    "test:all:coverage": "npm run test:jest:coverage && npm run test:pytest:coverage",
+    "test:agent": "cd apps/lv-pyapi && python3 tests/test_agent_manual.py"
   },
   "dependencies": {
     "zod": "^3.24.1"

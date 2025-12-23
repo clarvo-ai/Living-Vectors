@@ -9,3 +9,6 @@ httpx==0.28.1
 google-genai==1.49.0
 pytest==9.0.0
 pytest-cov== 4.1.0
+openai-agents>=0.1.0
+agentsdk-gemini-adapter>=0.1.0
+requests>=2.31.0

@@ -1,9 +1,18 @@
+import sys
+import os
+
+# Add python_utils to path before any imports that use it
+# This ensures it works even when uvicorn --reload spawns subprocesses
+ROOT = os.path.abspath(os.path.join(os.path.dirname(__file__), "../.."))
+UTILS_PATH = os.path.join(ROOT, "packages/python-utils/src")
+if UTILS_PATH not in sys.path:
+    sys.path.insert(0, UTILS_PATH)
+
 from fastapi import FastAPI, Depends, HTTPException, Body
 from sqlalchemy.orm import Session
 from sqlalchemy import select
 from typing import List, Optional
 import uvicorn
-import os
 from dotenv import load_dotenv
 from fastapi.middleware.cors import CORSMiddleware
 from google import genai
@@ -13,6 +22,8 @@ from python_utils.sqlalchemy_models import User
 from message_save import save_message
 from python_utils.sqlalchemy_models import User, MessageSender
 from fastapi.responses import JSONResponse
+
+from agent_service import get_agent_response_async
 
 
 # Load environment variables
@@ -92,6 +103,27 @@ async def get_gemini_response(
             save_message(db, userId, MessageSender.AI, ai_text)
 
         return {"message": response.text, "status": 200}
+
+    except Exception as e:
+        return JSONResponse(status_code=500, content={"message": str(e), "status": 500})
+
+@app.post("/api/agent")
+async def get_agent_response_endpoint(
+    userId: Optional[str] = Body(default=None),
+    prompt: str = Body(..., embed=True),
+    db: Session = Depends(get_db)):
+
+    """Query agent using OpenAI Agents SDK with Gemini backend"""
+    try:
+        if userId:
+            save_message(db, userId, MessageSender.USER, prompt)
+
+        response_text = await get_agent_response_async(prompt)
+
+        if userId: 
+            save_message(db, userId, MessageSender.AI, response_text)
+        
+        return {"message": response_text, "status": 200}
 
     except Exception as e:
         return JSONResponse(status_code=500, content={"message": str(e), "status": 500})
