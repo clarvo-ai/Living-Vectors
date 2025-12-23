@@ -9,7 +9,9 @@ on:
 
 jobs:
   assignReviewers:
-    if: ${{ toJSON(github.event.pull_request.requested_reviewers) == '[]' }}
+    if: |
+      toJSON(github.event.pull_request.requested_reviewers) == '[]' &&
+      github.event.pull_request.draft == false
     permissions:
       pull-requests: write
       contents: read
