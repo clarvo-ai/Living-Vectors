@@ -1,5 +1,10 @@
 import { getServerSession } from 'next-auth';
 
+// Mock database before importing requireAdminAuth
+jest.mock('@repo/db', () => ({
+  prisma: {},
+}));
+
 // Mock Prisma adapter before importing requireAdminAuth
 jest.mock('@auth/prisma-adapter', () => ({
   PrismaAdapter: jest.fn(),
