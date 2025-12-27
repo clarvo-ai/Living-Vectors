@@ -7,6 +7,7 @@ import os
 from dotenv import load_dotenv
 from fastapi.middleware.cors import CORSMiddleware
 from google import genai
+import logging
 
 from database import get_db, SessionLocal
 from python_utils.sqlalchemy_models import User
@@ -19,6 +20,8 @@ from gemini_client import client
 
 import json
 from pathlib import Path
+
+logging.basicConfig(level=logging.INFO)
 
 #Load questions at backend startup:
 QUESTIONS_PATH = Path(__file__).parent.parent.parent / "packages" / "shared-data" / "career-conversation-questions.json"
@@ -229,7 +232,8 @@ async def get_gemini_response(
                 }
 
     except Exception as e:
-        return JSONResponse(status_code=500, content={"message": str(e), "status": 500})
+        logging.exception("Unhandled error in /api/chat/answer")
+        return JSONResponse(status_code=500, content={"message": "Internal server error", "status": 500})
 
 @app.post("/api/tts")
 async def tts(text: str = Body(..., embed=True)):
@@ -238,7 +242,8 @@ async def tts(text: str = Body(..., embed=True)):
         audio_content = text_to_speech(text)
         return Response(content=audio_content, media_type="audio/mpeg")
     except Exception as e:
-        return JSONResponse(status_code=500, content={"message": str(e), "status": 500})
+        logging.exception("Unhandled error in /api/tts")
+        return JSONResponse(status_code=500, content={"message": "Internal server error", "status": 500})
 
 @app.post("/api/stt")
 async def stt(file: UploadFile = File(...)):
@@ -248,7 +253,8 @@ async def stt(file: UploadFile = File(...)):
         transcript = speech_to_text(content)
         return {"transcript": transcript}
     except Exception as e:
-        return JSONResponse(status_code=500, content={"message": str(e), "status": 500})
+        logging.exception("Unhandled error in /api/stt")
+        return JSONResponse(status_code=500, content={"message": "Internal server error", "status": 500})
 
 if __name__ == "__main__":
     uvicorn.run(app, host="0.0.0.0", port=8080)
