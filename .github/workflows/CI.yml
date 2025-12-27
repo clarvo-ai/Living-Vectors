@@ -87,20 +87,19 @@ jobs:
           DATABASE_URL: postgresql://postgres:postgres@localhost:5432/postgres
           DIRECT_DATABASE_URL: postgresql://postgres:postgres@localhost:5432/postgres
 
+      - name: Authenticate with GCP
+        uses: google-github-actions/auth@v2
+        with:
+          credentials_json: ${{ secrets.GCP_SA_KEY_TTS_STT }}
+
       - name: Run lv-pyapi tests
         env:
           GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
           PYTHONPATH: ${{ github.workspace }}/apps/lv-pyapi:${{ github.workspace }}/packages/python-utils/src
           DATABASE_URL: postgresql://postgres:postgres@localhost:5432/postgres
           TEST_DATABASE_URL: ${{ env.TEST_DATABASE_URL }}
-          GOOGLE_APPLICATION_CREDENTIALS_JSON: ${{ secrets.GOOGLE_APPLICATION_CREDENTIALS_JSON }}
         working-directory: ./apps/lv-pyapi
         run: |
-          if [ -n "$GOOGLE_APPLICATION_CREDENTIALS_JSON" ]; then
-            echo "$GOOGLE_APPLICATION_CREDENTIALS_JSON" > credentials/google-credentials.json
-            chmod 600 credentials/google-credentials.json
-            export GOOGLE_APPLICATION_CREDENTIALS=$(pwd)/credentials/google-credentials.json
-          fi
           pytest tests --asyncio-mode=auto --cov=. --cov-report=term --cov-report=html
 
       - name: Upload Pytest coverage report
