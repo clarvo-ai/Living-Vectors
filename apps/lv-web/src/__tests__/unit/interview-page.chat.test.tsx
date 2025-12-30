@@ -36,11 +36,11 @@ describe('InterviewPage - Chat Interaction', () => {
     (fetch as jest.Mock).mockClear();
     // Mock scrollIntoView
     Element.prototype.scrollIntoView = jest.fn();
-    
+
     // Mock startConversation to return initial message
     (startConversation as jest.Mock).mockResolvedValue({
       message: "Hello! I'm here to figure you out. First, are you dedicated?",
-      goalCategory: "Career Goals",
+      goalCategory: 'Career Goals',
       questionId: { goalIndex: 0, questionIndex: 0 },
     });
   });
