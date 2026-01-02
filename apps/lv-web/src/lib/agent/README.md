@@ -9,7 +9,7 @@ The Living Vectors frontend agent uses a modular system prompt structure:
 - **Agent identity & mission**: Frontend-facing assistant role and purpose
 - **Operating principles**: Core principles for clarity, predictability, and safety
 - **Tone and communication style**: How the agent should sound and interact
-- **Frontend authority limits**: Hard constraints on what the agent cannot do
+- **Authority limits**: Hard constraints on what the agent cannot do
 - **Safety & prompt injection resistance**: Security constraints and instruction hierarchy
 - **Clarification policy**: How to handle ambiguous requests
 - **Behavioral constraints**: Critical rules the agent must follow
@@ -26,7 +26,7 @@ The Living Vectors frontend agent uses a modular system prompt structure:
 Contains the base system prompt broken into modular sections:
 
 - `BASE_SYSTEM_PROMPT`: The complete foundational prompt that combines all sections below
-- **Core sections**: `AGENT_IDENTITY`, `OPERATING_PRINCIPLES`, `FRONTEND_AUTHORITY_LIMITS`
+- **Core sections**: `AGENT_IDENTITY`, `OPERATING_PRINCIPLES`, `AUTHORITY_LIMITS`
 - **Safety sections**: `SAFETY_CONSTRAINTS`, `CLARIFICATION_POLICY`
 - **Career-specific sections**: `TONE_GUIDELINES`, `BEHAVIORAL_CONSTRAINTS`, `CORE_CAPABILITIES`
 - **Formatting sections**: `OUTPUT_CONTRACT`, `TOOL_AWARENESS`
