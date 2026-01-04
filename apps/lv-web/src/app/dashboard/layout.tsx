@@ -21,12 +21,13 @@ import {
 import { Briefcase, ChevronDown, LogOut, Phone, User } from 'lucide-react';
 import { signOut, useSession } from 'next-auth/react';
 import { usePathname, useRouter } from 'next/navigation';
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
 
 export default function DashboardLayout({ children }: { children: React.ReactNode }) {
   const { data: session, status } = useSession();
   const router = useRouter();
   const pathname = usePathname();
+  const [isHovering, setIsHovering] = useState(false);
 
   useEffect(() => {
     if (status === 'unauthenticated') {
@@ -50,11 +51,27 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
     <SidebarProvider defaultOpen={false}>
       <div className="flex h-screen w-full bg-gray-50">
         {/* Sidebar */}
-        <Sidebar collapsible="icon" variant="sidebar" className="bg-gray-50">
+        <Sidebar
+          collapsible="icon"
+          variant="sidebar"
+          className="bg-gray-50"
+          onMouseEnter={() => setIsHovering(true)}
+          onMouseLeave={() => setIsHovering(false)}
+        >
           <SidebarContent className="bg-gray-50">
-            {/* Logo */}
-            <div className="px-4 py-6 group-data-[state=collapsed]:flex group-data-[state=collapsed]:justify-center group-data-[state=expanded]:flex group-data-[state=expanded]:justify-start">
-              <h1 className="text-xl font-bold text-slate-800">LV</h1>
+            {/* Logo and Sidebar icon */}
+            <div className="px-4 py-6 group-data-[state=collapsed]:flex group-data-[state=collapsed]:justify-center group-data-[state=expanded]:flex group-data-[state=expanded]:justify-between group-data-[state=expanded]:items-center relative">
+              <h1
+                className={`text-xl font-bold text-slate-800 transition-opacity duration-200 ${isHovering ? 'group-data-[state=collapsed]:opacity-0' : 'group-data-[state=collapsed]:opacity-100'}`}
+              >
+                LV
+              </h1>
+              {/* Sidebar icon - overlays LV when collapsed, right side when expanded */}
+              <div
+                className={`scale-125 group-data-[state=collapsed]:absolute group-data-[state=collapsed]:inset-0 group-data-[state=collapsed]:flex group-data-[state=collapsed]:items-center group-data-[state=collapsed]:justify-center transition-opacity duration-200 ${isHovering ? 'opacity-100' : 'group-data-[state=collapsed]:opacity-0'}`}
+              >
+                <SidebarTrigger />
+              </div>
             </div>
 
             <SidebarGroup>
@@ -199,11 +216,6 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
 
         {/* Main Area */}
         <main className="flex-1 flex flex-col overflow-hidden">
-          {/* Sidebar Trigger (Hamburger Menu) */}
-          <div className="bg-white border-b border-gray-200 px-4 py-3 flex items-center">
-            <SidebarTrigger />
-          </div>
-
           {/* Content Area */}
           <div className="flex-1 overflow-hidden">{children}</div>
         </main>

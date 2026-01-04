@@ -14,6 +14,8 @@ export function ChatInput({ value, onChange, onSend, isLoading, onKeyDown }: Cha
   return (
     <div className="flex gap-2 items-start">
       <Textarea
+        id="interview-response"
+        name="response"
         value={value}
         onChange={(e) => onChange(e.target.value)}
         onKeyDown={onKeyDown}

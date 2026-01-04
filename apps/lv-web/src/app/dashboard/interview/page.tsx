@@ -12,7 +12,6 @@ import { ChatHeader } from './components/ChatHeader';
 import { ChatInput } from './components/ChatInput';
 import { Message } from './components/ChatMessage';
 import { EndInterviewDialog } from './components/EndInterviewDialog';
-import { InterviewHeader } from './components/InterviewHeader';
 import { MessagesList } from './components/MessagesList';
 import { VoiceOnlyMode } from './components/VoiceOnlyMode';
 import { VoiceRecorder } from './components/VoiceRecorder';
@@ -245,18 +244,13 @@ export default function InterviewPage() {
 
   return (
     <div
-      className="min-h-screen"
+      className="min-h-screen flex items-center justify-center"
       style={{
         background: `linear-gradient(45deg, var(--bg-gradient-start) 0%, var(--bg-gradient-middle) 50%, var(--bg-gradient-end) 100%)`,
       }}
     >
-      <InterviewHeader
-        onEndInterviewClick={() => setShowEndInterviewDialog(true)}
-        userName={session.user?.name || session.user?.email}
-      />
-
-      <main className="max-w-4xl mx-auto py-6 px-4 sm:px-6 lg:px-8">
-        <Card className="h-[calc(100vh-12rem)] flex flex-col shadow-lg">
+      <main className="max-w-4xl w-full px-4 sm:px-6 lg:px-8">
+        <Card className="h-[calc(100vh-8rem)] flex flex-col shadow-lg">
           <CardHeader className="border-b pb-4">
             <div className="flex flex-col gap-4">
               <ChatHeader currentGoal="Build Trust & Explore Current Motivation" />
