@@ -10,13 +10,7 @@ interface ChatInputProps {
   onKeyDown: (e: React.KeyboardEvent<HTMLTextAreaElement>) => void;
 }
 
-export function ChatInput({
-  value,
-  onChange,
-  onSend,
-  isLoading,
-  onKeyDown,
-}: ChatInputProps) {
+export function ChatInput({ value, onChange, onSend, isLoading, onKeyDown }: ChatInputProps) {
   return (
     <div className="flex gap-2 items-start">
       <Textarea
@@ -37,13 +31,13 @@ export function ChatInput({
           background:
             isLoading || !value.trim()
               ? `linear-gradient(90deg, rgb(156 163 175) 0%, rgb(107 114 128) 100%)`
-              : `linear-gradient(90deg, var(--gradient-primary-start) 0%, var(--gradient-primary-end) 100%)`,
+              : `linear-gradient(135deg, #3b82f6 0%, #8b5cf6 100%)`,
           transition: 'all 0.2s ease-in-out',
         }}
         onMouseEnter={(e) => {
           if (!isLoading && value.trim()) {
             e.currentTarget.style.transform = 'scale(1.02)';
-            e.currentTarget.style.boxShadow = `0 4px 12px var(--shadow-blue-hover)`;
+            e.currentTarget.style.boxShadow = `0 8px 16px rgba(139, 92, 246, 0.4)`;
           }
         }}
         onMouseLeave={(e) => {

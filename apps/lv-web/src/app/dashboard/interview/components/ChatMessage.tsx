@@ -12,9 +12,7 @@ export function ChatMessage({ message }: { message: Message }) {
   return (
     <div
       key={message.id}
-      className={`flex items-start gap-2 ${
-        isUser ? 'justify-end' : 'justify-start'
-      }`}
+      className={`flex items-start gap-2 ${isUser ? 'justify-end' : 'justify-start'}`}
     >
       {!isUser && (
         <div className="flex-shrink-0 mt-1">
@@ -25,14 +23,12 @@ export function ChatMessage({ message }: { message: Message }) {
       )}
       <div className={`flex flex-col ${isUser ? 'items-end' : 'items-start'} max-w-[80%]`}>
         <div
-          className={`rounded-lg px-4 py-2 ${
-            isUser ? 'text-white' : 'bg-gray-100 text-gray-900'
-          }`}
+          className={`rounded-lg px-4 py-2 ${isUser ? 'text-white' : 'bg-gray-100 text-gray-900'}`}
           style={
             isUser
               ? {
-                  background: `linear-gradient(90deg, var(--gradient-primary-start) 0%, var(--gradient-primary-end) 100%)`,
-                  boxShadow: `0px 5px 15px -4px var(--shadow-blue-light)`,
+                  background: `linear-gradient(135deg, #3b82f6 0%, #8b5cf6 100%)`,
+                  boxShadow: `0px 5px 15px -4px rgba(139, 92, 246, 0.3)`,
                 }
               : undefined
           }
@@ -48,7 +44,7 @@ export function ChatMessage({ message }: { message: Message }) {
           <div
             className="w-6 h-6 rounded-full flex items-center justify-center"
             style={{
-              background: `linear-gradient(135deg, var(--gradient-primary-start) 0%, var(--gradient-primary-end) 100%)`,
+              background: `linear-gradient(135deg, #3b82f6 0%, #8b5cf6 100%)`,
             }}
           >
             <User className="h-4 w-4 text-white" />

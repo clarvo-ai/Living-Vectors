@@ -69,8 +69,22 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
                       className="justify-between hover:bg-blue-50"
                     >
                       <div className="flex items-center gap-3">
-                        <Phone className="w-5 h-5 flex-shrink-0 text-blue-600" />
-                        <span className="text-gray-600">Interview</span>
+                        <Phone
+                          className={`w-5 h-5 flex-shrink-0 ${
+                            pathname?.startsWith('/dashboard/interview')
+                              ? 'text-blue-600'
+                              : 'text-gray-400'
+                          }`}
+                        />
+                        <span
+                          className={
+                            pathname?.startsWith('/dashboard/interview')
+                              ? 'text-gray-900 font-medium'
+                              : 'text-gray-600'
+                          }
+                        >
+                          Interview
+                        </span>
                       </div>
                     </SidebarMenuButton>
                   </SidebarMenuItem>
@@ -84,8 +98,22 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
                       className="justify-between hover:bg-blue-50"
                     >
                       <div className="flex items-center gap-3">
-                        <Briefcase className="w-5 h-5 flex-shrink-0 text-blue-600" />
-                        <span className="text-gray-600">Opportunities</span>
+                        <Briefcase
+                          className={`w-5 h-5 flex-shrink-0 ${
+                            pathname?.startsWith('/dashboard/opportunities')
+                              ? 'text-blue-600'
+                              : 'text-gray-400'
+                          }`}
+                        />
+                        <span
+                          className={
+                            pathname?.startsWith('/dashboard/opportunities')
+                              ? 'text-gray-900 font-medium'
+                              : 'text-gray-600'
+                          }
+                        >
+                          Opportunities
+                        </span>
                       </div>
                       <span className="px-2 py-0.5 bg-gray-300 text-gray-700 text-xs rounded-full font-medium">
                         3
@@ -102,8 +130,22 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
                       className="justify-between hover:bg-blue-50"
                     >
                       <div className="flex items-center gap-3">
-                        <User className="w-5 h-5 flex-shrink-0 text-blue-600" />
-                        <span className="text-gray-600">Profile</span>
+                        <User
+                          className={`w-5 h-5 flex-shrink-0 ${
+                            pathname?.startsWith('/dashboard/profile')
+                              ? 'text-blue-600'
+                              : 'text-gray-400'
+                          }`}
+                        />
+                        <span
+                          className={
+                            pathname?.startsWith('/dashboard/profile')
+                              ? 'text-gray-900 font-medium'
+                              : 'text-gray-600'
+                          }
+                        >
+                          Profile
+                        </span>
                       </div>
                     </SidebarMenuButton>
                   </SidebarMenuItem>

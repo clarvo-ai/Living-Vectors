@@ -12,7 +12,7 @@ export function ChatHeader({ currentGoal }: ChatHeaderProps) {
         <div
           className="w-10 h-10 rounded-lg flex items-center justify-center"
           style={{
-            background: `linear-gradient(135deg, var(--gradient-primary-start) 0%, var(--gradient-primary-end) 100%)`,
+            background: `linear-gradient(135deg, #3b82f6 0%, #8b5cf6 100%)`,
           }}
         >
           <Bot className="h-5 w-5 text-white" />

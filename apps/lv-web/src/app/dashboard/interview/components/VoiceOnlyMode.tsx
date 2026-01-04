@@ -15,18 +15,25 @@ export function VoiceOnlyMode({ isAiSpeaking, isUserRecording, isProcessing }: V
       <div
         className={`rounded-full p-8 transition-all duration-500 ${
           isAiSpeaking
-            ? 'bg-blue-100 scale-110'
+            ? 'scale-110'
             : isUserRecording
-              ? 'bg-red-100 scale-110'
+              ? 'scale-110'
               : isProcessing
                 ? 'bg-yellow-100 scale-110'
                 : 'bg-gray-100'
         }`}
+        style={
+          isAiSpeaking || isUserRecording
+            ? {
+                background: 'linear-gradient(135deg, #3b82f6 0%, #8b5cf6 100%)',
+              }
+            : {}
+        }
       >
         {isAiSpeaking ? (
-          <Volume2 className="h-24 w-24 text-blue-500 animate-pulse" />
+          <Volume2 className="h-24 w-24 text-white animate-pulse" />
         ) : isUserRecording ? (
-          <Mic className="h-24 w-24 text-red-500 animate-pulse" />
+          <Mic className="h-24 w-24 text-white animate-pulse" />
         ) : isProcessing ? (
           <Loader2 className="h-24 w-24 text-yellow-500 animate-spin" />
         ) : (
