@@ -4,8 +4,6 @@ Retro Board: https://www.figma.com/board/R6PzwUSjbwYNWdy1eFeJ6n/LVP-Retro?node-i
 
 > 📖 **For project documentation including folder structure and architecture overview, see [DOCUMENTATION.md](./DOCUMENTATION.md)**
 
-
-
 # How to Run the Project Locally
 
 ## 1. Prerequisites
@@ -61,6 +59,7 @@ docker compose --profile tests down -v
 docker compose --profile tests up -d test-postgres
 docker compose --profile tests run --rm test-migrate
 ```
+
 2. Run the tests (root folder)
 
 ```bash
@@ -68,17 +67,21 @@ docker compose --profile tests run --rm test-runner
 ```
 
 ## Unit Testing - Frontend
+
 1. Navigate into the correct directory
+
 ```bash
 cd apps/lv-web
 ```
 
 2. Install dependencies (if not already done)
+
 ```bash
 npm install
 ```
 
 3. Run the tests
+
 ```bash
 npm test
 ```
@@ -93,10 +96,12 @@ npm test
 
 2. Send messages in the chat UI
 
-3. Connect to DB 
+3. Connect to DB
+
 ```bash
 sudo docker exec -it $(docker ps -q --filter name=lv-db) psql -U postgres
 ```
+
 Once connected, you can use:
 
 - `\dt` - list tables
@@ -134,7 +139,6 @@ docker compose --profile lv-web up -d --build
 ```bash
 docker compose --profile lv-web-build up -d --build
 ```
-
 
 ## Running Tests
 
@@ -192,14 +196,16 @@ powershell.exe -c start apps/lv-pyapi/htmlcov/index.html
 
 **LV-PYAPI (Python API only):**
 
-
 ```bash
 docker compose --profile lv-pyapi up -d --build
 ```
+
 LOGS:
+
 ```bash
 docker compose logs -f $(docker compose ps --services --filter "status=running")
 ```
+
 TIP: use Docker/Containers extension in Cursor to manage containers and see logs
 
 ## 3. Initial Setup on a New Laptop
@@ -208,19 +214,21 @@ TIP: use Docker/Containers extension in Cursor to manage containers and see logs
 
 2. Create .env files (`apps/lv-web/.env` and `apps/lv-pyapi/.env`)
 
-3. Install dependencies:
+3. (May be temporary) Set up Google Cloud Credentials for voice features, see [Voice Interface Setup](#10-voice-interface-setup)
+
+4. Install dependencies:
 
    ```bash
    npm i
    ```
 
-4. Initialize database:
+5. Initialize database:
 
    ```bash
    docker compose run --rm prisma-migrate
    ```
 
-5. Start correct profile (usually LV-WEB)
+6. Start correct profile (usually LV-WEB)
 
 ## 4. Troubleshooting: Fixing node_modules on macOS/Windows (Non-Linux Issue)
 
@@ -314,11 +322,12 @@ git push
 ### Merge Strategy
 
 Merge feature to dev (Squash)
+
 - Create a PR, ask for reviews, and select "Squash and merge"
 
 Deploy to prod
-- Create a PR from dev to main, ask for reviews, and select "Create a merge commit"
 
+- Create a PR from dev to main, ask for reviews, and select "Create a merge commit"
 
 ### Fix Hanging Migrations When Switching Branches
 
@@ -343,3 +352,16 @@ docker rmi $(docker image ls -q)
 docker volume rm $(docker volume ls -q)
 docker system prune
 ```
+
+## 10. Voice Interface Setup
+
+To enable Google voice interface features, set up Google Cloud credentials. This may not be necessary if we use agentic AI.
+
+1. Go to the project's [Google Cloud Console Secret Manager](https://console.cloud.google.com/security/secret-manager?hl=fi&project=swp-livingvectors)
+2. Access and copy the secret value
+3. Create the credentials file:
+   ```bash
+   # Create the file at this path:
+   ./apps/lv-pyapi/credentials/google-credentials.json
+   ```
+4. Paste the secret value into the file

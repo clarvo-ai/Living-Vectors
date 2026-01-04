@@ -84,3 +84,31 @@ export async function startConversation(
 
   return response.json();
 }
+
+export async function getTTS(text: string): Promise<Blob> {
+  const response = await fetch(`${getBaseUrl()}/api/tts`, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify({ text }),
+  });
+  if (!response.ok) {
+    throw new Error(`TTS failed: ${response.statusText}`);
+  }
+  return response.blob();
+}
+
+export async function getSTT(audioBlob: Blob): Promise<{ transcript: string }> {
+  const formData = new FormData();
+  formData.append('file', audioBlob);
+
+  const response = await fetch(`${getBaseUrl()}/api/stt`, {
+    method: 'POST',
+    body: formData,
+  });
+  if (!response.ok) {
+    throw new Error(`STT failed: ${response.statusText}`);
+  }
+  return response.json();
+}
