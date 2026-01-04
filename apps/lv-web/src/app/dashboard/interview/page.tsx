@@ -20,14 +20,23 @@ import { VoiceRecorder } from './components/VoiceRecorder';
 export default function InterviewPage() {
   const { data: session, status } = useSession();
   const router = useRouter();
-  const [messages, setMessages] = useState<Message[]>([
-    /*     {
-      id: 'initial-ai-message',
-      role: 'ai',
-      content: "Hello! I'm here to figure you out. First, are you dedicated?",
-      timestamp: new Date(),
-    }, */
-  ]);
+  const [messages, setMessages] = useState<Message[]>(() => {
+    if (typeof window !== 'undefined') {
+      const saved = sessionStorage.getItem('interview-messages');
+      if (saved) {
+        try {
+          const parsed = JSON.parse(saved);
+          return parsed.map((msg: Message) => ({
+            ...msg,
+            timestamp: new Date(msg.timestamp),
+          }));
+        } catch (e) {
+          console.error('Failed to parse saved messages', e);
+        }
+      }
+    }
+    return [];
+  });
   const [input, setInput] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const [voiceMode, setVoiceMode] = useState(false);
@@ -75,6 +84,13 @@ export default function InterviewPage() {
       }
     }
   }
+
+  // Save messages to sessionStorage
+  useEffect(() => {
+    if (messages.length > 0) {
+      sessionStorage.setItem('interview-messages', JSON.stringify(messages));
+    }
+  }, [messages]);
 
   // Scroll behaviour
   useEffect(() => {
@@ -208,6 +224,7 @@ export default function InterviewPage() {
 
   const handleEndInterview = () => {
     stopAudio();
+    sessionStorage.removeItem('interview-messages');
     router.push('/dashboard');
   };
 

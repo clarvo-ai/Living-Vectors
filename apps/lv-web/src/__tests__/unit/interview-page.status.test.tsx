@@ -1,7 +1,7 @@
 import '@testing-library/jest-dom';
 import { render, screen, waitFor } from '@testing-library/react';
 import { useSession } from 'next-auth/react';
-import InterviewPage from '../../app/interview/page';
+import InterviewPage from '../../app/dashboard/interview/page';
 import { startConversation } from '../../lib/services/pyapi';
 
 // Mock next-auth/react

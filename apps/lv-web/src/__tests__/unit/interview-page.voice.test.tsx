@@ -1,7 +1,7 @@
 import '@testing-library/jest-dom';
 import { fireEvent, render, screen, waitFor } from '@testing-library/react';
 import { useSession } from 'next-auth/react';
-import InterviewPage from '../../app/interview/page';
+import InterviewPage from '../../app/dashboard/interview/page';
 import { getGeminiResponse, getSTT, getTTS, startConversation } from '../../lib/services/pyapi';
 import { setupVoiceMocks } from '../mocks/voice-mocks';
 
@@ -27,7 +27,7 @@ jest.mock('next/navigation', () => ({
 }));
 
 // Mock VoiceRecorder component
-jest.mock('../../app/interview/components/VoiceRecorder', () => ({
+jest.mock('../../app/dashboard/interview/components/VoiceRecorder', () => ({
   VoiceRecorder: ({
     onRecordingComplete,
     onRecordingStateChange,
