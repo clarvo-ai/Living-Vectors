@@ -139,3 +139,28 @@ def get_messages_for_learnings(user_id: str, message_id: str, db_session_factory
 
     if contents:
         process_learnings(user_id, contents, ids, db_session_factory)
+
+
+# Function to check message count and trigger learnings generation if needed
+def check_and_trigger_learnings(user_id: str, db_session_factory):
+    """Check message count and trigger learnings generation if needed"""
+    db = db_session_factory()
+    try:
+        # Use a limited query to avoid a full table count; fetch up to 16 ids
+        rows = db.query(ConversationMessage.messageId).filter(
+            ConversationMessage.userId == user_id
+        ).limit(16).all()
+
+        if len(rows) > 15:
+            # Get the most recent message ID to use as anchor
+            latest_message = db.query(ConversationMessage).filter(
+                ConversationMessage.userId == user_id
+            ).order_by(ConversationMessage.createdAt.desc()).first()
+            
+            if latest_message:
+                get_messages_for_learnings(user_id, latest_message.messageId, db_session_factory)
+
+    except Exception as e:
+        print(f"Error checking message count for learnings: {str(e)}")
+    finally:
+        db.close()

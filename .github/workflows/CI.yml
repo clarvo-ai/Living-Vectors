@@ -1,8 +1,7 @@
 name: Testing and Linting
 on:
   push:
-    branches:
-      - '**'
+    branches: [dev]
   pull_request:
     types:
       - opened
@@ -64,7 +63,13 @@ jobs:
 
       - name: Run lv-web tests
         working-directory: ./apps/lv-web
-        run: npx jest --runInBand
+        run: npx jest --runInBand --coverage
+
+      - name: Upload Jest coverage report
+        uses: actions/upload-artifact@v4
+        with:
+          name: jest-coverage-report
+          path: apps/lv-web/coverage/
 
       - name: Set up Python
         uses: actions/setup-python@v5
@@ -75,12 +80,17 @@ jobs:
         run: |
           python -m pip install --upgrade pip
           pip install -r apps/lv-pyapi/requirements.txt
-      
+
       - name: Run test database migrations
         run: npx prisma migrate deploy --schema ./packages/database/prisma/schema/schema.prisma
         env:
           DATABASE_URL: postgresql://postgres:postgres@localhost:5432/postgres
           DIRECT_DATABASE_URL: postgresql://postgres:postgres@localhost:5432/postgres
+
+      - name: Authenticate with GCP
+        uses: google-github-actions/auth@v2
+        with:
+          credentials_json: ${{ secrets.GCP_SA_KEY_TTS_STT }}
 
       - name: Run lv-pyapi tests
         env:
@@ -88,4 +98,11 @@ jobs:
           PYTHONPATH: ${{ github.workspace }}/apps/lv-pyapi:${{ github.workspace }}/packages/python-utils/src
           DATABASE_URL: postgresql://postgres:postgres@localhost:5432/postgres
           TEST_DATABASE_URL: ${{ env.TEST_DATABASE_URL }}
-        run: pytest apps/lv-pyapi/tests --asyncio-mode=auto
+        working-directory: ./apps/lv-pyapi
+        run: pytest tests --asyncio-mode=auto --cov=. --cov-report=term --cov-report=html
+
+      - name: Upload Pytest coverage report
+        uses: actions/upload-artifact@v4
+        with:
+          name: pytest-coverage-report
+          path: apps/lv-pyapi/htmlcov/

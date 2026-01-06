@@ -1,108 +1,271 @@
 Project Board: https://github.com/orgs/clarvo-ai/projects/9/views/1
 
+Retro Board: https://www.figma.com/board/R6PzwUSjbwYNWdy1eFeJ6n/LVP-Retro?node-id=0-1&p=f
+
 > 📖 **For project documentation including folder structure and architecture overview, see [DOCUMENTATION.md](./DOCUMENTATION.md)**
 
-## Start the Project & Run Database Migrations & Sync Schema
+# How to Run the Project Locally
+
+## 1. Prerequisites
+
+- Docker Desktop
+- Node.js v18+
+- npm (comes with Node.js; npm 10+ recommended)
+- Python 3.11
+
+## 2. Install Dependencies
+
+_(run only during first-time setup or after dependency changes)_
+
+Run the following command in the root folder:
 
 ```bash
-# APPLY MIGRATIONS and SYNC SCHEMA (run this after you modify database schema .prisma files):
-docker compose run --rm prisma-migrate && docker compose run --rm python-typegen
-
-## SYNC INCOMING CHANGES FROM DEV
-## 1. Checkout dev, pull, run migrations, install dependencies, and down all containers
-git checkout dev && git pull && docker compose run --rm prisma-migrate && npm i && docker compose down
-
-## 2. Choose the right profile to spin up:
-
-LV-WEB (Development):
-docker compose --profile lv-web up -d --build
-
-LV-WEB (Production Build):
-docker compose --profile lv-web-build up -d --build
-
-LV-PYAPI (Python API only):
-docker compose --profile lv-pyapi up -d --build
-
-LOGS:
-docker compose logs -f $(docker compose ps --services --filter "status=running")
-
-TIP: use Docker/Containers extension in Cursor to manage containers and see logs
-```
-
-## Initializing the project with a new laptop
-
-```bash
-## Clone the repository / git pull the latest changes
-
-## Configure .env files for each profile (currently only .env in lv-web based on .env.example)
-
-## Install dependencies
 npm i
+```
 
-## Initialize database
+## 3. Apply Database Migrations
+
+_(run during first-time setup or whenever Prisma schema changes)_
+
+```bash
 docker compose run --rm prisma-migrate
-
-## Now the right profile to spin up can be chosen.
+docker compose run --rm python-typegen
 ```
 
-### For non-Linux machines (if facing issues)
-
-If you encounter issues with node_modules or dependencies on non-Linux machines (Windows/macOS), you can copy the monorepo node_modules from a Linux container to your host machine:
+## 4. Start the Development Environment
 
 ```bash
-## Copy monorepo node_modules to the host machine. This can take a while.
-sudo rm -rf node_modules && docker compose run --rm container-node-modules && mv ./container_node_modules ./node_modules
+docker compose --profile lv-web up -d --build
 ```
 
-## Running python files standalone
+## 5. Access the Web App
+
+Access the local web application at:
+
+```
+http://localhost:3045
+```
+
+# Testing
+
+## Unit Testing - Backend
+
+All backend tests should be run using the Docker test environment. This runs pytest inside the configured test container with the correct environment variables.
+
+1. Prepare the test DB (root folder)
 
 ```bash
-From the root of the desired folder we can run python files standalone by using the following command:
-
-python -m folder.file
-
-With python utils and lv-pyapi in the path:
-
-PYTHONPATH=$PYTHONPATH:./packages/python-utils/src:./apps/lv-pyapi python -m folder.file
-
+docker compose --profile tests down -v
+docker compose --profile tests up -d test-postgres
+docker compose --profile tests run --rm test-migrate
 ```
 
-## Test Builds Locally
+2. Run the tests (root folder)
 
 ```bash
-LV-WEB:
-docker compose --profile lv-web build
-docker exec -it lv-web npm run build
-
-LV-WEB-BUILD (Production):
-docker compose --profile lv-web-build build
-
+docker compose --profile tests run --rm test-runner
 ```
 
-### Adding shadcn component
+## Unit Testing - Frontend
 
-Navigate to the particular app
-use command
+1. Navigate into the correct directory
 
 ```bash
-npx shadcn@latest add [COMPONENT]
+cd apps/lv-web
 ```
 
-## Connect to Database Locally
+2. Install dependencies (if not already done)
+
+```bash
+npm install
+```
+
+3. Run the tests
+
+```bash
+npm test
+```
+
+## Functional Testing of the DB
+
+1. Start local:
+
+   ```bash
+   docker compose --profile lv-web up -d --build
+   ```
+
+2. Send messages in the chat UI
+
+3. Connect to DB
 
 ```bash
 sudo docker exec -it $(docker ps -q --filter name=lv-db) psql -U postgres
 ```
 
-List all tables:
+Once connected, you can use:
 
-```sql
-\dt
+- `\dt` - list tables
+
+4. Run:
+
+   ```sql
+   SELECT * FROM "ConversationMessage" ORDER BY "createdAt" DESC LIMIT 10;
+   ```
+
+5. Verify both user and AI messages appear
+
+# Additional Information
+
+## 1. Sync Incoming Changes from dev
+
+```bash
+git checkout dev
+git pull
+docker compose run --rm prisma-migrate
+npm i
+docker compose down
 ```
 
-### Python Development
+## 2. Docker Profiles
 
-Add the following to `.vscode/settings.json` after installing the Pylance extension for Python type checking and hints:
+**LV-WEB (Development):**
+
+```bash
+docker compose --profile lv-web up -d --build
+```
+
+**LV-WEB (Production Build):**
+
+```bash
+docker compose --profile lv-web-build up -d --build
+```
+
+## Running Tests
+
+The project uses **Jest** for JavaScript/TypeScript tests and **Pytest** for python tests.
+
+### Quick Commands
+
+```bash
+# Run ALL tests (Jest + Pytest)
+npm run test
+
+# Run ALL tests with coverage reports
+npm run test:all:coverage
+```
+
+### Jest (JavaScript/TypeScript)
+
+```bash
+# Run Jest tests only
+npm run test:jest
+
+# Run Jest tests with coverage
+npm run test:jest:coverage
+
+# View coverage report (Mac/Linux)
+open apps/lv-web/coverage/lcov-report/index.html
+
+# View coverage report (Windows/WSL)
+powershell.exe -c start apps/lv-web/coverage/lcov-report/index.html
+```
+
+### Pytest (Python)
+
+```bash
+# Run Pytest tests only (requires Docker)
+npm run test:pytest
+
+# Run Pytest test with coverage
+npm run test:pytest:coverage
+
+# View coverage report (Mac/Linux)
+open apps/lv-pyapi/htmlcov/index.html
+
+# View coverage report (Windows/WSL)
+powershell.exe -c start apps/lv-pyapi/htmlcov/index.html
+```
+
+### Coverage Reports
+
+- **Jest:** 'apps/lv-web/coverage/lcov-report/index.html'
+- **Pytest:** 'apps/lv-pyapi/htmlcov/index.html'
+- **CI:** Coverage reports are uploaded as artifacts in GitHub Actions
+
+## Test Builds Locally
+
+**LV-PYAPI (Python API only):**
+
+```bash
+docker compose --profile lv-pyapi up -d --build
+```
+
+LOGS:
+
+```bash
+docker compose logs -f $(docker compose ps --services --filter "status=running")
+```
+
+TIP: use Docker/Containers extension in Cursor to manage containers and see logs
+
+## 3. Initial Setup on a New Laptop
+
+1. Clone repository or pull latest changes
+
+2. Create .env files (`apps/lv-web/.env` and `apps/lv-pyapi/.env`)
+
+3. (May be temporary) Set up Google Cloud Credentials for voice features, see [Voice Interface Setup](#10-voice-interface-setup)
+
+4. Install dependencies:
+
+   ```bash
+   npm i
+   ```
+
+5. Initialize database:
+
+   ```bash
+   docker compose run --rm prisma-migrate
+   ```
+
+6. Start correct profile (usually LV-WEB)
+
+## 4. Troubleshooting: Fixing node_modules on macOS/Windows (Non-Linux Issue)
+
+If Docker complains or node_modules mismatch occurs:
+
+```bash
+sudo rm -rf node_modules
+docker compose run --rm container-node-modules
+mv ./container_node_modules ./node_modules
+```
+
+## 5. Test Builds Locally
+
+### LV-WEB
+
+```bash
+docker compose --profile lv-web build
+docker exec -it lv-web npm run build
+```
+
+### LV-WEB-BUILD (Production)
+
+```bash
+docker compose --profile lv-web-build build
+```
+
+## 6. Adding a shadcn Component
+
+Inside the LV-WEB app folder:
+
+```bash
+npx shadcn@latest add [COMPONENT]
+```
+
+## 7. Python Development (VS Code Recommended Settings)
+
+Add to `.vscode/settings.json`:
 
 ```Python
 "python.analysis.inlayHints.callArgumentNames": "all",
@@ -112,53 +275,93 @@ Add the following to `.vscode/settings.json` after installing the Pylance extens
 "python.analysis.typeCheckingMode": "basic"
 ```
 
-Pylance does not always recompute the type checking immediately, so if it shows something really suspicios, probe the file a little bit by, e.g., deleting a character and writing it back immediately to trigger a recomputation.
+If Pylance gets stuck, modify a character to trigger recomputation.
 
-You can add Python-specific cursor rules (pieces of prompts) in `.cursor/rules/python-rules.mdc`, which gets applied every file matching the pattern \*.py. These can also be split into multiple different `.mdc` files that either get included in the prompt always, when matching a file pattern, when the Agent feels like its relevant or when it is manually specified.
+Cursor-specific Python instructions belong in:
 
-### Git Collaboration
+`.cursor/rules/python-rules.mdc`
+
+## 8. Git Collaboration Workflow
+
+### Create Issue
+
+- Add title, description, assignee, labels, milestone
+- Reorder by priority
+- Drag to In Progress when starting
+
+### Create Feature Branch
 
 ```bash
-# 1. Create issue on GitHub Board
-# 2. Add title, description, assignee(s), label (priority) and milestone
-# 3. Reorder the issue to the appropriate position within its column in descending order of priority
-# 4. Start working on the issue: Drag the issue to the In Progress column
-
-# Tip: Use Github Issues extension. From there you can "Start working on issue" and it will automatically create a branch and checkout to it.
-# Set this in "Github Issues: Issue Branch Title" -setting: ${user}/issue-${sanitizedIssueTitle}-${issueNumber}
-
-# Create feature branch from dev
 git checkout dev
 git pull origin dev
 git checkout -b user/issue-sanitizedIssueTitle-issueNumber
-# Make a pull request from feature branch to dev after FIRST COMMIT to ensure visibility of the work being done.
+```
 
-# If conflicts before merging to dev
+After first commit, open a PR to dev.
+
+### Resolve Merge Conflicts
+
+```bash
 git checkout your-feature-branch
 git pull origin dev
-# Resolve conflicts and continue
-# If conficts only in sqlalchemy models, run the following command during the merge
-git checkout --theirs packages/python-utils/src/python_utils/sqlalchemy_models.py && git add packages/python-utils/src/python_utils/sqlalchemy_models.py && git merge --continue && docker compose run --rm prisma-migrate && docker compose run --rm python-typegen && git add packages/python-utils/src/python_utils/sqlalchemy_models.py && git commit -m "sync types" && git push
+```
 
-# Merge feature to dev (Squash)
-Create a PR, ask for reviews, and select "Squash and merge"
+**Special case: SQLAlchemy model conflicts**
 
-# Deploy to prod
-Create a PR from dev to main, ask for reviews, and select "Create a merge commit"
+```bash
+git checkout --theirs packages/python-utils/src/python_utils/sqlalchemy_models.py
+git add packages/python-utils/src/python_utils/sqlalchemy_models.py
+git merge --continue
+docker compose run --rm prisma-migrate
+docker compose run --rm python-typegen
+git add packages/python-utils/src/python_utils/sqlalchemy_models.py
+git commit -m "sync types"
+git push
+```
 
-# Migrations done in a feature branch, PR merged to dev, and want to avoid hanging migrations in branch switch?
+### Merge Strategy
+
+Merge feature to dev (Squash)
+
+- Create a PR, ask for reviews, and select "Squash and merge"
+
+Deploy to prod
+
+- Create a PR from dev to main, ask for reviews, and select "Create a merge commit"
+
+### Fix Hanging Migrations When Switching Branches
+
+```bash
 git fetch origin && git update-ref refs/heads/dev origin/dev
 ```
 
-### Docker Cleanup
+## 9. Docker Cleanup
 
-Before cleanup, ensure important projects are RUNNING on your machine. The following commands will remove all unused resources.
+**Make sure important projects are RUNNING before cleanup.**
+
+Check disk usage:
 
 ```bash
-(Optional: check disk usage) docker system df
+docker system df
+```
 
-# Clean up unused resources
+Remove unused:
+
+```bash
 docker rmi $(docker image ls -q)
 docker volume rm $(docker volume ls -q)
 docker system prune
 ```
+
+## 10. Voice Interface Setup
+
+To enable Google voice interface features, set up Google Cloud credentials. This may not be necessary if we use agentic AI.
+
+1. Go to the project's [Google Cloud Console Secret Manager](https://console.cloud.google.com/security/secret-manager?hl=fi&project=swp-livingvectors)
+2. Access and copy the secret value
+3. Create the credentials file:
+   ```bash
+   # Create the file at this path:
+   ./apps/lv-pyapi/credentials/google-credentials.json
+   ```
+4. Paste the secret value into the file

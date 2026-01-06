@@ -2,10 +2,16 @@ import '@testing-library/jest-dom';
 import { fireEvent, render, screen, waitFor } from '@testing-library/react';
 import { useSession } from 'next-auth/react';
 import InterviewPage from '../../app/interview/page';
+import { getGeminiResponse, startConversation } from '../../lib/services/pyapi';
 
 // Mock next-auth/react
 jest.mock('next-auth/react', () => ({
   useSession: jest.fn(),
+}));
+
+jest.mock('../../lib/services/pyapi', () => ({
+  getGeminiResponse: jest.fn(),
+  startConversation: jest.fn(),
 }));
 
 // Mock next/navigation
@@ -30,6 +36,13 @@ describe('InterviewPage - Error Handling', () => {
     (fetch as jest.Mock).mockClear();
     // Mock scrollIntoView
     Element.prototype.scrollIntoView = jest.fn();
+
+    // Mock successful startConversation by default
+    (startConversation as jest.Mock).mockResolvedValue({
+      message: "Hello! I'm here to figure you out.",
+      goalCategory: 'Career Goals',
+      questionId: { goalIndex: 0, questionIndex: 0 },
+    });
   });
 
   afterEach(() => {
@@ -43,16 +56,21 @@ describe('InterviewPage - Error Handling', () => {
     const consoleSpy = jest.spyOn(console, 'error').mockImplementation(() => {});
 
     mockUseSession.mockReturnValue({
-      data: { user: { name: 'Err User' } },
+      data: { user: { id: 'err-user-id', name: 'Err User' } },
       status: 'authenticated',
     });
     render(<InterviewPage />);
 
+    // Wait for initial message
+    await waitFor(() => {
+      expect(screen.getByText(/Hello!/)).toBeInTheDocument();
+    });
+
     const textarea = screen.getByPlaceholderText(/Type your response.../i);
     fireEvent.change(textarea, { target: { value: 'Test error' } });
 
-    // Make fetch reject to simulate error
-    (fetch as jest.Mock).mockRejectedValueOnce(new Error('Error'));
+    // Make getGeminiResponse reject to simulate error
+    (getGeminiResponse as jest.Mock).mockRejectedValueOnce(new Error('Error'));
 
     const sendButton = screen.getByRole('button', { name: /Send/i });
     fireEvent.click(sendButton);

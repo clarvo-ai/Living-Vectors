@@ -61,6 +61,9 @@ yarn-error.log*
 .env.test.local
 .env.production.local
 
+# credentials
+google-credentials.json
+
 # vercel
 .vercel
 
@@ -73,6 +76,8 @@ __pycache__/
 *.py[cod]
 *$py.class
 .pytest_cache/
+.coverage
+htmlcov/
 **/temp_files/
 *.so
 .Python
