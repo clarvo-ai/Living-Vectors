@@ -44,16 +44,16 @@ def test_get_messages_for_learnings_fetches_messages(db_session: Session):
     user = create_test_user(db_session)
     sender = MessageSender.USER
 
-    m1 = save_message(db_session, user.id, sender, "one")
-    m2 = save_message(db_session, user.id, sender, "two")
-    m3 = save_message(db_session, user.id, sender, "three")
+    m1 = save_message(db_session, str(user.id), sender, "one")
+    m2 = save_message(db_session, str(user.id), sender, "two")
+    m3 = save_message(db_session, str(user.id), sender, "three")
 
     # Create a session factory for the function
     def session_factory():
         return db_session
 
     # Use the latest message as anchor
-    learnings.get_messages_for_learnings(user.id, m3.messageId, session_factory)
+    learnings.get_messages_for_learnings(str(user.id), str(m3.messageId), session_factory)
 
     # Check that learnings were created (if process_learnings was called)
     stored = db_session.query(Learning).filter_by(userId=user.id).all()
@@ -66,14 +66,14 @@ def test_save_learnings_to_db(db_session: Session):
     user = create_test_user(db_session)
     sender = MessageSender.USER
 
-    msg1 = save_message(db_session, user.id, sender, "alpha")
-    msg2 = save_message(db_session, user.id, sender, "beta")
+    msg1 = save_message(db_session, str(user.id), sender, "alpha")
+    msg2 = save_message(db_session, str(user.id), sender, "beta")
 
     # Your branch uses List[str] for learnings
     learnings_list = ["likes cats", "enjoys coding"]
-    message_ids = [msg1.messageId, msg2.messageId]
+    message_ids = [str(msg1.messageId), str(msg2.messageId)]
 
-    learnings.save_learnings_to_db(user.id, learnings_list, message_ids, db_session)
+    learnings.save_learnings_to_db(str(user.id), learnings_list, message_ids, db_session)
 
     stored = db_session.query(Learning).filter_by(userId=user.id).all()
     assert len(stored) == 2
@@ -94,8 +94,13 @@ def test_process_learnings_creates_learnings(db_session: Session, monkeypatch):
     user = create_test_user(db_session)
     sender = MessageSender.USER
 
-    msg1 = save_message(db_session, user.id, sender, "one")
-    msg2 = save_message(db_session, user.id, sender, "two")
+    msg1 = save_message(db_session, str(user.id), sender, "one")
+    msg2 = save_message(db_session, str(user.id), sender, "two")
+    
+    # Save IDs as strings before process_learnings closes the session
+    user_id = str(user.id)
+    msg1_id = str(msg1.messageId)
+    msg2_id = str(msg2.messageId)
 
     # monkeypatch the generation function to return expected learnings
     def fake_generate(messages):
@@ -103,16 +108,25 @@ def test_process_learnings_creates_learnings(db_session: Session, monkeypatch):
 
     monkeypatch.setattr(learnings, 'learnings_from_messages', fake_generate)
 
-    # Create a session factory
+    # Create a session factory that creates a new session from the same engine
+    # This way when process_learnings closes its session, it doesn't affect our test session
+    from sqlalchemy import create_engine
+    from sqlalchemy.orm import sessionmaker
+    test_db_url = os.getenv("TEST_DATABASE_URL")
+    assert test_db_url, "TEST_DATABASE_URL is not set"
+    engine = create_engine(test_db_url)
+    SessionLocal = sessionmaker(bind=engine)
+    
     def session_factory():
-        return db_session
+        return SessionLocal()
 
     # Call process_learnings with your branch's signature
     message_contents = ["one", "two"]
-    message_ids = [msg1.messageId, msg2.messageId]
-    learnings.process_learnings(user.id, message_contents, message_ids, session_factory)
+    message_ids = [msg1_id, msg2_id]
+    learnings.process_learnings(user_id, message_contents, message_ids, session_factory)
 
-    stored = db_session.query(Learning).filter_by(userId=user.id).all()
+    # Query using a fresh session since process_learnings closed its session
+    stored = db_session.query(Learning).filter_by(userId=user_id).all()
     assert len(stored) == 2
 
 
@@ -122,7 +136,7 @@ def test_check_and_trigger_learnings_calls_process_when_over_threshold(db_sessio
     sender = MessageSender.USER
 
     # create 16 messages
-    msgs = [save_message(db_session, user.id, sender, f"m{i}") for i in range(16)]
+    msgs = [save_message(db_session, str(user.id), sender, f"m{i}") for i in range(16)]
 
     called = {"count": 0}
 
@@ -132,5 +146,5 @@ def test_check_and_trigger_learnings_calls_process_when_over_threshold(db_sessio
     monkeypatch.setattr(learnings, 'process_learnings', fake_process)
 
     # pass a factory that returns our session
-    learnings.check_and_trigger_learnings(user.id, lambda: db_session)
+    learnings.check_and_trigger_learnings(str(user.id), lambda: db_session)
     assert called["count"] == 1
