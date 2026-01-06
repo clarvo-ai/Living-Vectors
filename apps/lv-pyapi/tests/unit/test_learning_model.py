@@ -46,18 +46,21 @@ def test_create_learning_with_messages(db_session: Session):
 
     summary_text = "User likes cats."
 
-    # Associating messages with learning
-    assoc1 = _ConversationMessageToLearning(conversationMessage=msg1)
-    assoc2 = _ConversationMessageToLearning(conversationMessage=msg2)
-
+    # Create learning first
     test_learning = Learning(
         userId=user_id,
         summary=summary_text,
-        updatedAt=datetime.now(),
-        _ConversationMessageToLearning=[assoc1, assoc2]
+        updatedAt=datetime.now()
     )
-
     db_session.add(test_learning)
+    db_session.flush()  # Get the learning ID
+
+    # Associating messages with learning using A (messageId) and B (learningId)
+    assoc1 = _ConversationMessageToLearning(A=msg1.messageId, B=test_learning.id)
+    assoc2 = _ConversationMessageToLearning(A=msg2.messageId, B=test_learning.id)
+
+    db_session.add(assoc1)
+    db_session.add(assoc2)
     db_session.commit()
     db_session.refresh(test_learning)
 
