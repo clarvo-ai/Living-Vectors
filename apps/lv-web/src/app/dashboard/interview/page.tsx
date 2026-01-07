@@ -1,6 +1,5 @@
 'use client';
 
-import { Card, CardContent, CardHeader } from '@/components/ui/card';
 import { getGeminiResponse, getSTT, getTTS, startConversation } from '@/lib/services/pyapi';
 import { Label } from '@repo/ui/components/label';
 import { Switch } from '@repo/ui/components/switch';
@@ -243,98 +242,94 @@ export default function InterviewPage() {
   }
 
   return (
-    <div
-      className="min-h-screen flex items-center justify-center"
-      style={{
-        background: `linear-gradient(45deg, var(--bg-gradient-start) 0%, var(--bg-gradient-middle) 50%, var(--bg-gradient-end) 100%)`,
-      }}
-    >
-      <main className="max-w-4xl w-full px-4 sm:px-6 lg:px-8">
-        <Card className="h-[calc(100vh-8rem)] flex flex-col shadow-lg">
-          <CardHeader className="border-b pb-4">
-            <div className="flex flex-col gap-4">
-              <ChatHeader currentGoal="Build Trust & Explore Current Motivation" />
-              <div className="flex justify-end items-center space-x-4">
-                {!voiceOnlyMode && (
-                  <div className="flex items-center space-x-2">
-                    <Switch id="voice-mode" checked={voiceMode} onCheckedChange={setVoiceMode} />
-                    <Label htmlFor="voice-mode" className="flex items-center gap-2">
-                      {voiceMode ? (
-                        <Volume2 className="h-4 w-4" />
-                      ) : (
-                        <VolumeX className="h-4 w-4" />
-                      )}
-                      AI Voice
-                    </Label>
-                  </div>
-                )}
-                <div className="flex items-center space-x-2">
-                  <Switch
-                    id="voice-only-mode"
-                    checked={voiceOnlyMode}
-                    onCheckedChange={setVoiceOnlyMode}
+    <div className="h-full flex flex-col">
+      <div
+        className="flex flex-col gap-4 px-6 py-4 border-b"
+        style={{ backgroundColor: '#f3f4f8' }}
+      >
+        <ChatHeader currentGoal="Build Trust & Explore Current Motivation" />
+        <div className="flex justify-end items-center space-x-4">
+          {!voiceOnlyMode && (
+            <div className="flex items-center space-x-2">
+              <Switch id="voice-mode" checked={voiceMode} onCheckedChange={setVoiceMode} />
+              <Label htmlFor="voice-mode" className="flex items-center gap-2">
+                {voiceMode ? <Volume2 className="h-4 w-4" /> : <VolumeX className="h-4 w-4" />}
+                AI Voice
+              </Label>
+            </div>
+          )}
+          <div className="flex items-center space-x-2">
+            <Switch
+              id="voice-only-mode"
+              checked={voiceOnlyMode}
+              onCheckedChange={setVoiceOnlyMode}
+            />
+            <Label htmlFor="voice-only-mode" className="flex items-center gap-2">
+              Voice Only
+            </Label>
+          </div>
+        </div>
+      </div>
+      <div
+        className="flex-1 flex flex-col overflow-hidden border-t"
+        style={{ backgroundColor: '#f3f4f8', borderColor: '#edeef2' }}
+      >
+        {voiceOnlyMode ? (
+          <div className="flex-1 flex flex-col items-center px-6 pt-6">
+            <VoiceOnlyMode
+              isAiSpeaking={isAiSpeaking}
+              isUserRecording={isUserRecording}
+              isProcessing={isLoading || isTranscribing}
+            />
+            <div className="flex justify-center pb-4 pt-2">
+              {isTranscribing ? (
+                <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
+              ) : (
+                <VoiceRecorder
+                  onRecordingComplete={handleVoiceRecording}
+                  onRecordingStateChange={setIsUserRecording}
+                  disabled={isLoading || messages.length === 0}
+                />
+              )}
+            </div>
+          </div>
+        ) : (
+          <>
+            <div className="flex-1 overflow-auto px-6 pt-6">
+              <MessagesList
+                messages={messages}
+                isLoading={isLoading}
+                messagesEndRef={messagesEndRef}
+              />
+            </div>
+            <div
+              className="flex gap-2 items-start pb-4 border-t pt-4 px-6"
+              style={{ borderColor: '#edeef2' }}
+            >
+              <div className="flex-1">
+                <ChatInput
+                  value={input}
+                  onChange={setInput}
+                  onSend={() => handleSend()}
+                  isLoading={isLoading}
+                  onKeyDown={handleKeyDown}
+                />
+              </div>
+              <div className="flex h-12 items-center justify-center">
+                {isTranscribing ? (
+                  <Loader2 className="h-5 w-5 animate-spin text-muted-foreground" />
+                ) : (
+                  <VoiceRecorder
+                    onRecordingComplete={handleVoiceRecording}
+                    onRecordingStateChange={setIsUserRecording}
+                    disabled={isLoading || messages.length === 0}
                   />
-                  <Label htmlFor="voice-only-mode" className="flex items-center gap-2">
-                    Voice Only
-                  </Label>
-                </div>
+                )}
               </div>
             </div>
-          </CardHeader>
-          <CardContent className="flex-1 flex flex-col overflow-hidden pt-6">
-            {voiceOnlyMode ? (
-              <div className="flex-1 flex flex-col items-center">
-                <VoiceOnlyMode
-                  isAiSpeaking={isAiSpeaking}
-                  isUserRecording={isUserRecording}
-                  isProcessing={isLoading || isTranscribing}
-                />
-                <div className="flex justify-center pb-4">
-                  {isTranscribing ? (
-                    <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
-                  ) : (
-                    <VoiceRecorder
-                      onRecordingComplete={handleVoiceRecording}
-                      onRecordingStateChange={setIsUserRecording}
-                      disabled={isLoading || messages.length === 0}
-                    />
-                  )}
-                </div>
-              </div>
-            ) : (
-              <>
-                <MessagesList
-                  messages={messages}
-                  isLoading={isLoading}
-                  messagesEndRef={messagesEndRef}
-                />
-                <div className="flex gap-2 items-start">
-                  <div className="flex-1">
-                    <ChatInput
-                      value={input}
-                      onChange={setInput}
-                      onSend={() => handleSend()}
-                      isLoading={isLoading}
-                      onKeyDown={handleKeyDown}
-                    />
-                  </div>
-                  <div className="flex h-10 items-center justify-center">
-                    {isTranscribing ? (
-                      <Loader2 className="h-5 w-5 animate-spin text-muted-foreground" />
-                    ) : (
-                      <VoiceRecorder
-                        onRecordingComplete={handleVoiceRecording}
-                        onRecordingStateChange={setIsUserRecording}
-                        disabled={isLoading || messages.length === 0}
-                      />
-                    )}
-                  </div>
-                </div>
-              </>
-            )}
-          </CardContent>
-        </Card>
-      </main>
+          </>
+        )}
+      </div>
 
       <EndInterviewDialog
         open={showEndInterviewDialog}

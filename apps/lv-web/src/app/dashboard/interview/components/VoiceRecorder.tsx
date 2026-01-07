@@ -73,6 +73,13 @@ export function VoiceRecorder({
       onClick={isRecording ? stopRecording : startRecording}
       disabled={disabled}
       type="button"
+      className="rounded-full flex-shrink-0 border-2 h-12 w-12 p-0 self-center"
+      style={{
+        borderColor: isRecording ? '#dc2626' : '#3b82f6',
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+      }}
     >
       {isRecording ? <Square className="h-4 w-4" /> : <Mic className="h-4 w-4" />}
     </Button>

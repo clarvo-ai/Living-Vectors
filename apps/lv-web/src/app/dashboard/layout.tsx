@@ -49,16 +49,16 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
 
   return (
     <SidebarProvider defaultOpen={false}>
-      <div className="flex h-screen w-full bg-gray-50">
+      <div className="flex h-screen w-full" style={{ backgroundColor: '#edeef2' }}>
         {/* Sidebar */}
         <Sidebar
           collapsible="icon"
           variant="sidebar"
-          className="bg-gray-50"
+          style={{ backgroundColor: '#edeef2' }}
           onMouseEnter={() => setIsHovering(true)}
           onMouseLeave={() => setIsHovering(false)}
         >
-          <SidebarContent className="bg-gray-50">
+          <SidebarContent style={{ backgroundColor: '#edeef2' }}>
             {/* Logo and Sidebar icon */}
             <div className="px-4 py-6 group-data-[state=collapsed]:flex group-data-[state=collapsed]:justify-center group-data-[state=expanded]:flex group-data-[state=expanded]:justify-between group-data-[state=expanded]:items-center relative">
               <h1
@@ -83,20 +83,22 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
                       onClick={() => router.push('/dashboard/interview')}
                       isActive={pathname?.startsWith('/dashboard/interview')}
                       tooltip="Interview"
+                      style={
+                        pathname?.startsWith('/dashboard/interview')
+                          ? { backgroundColor: '#dfe3eb' }
+                          : {}
+                      }
                       className="justify-between hover:bg-blue-50"
                     >
                       <div className="flex items-center gap-3">
                         <Phone
-                          className={`w-5 h-5 flex-shrink-0 ${
-                            pathname?.startsWith('/dashboard/interview')
-                              ? 'text-blue-600'
-                              : 'text-gray-400'
-                          }`}
+                          className="w-5 h-5 flex-shrink-0"
+                          style={{ color: '#465280' }}
                         />
                         <span
                           className={
                             pathname?.startsWith('/dashboard/interview')
-                              ? 'text-gray-900 font-medium'
+                              ? 'text-gray-900'
                               : 'text-gray-600'
                           }
                         >
@@ -112,20 +114,22 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
                       onClick={() => router.push('/dashboard/opportunities')}
                       isActive={pathname?.startsWith('/dashboard/opportunities')}
                       tooltip="Opportunities"
+                      style={
+                        pathname?.startsWith('/dashboard/opportunities')
+                          ? { backgroundColor: '#dfe3eb' }
+                          : {}
+                      }
                       className="justify-between hover:bg-blue-50"
                     >
                       <div className="flex items-center gap-3">
                         <Briefcase
-                          className={`w-5 h-5 flex-shrink-0 ${
-                            pathname?.startsWith('/dashboard/opportunities')
-                              ? 'text-blue-600'
-                              : 'text-gray-400'
-                          }`}
+                          className="w-5 h-5 flex-shrink-0"
+                          style={{ color: '#465280' }}
                         />
                         <span
                           className={
                             pathname?.startsWith('/dashboard/opportunities')
-                              ? 'text-gray-900 font-medium'
+                              ? 'text-gray-900'
                               : 'text-gray-600'
                           }
                         >
@@ -144,20 +148,22 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
                       onClick={() => router.push('/dashboard/profile')}
                       isActive={pathname?.startsWith('/dashboard/profile')}
                       tooltip="Profile"
+                      style={
+                        pathname?.startsWith('/dashboard/profile')
+                          ? { backgroundColor: '#dfe3eb' }
+                          : {}
+                      }
                       className="justify-between hover:bg-blue-50"
                     >
                       <div className="flex items-center gap-3">
                         <User
-                          className={`w-5 h-5 flex-shrink-0 ${
-                            pathname?.startsWith('/dashboard/profile')
-                              ? 'text-blue-600'
-                              : 'text-gray-400'
-                          }`}
+                          className="w-5 h-5 flex-shrink-0"
+                          style={{ color: '#465280' }}
                         />
                         <span
                           className={
                             pathname?.startsWith('/dashboard/profile')
-                              ? 'text-gray-900 font-medium'
+                              ? 'text-gray-900'
                               : 'text-gray-600'
                           }
                         >
@@ -172,7 +178,10 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
           </SidebarContent>
 
           {/* Bottom Profile Menu with Dropdown */}
-          <SidebarFooter className="bg-gray-50 border-t border-gray-200">
+          <SidebarFooter
+            style={{ backgroundColor: '#edeef2', borderColor: '#d0d2d8' }}
+            className="border-t"
+          >
             <SidebarMenu>
               <SidebarMenuItem>
                 <DropdownMenu>
@@ -216,8 +225,26 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
 
         {/* Main Area */}
         <main className="flex-1 flex flex-col overflow-hidden">
-          {/* Content Area */}
-          <div className="flex-1 overflow-hidden">{children}</div>
+          {pathname?.startsWith('/dashboard/interview') ? (
+            <>
+              {/* Top bar for interview page */}
+              <div
+                className="w-full border-b px-6 py-4"
+                style={{ backgroundColor: '#f3f4f8', borderColor: '#edeef2' }}
+              >
+                <h2 className="text-xl font-semibold text-gray-900">Interview</h2>
+              </div>
+              {/* Full-width content area */}
+              <div className="flex-1 overflow-auto" style={{ backgroundColor: '#f3f4f8' }}>
+                {children}
+              </div>
+            </>
+          ) : (
+            /* Content Area for other pages */
+            <div className="flex-1 overflow-hidden" style={{ backgroundColor: '#f3f4f8' }}>
+              {children}
+            </div>
+          )}
         </main>
       </div>
     </SidebarProvider>

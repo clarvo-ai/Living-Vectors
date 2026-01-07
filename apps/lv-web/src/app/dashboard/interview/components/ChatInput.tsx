@@ -1,6 +1,7 @@
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@repo/ui/components/textarea';
 import { Send } from 'lucide-react';
+import { useEffect, useRef } from 'react';
 
 interface ChatInputProps {
   value: string;
@@ -11,47 +12,70 @@ interface ChatInputProps {
 }
 
 export function ChatInput({ value, onChange, onSend, isLoading, onKeyDown }: ChatInputProps) {
+  const textareaRef = useRef<HTMLTextAreaElement>(null);
+
+  useEffect(() => {
+    if (textareaRef.current) {
+      textareaRef.current.style.height = 'auto';
+      const scrollHeight = textareaRef.current.scrollHeight;
+      const maxHeight = 200;
+      textareaRef.current.style.height = Math.min(scrollHeight, maxHeight) + 'px';
+      textareaRef.current.style.overflowY = scrollHeight > maxHeight ? 'auto' : 'hidden';
+    }
+  }, [value]);
   return (
-    <div className="flex gap-2 items-start">
-      <Textarea
-        id="interview-response"
-        name="response"
-        value={value}
-        onChange={(e) => onChange(e.target.value)}
-        onKeyDown={onKeyDown}
-        placeholder="Type your response..."
-        className="resize-none rounded-lg border-gray-300 focus:border-blue-500 focus:ring-blue-500"
-        rows={1}
-        disabled={isLoading}
-      />
-      <Button
-        data-testid="sendButton"
-        onClick={onSend}
-        disabled={isLoading || !value.trim()}
-        className="rounded-lg text-white px-6 h-10 border-0"
-        style={{
-          background:
-            isLoading || !value.trim()
-              ? `linear-gradient(90deg, rgb(156 163 175) 0%, rgb(107 114 128) 100%)`
-              : `linear-gradient(135deg, #3b82f6 0%, #8b5cf6 100%)`,
-          transition: 'all 0.2s ease-in-out',
-        }}
-        onMouseEnter={(e) => {
-          if (!isLoading && value.trim()) {
-            e.currentTarget.style.transform = 'scale(1.02)';
-            e.currentTarget.style.boxShadow = `0 8px 16px rgba(139, 92, 246, 0.4)`;
-          }
-        }}
-        onMouseLeave={(e) => {
-          if (!isLoading && value.trim()) {
-            e.currentTarget.style.transform = 'scale(1)';
-            e.currentTarget.style.boxShadow = 'none';
-          }
-        }}
-      >
-        <Send className="h-4 w-4 mr-2" />
-        Send
-      </Button>
+    <div className="relative flex gap-2 items-end">
+      <div className="flex-1 relative">
+        <Textarea
+          ref={textareaRef}
+          id="interview-response"
+          name="response"
+          value={value}
+          onChange={(e) => onChange(e.target.value)}
+          onKeyDown={onKeyDown}
+          placeholder="Type your response..."
+          className="resize-none rounded-3xl border border-gray-300 focus:border-blue-500 focus:ring-blue-500 w-full [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none]"
+          rows={1}
+          style={{
+            height: '48px',
+            minHeight: '48px',
+            backgroundColor: '#ffffff',
+            paddingTop: '12px',
+            paddingBottom: '12px',
+            paddingLeft: '16px',
+            paddingRight: '56px',
+            overflowY: 'auto',
+          }}
+          disabled={isLoading}
+        />
+        <Button
+          data-testid="sendButton"
+          onClick={onSend}
+          disabled={isLoading || !value.trim()}
+          className="absolute right-2 bottom-2 rounded-full w-8 h-8 p-0 flex items-center justify-center border-0"
+          style={{
+            background:
+              isLoading || !value.trim()
+                ? `linear-gradient(90deg, rgb(156 163 175) 0%, rgb(107 114 128) 100%)`
+                : `linear-gradient(135deg, #3b82f6 0%, #8b5cf6 100%)`,
+            transition: 'all 0.2s ease-in-out',
+          }}
+          onMouseEnter={(e) => {
+            if (!isLoading && value.trim()) {
+              e.currentTarget.style.transform = 'scale(1.1)';
+              e.currentTarget.style.boxShadow = `0 8px 16px rgba(139, 92, 246, 0.4)`;
+            }
+          }}
+          onMouseLeave={(e) => {
+            if (!isLoading && value.trim()) {
+              e.currentTarget.style.transform = 'scale(1)';
+              e.currentTarget.style.boxShadow = 'none';
+            }
+          }}
+        >
+          <Send className="h-4 w-4" />
+        </Button>
+      </div>
     </div>
   );
 }
