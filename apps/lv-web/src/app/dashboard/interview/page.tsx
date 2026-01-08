@@ -1,9 +1,7 @@
 'use client';
 
 import { getGeminiResponse, getSTT, getTTS, startConversation } from '@/lib/services/pyapi';
-import { Label } from '@repo/ui/components/label';
-import { Switch } from '@repo/ui/components/switch';
-import { Loader2, Volume2, VolumeX } from 'lucide-react';
+import { Loader2 } from 'lucide-react';
 import { useSession } from 'next-auth/react';
 import { useRouter } from 'next/navigation';
 import { useCallback, useEffect, useRef, useState } from 'react';
@@ -37,8 +35,20 @@ export default function InterviewPage() {
   });
   const [input, setInput] = useState('');
   const [isLoading, setIsLoading] = useState(false);
-  const [voiceMode, setVoiceMode] = useState(false);
-  const [voiceOnlyMode, setVoiceOnlyMode] = useState(false);
+  const [voiceMode, setVoiceMode] = useState(() => {
+    if (typeof window !== 'undefined') {
+      const saved = sessionStorage.getItem('interview-voiceMode');
+      return saved ? JSON.parse(saved) : false;
+    }
+    return false;
+  });
+  const [voiceOnlyMode, setVoiceOnlyMode] = useState(() => {
+    if (typeof window !== 'undefined') {
+      const saved = sessionStorage.getItem('interview-voiceOnlyMode');
+      return saved ? JSON.parse(saved) : true;
+    }
+    return true;
+  });
   const [isUserRecording, setIsUserRecording] = useState(false);
   const [isAiSpeaking, setIsAiSpeaking] = useState(false);
   const [isTranscribing, setIsTranscribing] = useState(false);
@@ -47,6 +57,7 @@ export default function InterviewPage() {
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const [goalIndex, setGoalIndex] = useState<number>(0);
   const [questionIndex, setQuestionIndex] = useState<number>(0);
+  const [hasStarted, setHasStarted] = useState(false);
 
   // Require auth
   useEffect(() => {
@@ -83,6 +94,15 @@ export default function InterviewPage() {
     }
   }
 
+  // Save voice settings to sessionStorage
+  useEffect(() => {
+    sessionStorage.setItem('interview-voiceMode', JSON.stringify(voiceMode));
+  }, [voiceMode]);
+
+  useEffect(() => {
+    sessionStorage.setItem('interview-voiceOnlyMode', JSON.stringify(voiceOnlyMode));
+  }, [voiceOnlyMode]);
+
   // Save messages to sessionStorage
   useEffect(() => {
     if (messages.length > 0) {
@@ -116,17 +136,17 @@ export default function InterviewPage() {
     audio.play();
   }, []);
 
-  // TTS for the latest AI message in Voice Only Mode
+  // Handle playing TTS when user clicks start button or after sending a message
   useEffect(() => {
-    if (voiceOnlyMode) {
+    if (voiceOnlyMode && hasStarted && messages.length > 0) {
       const lastMessage = messages[messages.length - 1];
-      if (lastMessage?.role === 'ai') {
+      if (lastMessage?.role === 'ai' && lastMessage.id !== 'initial-ai-message') {
         getTTS(lastMessage.content)
           .then((blob) => playAudio(blob))
           .catch((e) => console.error('TTS error', e));
       }
     }
-  }, [voiceOnlyMode, messages, playAudio]);
+  }, [voiceOnlyMode, hasStarted, messages, playAudio]);
 
   // Pause audio when user starts recording or when voice modes are off
   useEffect(() => {
@@ -223,6 +243,7 @@ export default function InterviewPage() {
   const handleEndInterview = () => {
     stopAudio();
     sessionStorage.removeItem('interview-messages');
+    setHasStarted(false);
     router.push('/dashboard');
   };
 
@@ -243,33 +264,20 @@ export default function InterviewPage() {
 
   return (
     <div className="h-full flex flex-col">
-      <div
-        className="flex flex-col gap-4 px-6 py-4 border-b"
-        style={{ backgroundColor: '#f3f4f8' }}
-      >
-        <ChatHeader currentGoal="Build Trust & Explore Current Motivation" />
-        <div className="flex justify-end items-center space-x-4">
-          {!voiceOnlyMode && (
-            <div className="flex items-center space-x-2">
-              <Switch id="voice-mode" checked={voiceMode} onCheckedChange={setVoiceMode} />
-              <Label htmlFor="voice-mode" className="flex items-center gap-2">
-                {voiceMode ? <Volume2 className="h-4 w-4" /> : <VolumeX className="h-4 w-4" />}
-                AI Voice
-              </Label>
-            </div>
-          )}
-          <div className="flex items-center space-x-2">
-            <Switch
-              id="voice-only-mode"
-              checked={voiceOnlyMode}
-              onCheckedChange={setVoiceOnlyMode}
-            />
-            <Label htmlFor="voice-only-mode" className="flex items-center gap-2">
-              Voice Only
-            </Label>
-          </div>
+      {!voiceOnlyMode && (
+        <div
+          className="flex items-center px-6 py-2 border-b"
+          style={{ backgroundColor: '#f3f4f8' }}
+        >
+          <ChatHeader
+            currentGoal="Build Trust & Explore Current Motivation"
+            voiceMode={voiceMode}
+            setVoiceMode={setVoiceMode}
+            voiceOnlyMode={voiceOnlyMode}
+            setVoiceOnlyMode={setVoiceOnlyMode}
+          />
         </div>
-      </div>
+      )}
       <div
         className="flex-1 flex flex-col overflow-hidden border-t"
         style={{ backgroundColor: '#f3f4f8', borderColor: '#edeef2' }}
@@ -280,18 +288,29 @@ export default function InterviewPage() {
               isAiSpeaking={isAiSpeaking}
               isUserRecording={isUserRecording}
               isProcessing={isLoading || isTranscribing}
+              hasStarted={hasStarted}
+              messageCount={messages.length}
+              onStart={() => {
+                setHasStarted(true);
+                getTTS(messages[0]?.content)
+                  .then((blob) => playAudio(blob))
+                  .catch((e) => console.error('TTS error', e));
+              }}
+              onGoToChat={() => setVoiceOnlyMode(false)}
             />
-            <div className="flex justify-center pb-4 pt-2">
-              {isTranscribing ? (
-                <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
-              ) : (
-                <VoiceRecorder
-                  onRecordingComplete={handleVoiceRecording}
-                  onRecordingStateChange={setIsUserRecording}
-                  disabled={isLoading || messages.length === 0}
-                />
-              )}
-            </div>
+            {(hasStarted || messages.length > 0) && (
+              <div className="flex justify-center pb-4 pt-2">
+                {isTranscribing ? (
+                  <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
+                ) : (
+                  <VoiceRecorder
+                    onRecordingComplete={handleVoiceRecording}
+                    onRecordingStateChange={setIsUserRecording}
+                    disabled={isLoading || messages.length === 0}
+                  />
+                )}
+              </div>
+            )}
           </div>
         ) : (
           <>

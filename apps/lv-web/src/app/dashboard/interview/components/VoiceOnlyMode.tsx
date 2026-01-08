@@ -1,55 +1,99 @@
-import { Loader2, Mic, Volume2 } from 'lucide-react';
+import { Bot, Loader2, Mic, Phone } from 'lucide-react';
 
 interface VoiceOnlyModeProps {
   isAiSpeaking: boolean;
   isUserRecording: boolean;
   isProcessing: boolean;
+  hasStarted: boolean;
+  onStart?: () => void;
+  onGoToChat?: () => void;
+  messageCount?: number;
 }
 
-export function VoiceOnlyMode({ isAiSpeaking, isUserRecording, isProcessing }: VoiceOnlyModeProps) {
+export function VoiceOnlyMode({
+  isAiSpeaking,
+  isUserRecording,
+  isProcessing,
+  hasStarted,
+  onStart,
+  onGoToChat,
+  messageCount = 0,
+}: VoiceOnlyModeProps) {
   return (
     <div
       data-testid="voice-only-mode"
       className="flex-1 w-full flex flex-col items-center justify-center space-y-8"
     >
-      <div
-        className={`rounded-full p-8 transition-all duration-500 ${
-          isAiSpeaking
-            ? 'scale-110'
-            : isUserRecording
-              ? 'scale-110'
-              : isProcessing
-                ? 'bg-yellow-100 scale-110'
-                : 'bg-gray-100'
-        }`}
-        style={
-          isAiSpeaking || isUserRecording
-            ? {
-                background: 'linear-gradient(135deg, #3b82f6 0%, #8b5cf6 100%)',
-              }
-            : {}
-        }
-      >
+      {isAiSpeaking ? (
+        <div className="flex items-center justify-center animate-pulse">
+          <div
+            className="w-28 h-28 rounded-full flex items-center justify-center flex-shrink-0"
+            style={{ backgroundColor: '#ffffffff', border: '5px solid #e8e9ee' }}
+          >
+            <div
+              className="w-16 h-16 rounded-full flex items-center justify-center flex-shrink-0"
+              style={{ backgroundColor: '#f1eefa', border: '3px solid #c4c8ee' }}
+            >
+              <Bot className="h-10 w-10" style={{ color: '#626edb' }} />
+            </div>
+          </div>
+        </div>
+      ) : isUserRecording ? (
+        <Mic className="h-24 w-24 text-blue-500 animate-pulse" />
+      ) : isProcessing ? (
+        <Loader2 className="h-24 w-24 text-blue-500 animate-spin" />
+      ) : (
+        <div className="flex items-center justify-center">
+          <div
+            className="w-28 h-28 rounded-full flex items-center justify-center flex-shrink-0"
+            style={{ backgroundColor: '#ffffffff', border: '5px solid #e8e9ee' }}
+          >
+            <div
+              className="w-16 h-16 rounded-full flex items-center justify-center flex-shrink-0"
+              style={{ backgroundColor: '#f1eefa', border: '3px solid #c4c8ee' }}
+            >
+              <Bot className="h-10 w-10" style={{ color: '#626edb' }} />
+            </div>
+          </div>
+        </div>
+      )}
+      <div className="text-xl font-medium text-gray-600">
         {isAiSpeaking ? (
-          <Volume2 className="h-24 w-24 text-white animate-pulse" />
+          'AI is speaking...'
         ) : isUserRecording ? (
-          <Mic className="h-24 w-24 text-white animate-pulse" />
+          'Listening...'
         ) : isProcessing ? (
-          <Loader2 className="h-24 w-24 text-yellow-500 animate-spin" />
+          'Waiting for AI...'
+        ) : !hasStarted && messageCount === 1 ? (
+          <div className="flex flex-col items-center gap-4">
+            <button
+              onClick={onStart}
+              className="px-6 py-2 rounded-lg text-white font-normal transition-all transform hover:scale-105 shadow-lg flex items-center gap-2"
+              style={{
+                background: 'linear-gradient(135deg, #3b82f6 0%, #8b5cf6 100%)',
+              }}
+            >
+              <Phone className="w-4 h-4" />
+              Let's talk!
+            </button>
+            <button
+              onClick={onGoToChat}
+              className="px-4 py-1 text-sm text-gray-500 hover:text-gray-700 transition-colors"
+            >
+              Or Chat
+            </button>
+          </div>
         ) : (
-          <div className="h-24 w-24 flex items-center justify-center text-gray-400">
-            <Mic className="h-12 w-12 opacity-50" />
+          <div className="flex flex-col items-center gap-2">
+            <span>"Let's talk!"</span>
+            <button
+              onClick={onGoToChat}
+              className="px-4 py-1 text-sm text-gray-500 hover:text-gray-700 transition-colors"
+            >
+              Or Chat
+            </button>
           </div>
         )}
-      </div>
-      <div className="text-xl font-medium text-gray-600">
-        {isAiSpeaking
-          ? 'AI is speaking...'
-          : isUserRecording
-            ? 'Listening...'
-            : isProcessing
-              ? 'Waiting for AI...'
-              : "Let's talk!"}
       </div>
     </div>
   );

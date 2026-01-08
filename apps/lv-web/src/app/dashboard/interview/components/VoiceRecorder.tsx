@@ -75,7 +75,10 @@ export function VoiceRecorder({
       type="button"
       className="rounded-full flex-shrink-0 border-2 h-12 w-12 p-0 self-center"
       style={{
-        borderColor: isRecording ? '#dc2626' : '#3b82f6',
+        background: isRecording
+          ? 'linear-gradient(white, white) padding-box, linear-gradient(135deg, #dc2626 0%, #991b1b 100%) border-box'
+          : 'linear-gradient(white, white) padding-box, linear-gradient(135deg, #3b82f6 0%, #8b5cf6 100%) border-box',
+        borderColor: 'transparent',
         display: 'flex',
         alignItems: 'center',
         justifyContent: 'center',
