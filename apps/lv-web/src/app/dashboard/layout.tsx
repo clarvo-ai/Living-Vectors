@@ -26,11 +26,18 @@ import { usePathname, useRouter } from 'next/navigation';
 import { useEffect, useState } from 'react';
 
 function DashboardLayoutContent({ children }: { children: React.ReactNode }) {
-  const { toggleSidebar } = useSidebar();
+  const { toggleSidebar, open, setOpen } = useSidebar();
   const router = useRouter();
   const pathname = usePathname();
   const { data: session, status } = useSession();
   const [isHovering, setIsHovering] = useState(false);
+
+  // Save to sessionStorage when sidebar state changes
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      sessionStorage.setItem('sidebar-open', JSON.stringify(open));
+    }
+  }, [open]);
 
   const handleSidebarClick = (e: React.MouseEvent<HTMLDivElement>) => {
     // Only toggle if clicking on the sidebar itself, not on any button
@@ -55,7 +62,10 @@ function DashboardLayoutContent({ children }: { children: React.ReactNode }) {
 
   if (status === 'loading') {
     return (
-      <div className="min-h-screen flex items-center justify-center">
+      <div
+        className="w-screen h-screen flex items-center justify-center"
+        style={{ backgroundColor: '#edeef2' }}
+      >
         <div className="animate-spin rounded-full h-32 w-32 border-b-2 border-gray-900"></div>
       </div>
     );
@@ -275,8 +285,30 @@ function DashboardLayoutContent({ children }: { children: React.ReactNode }) {
 }
 
 export default function DashboardLayout({ children }: { children: React.ReactNode }) {
+  const [initialOpen, setInitialOpen] = useState<boolean | undefined>(undefined);
+
+  useEffect(() => {
+    // Load sidebar state from sessionStorage on mount
+    if (typeof window !== 'undefined') {
+      const saved = sessionStorage.getItem('sidebar-open');
+      setInitialOpen(saved ? JSON.parse(saved) : false);
+    }
+  }, []);
+
+  // Don't render until we've loaded the initial state
+  if (initialOpen === undefined) {
+    return (
+      <div
+        className="w-screen h-screen flex items-center justify-center"
+        style={{ backgroundColor: '#edeef2' }}
+      >
+        <div className="animate-spin rounded-full h-32 w-32 border-b-2 border-gray-900"></div>
+      </div>
+    );
+  }
+
   return (
-    <SidebarProvider defaultOpen={false}>
+    <SidebarProvider defaultOpen={initialOpen}>
       <DashboardLayoutContent>{children}</DashboardLayoutContent>
     </SidebarProvider>
   );

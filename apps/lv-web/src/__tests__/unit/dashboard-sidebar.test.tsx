@@ -5,6 +5,27 @@ import { signOut, useSession } from 'next-auth/react';
 import { usePathname, useRouter } from 'next/navigation';
 import { ReactNode } from 'react';
 
+interface SidebarMenuButtonProps {
+  children: ReactNode;
+  onClick?: () => void;
+  isActive?: boolean;
+  [key: string]: unknown;
+}
+
+interface DropdownMenuItemProps {
+  children: ReactNode;
+  onClick?: () => void;
+}
+
+interface DropdownMenuTriggerProps {
+  children: ReactNode;
+  asChild?: boolean;
+}
+
+interface ImageProps {
+  alt: string;
+}
+
 // Mock next/navigation
 jest.mock('next/navigation', () => ({
   useRouter: jest.fn(),
@@ -25,7 +46,7 @@ jest.mock('@repo/ui/components/sidebar', () => ({
   SidebarGroup: ({ children }: { children: ReactNode }) => <div>{children}</div>,
   SidebarGroupContent: ({ children }: { children: ReactNode }) => <div>{children}</div>,
   SidebarMenu: ({ children }: { children: ReactNode }) => <ul>{children}</ul>,
-  SidebarMenuButton: ({ children, onClick, isActive, ...props }: any) => (
+  SidebarMenuButton: ({ children, onClick, isActive, ...props }: SidebarMenuButtonProps) => (
     <button onClick={onClick} data-active={isActive} {...props}>
       {children}
     </button>
@@ -35,6 +56,8 @@ jest.mock('@repo/ui/components/sidebar', () => ({
   SidebarTrigger: () => <button data-testid="sidebar-trigger">Trigger</button>,
   useSidebar: () => ({
     toggleSidebar: jest.fn(),
+    open: false,
+    setOpen: jest.fn(),
   }),
 }));
 
@@ -42,14 +65,16 @@ jest.mock('@repo/ui/components/sidebar', () => ({
 jest.mock('@repo/ui/components/dropdown-menu', () => ({
   DropdownMenu: ({ children }: { children: ReactNode }) => <div>{children}</div>,
   DropdownMenuContent: ({ children }: { children: ReactNode }) => <div>{children}</div>,
-  DropdownMenuItem: ({ children, onClick }: any) => <button onClick={onClick}>{children}</button>,
-  DropdownMenuTrigger: ({ children, asChild }: any) => <div>{children}</div>,
+  DropdownMenuItem: ({ children, onClick }: DropdownMenuItemProps) => (
+    <button onClick={onClick}>{children}</button>
+  ),
+  DropdownMenuTrigger: ({ children }: DropdownMenuTriggerProps) => <div>{children}</div>,
 }));
 
 // Mock Image
 jest.mock('next/image', () => ({
   __esModule: true,
-  default: ({ alt }: any) => <img alt={alt} />,
+  default: ({ alt }: ImageProps) => <div data-testid="image" data-alt={alt} />,
 }));
 
 // Mock lucide-react

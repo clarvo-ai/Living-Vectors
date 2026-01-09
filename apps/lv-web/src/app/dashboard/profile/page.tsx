@@ -103,10 +103,7 @@ export default function ProfilePage() {
       <Card>
         <CardHeader>
           <CardTitle>Profile Information</CardTitle>
-          <CardDescription>
-            Update your personal information and contact details (This view demonstrates basic db
-            operations)
-          </CardDescription>
+          <CardDescription>Update your personal information and contact details</CardDescription>
         </CardHeader>
         <CardContent>
           <form onSubmit={handleSubmit} className="space-y-6">
