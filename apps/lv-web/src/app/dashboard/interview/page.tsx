@@ -66,6 +66,13 @@ export default function InterviewPage() {
     }
   }, [status, router]);
 
+  // Stop audio when component unmounts (user leaves interview)
+  useEffect(() => {
+    return () => {
+      stopAudio();
+    };
+  }, []);
+
   // Upon mount run the start script once (first time chatting)
   useEffect(() => {
     //Also fetching data can be here since this runs on mount
@@ -282,7 +289,7 @@ export default function InterviewPage() {
         style={{ backgroundColor: '#f3f4f8', borderColor: '#edeef2' }}
       >
         {voiceOnlyMode ? (
-          <div className="flex-1 flex flex-col items-center px-6 pt-6">
+          <div className="flex-1 flex flex-col items-center justify-center px-6 pt-6 relative">
             <VoiceOnlyMode
               isAiSpeaking={isAiSpeaking}
               isUserRecording={isUserRecording}
@@ -297,19 +304,18 @@ export default function InterviewPage() {
               }}
               onGoToChat={() => setVoiceOnlyMode(false)}
             />
-            {(hasStarted || messages.length > 0) && (
-              <div className="flex justify-center pb-4 pt-2">
-                {isTranscribing ? (
-                  <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
-                ) : (
-                  <VoiceRecorder
-                    onRecordingComplete={handleVoiceRecording}
-                    onRecordingStateChange={setIsUserRecording}
-                    disabled={isLoading || messages.length === 0}
-                  />
-                )}
-              </div>
-            )}
+            <div className="absolute left-0 right-0 bottom-4 flex justify-center">
+              {isTranscribing ? (
+                <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
+              ) : hasStarted ? (
+                <VoiceRecorder
+                  onRecordingComplete={handleVoiceRecording}
+                  onRecordingStateChange={setIsUserRecording}
+                  disabled={isLoading || messages.length === 0}
+                  isVoiceOnly={voiceOnlyMode}
+                />
+              ) : null}
+            </div>
           </div>
         ) : (
           <>

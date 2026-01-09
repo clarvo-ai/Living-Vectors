@@ -24,14 +24,10 @@ export function VoiceOnlyMode({
       data-testid="voice-only-mode"
       className="flex-1 w-full flex flex-col items-center justify-center space-y-8"
     >
-      {!isAiSpeaking && !isUserRecording && !isProcessing && !hasStarted && (
+      {!isAiSpeaking && !isUserRecording && !isProcessing && !hasStarted && messageCount === 1 && (
         <div className="text-center space-y-2">
-          <p className="text-2xl font-semibold text-gray-700">
-            Welcome to the interview!
-          </p>
-          <p className="text-sm text-gray-500">
-            Press the button to start
-          </p>
+          <p className="text-2xl font-semibold text-gray-700">Welcome to the interview!</p>
+          <p className="text-sm text-gray-500">Press the button to start</p>
         </div>
       )}
       {isAiSpeaking ? (
@@ -49,7 +45,7 @@ export function VoiceOnlyMode({
           </div>
         </div>
       ) : isUserRecording ? (
-        <Mic className="h-24 w-24 text-blue-500 animate-pulse" />
+        <Mic className="h-24 w-24 text-red-500 animate-pulse" />
       ) : isProcessing ? (
         <Loader2 className="h-24 w-24 text-blue-500 animate-spin" />
       ) : (
@@ -95,7 +91,7 @@ export function VoiceOnlyMode({
           </div>
         ) : (
           <div className="flex flex-col items-center gap-2">
-            <span>&quot;Let&apos;s talk!&quot;</span>
+            <span>Let&apos;s talk!</span>
             <button
               onClick={onGoToChat}
               className="px-4 py-1 text-sm text-gray-500 hover:text-gray-700 transition-colors"

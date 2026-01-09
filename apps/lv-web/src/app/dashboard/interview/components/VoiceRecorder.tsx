@@ -6,12 +6,14 @@ interface VoiceRecorderProps {
   onRecordingComplete: (blob: Blob) => void;
   onRecordingStateChange?: (isRecording: boolean) => void;
   disabled?: boolean;
+  isVoiceOnly?: boolean;
 }
 
 export function VoiceRecorder({
   onRecordingComplete,
   onRecordingStateChange,
   disabled,
+  isVoiceOnly = false,
 }: VoiceRecorderProps) {
   const [isRecording, setIsRecording] = useState(false);
   const mediaRecorderRef = useRef<MediaRecorder | null>(null);
@@ -73,10 +75,12 @@ export function VoiceRecorder({
       onClick={isRecording ? stopRecording : startRecording}
       disabled={disabled}
       type="button"
-      className="rounded-full flex-shrink-0 border-2 h-12 w-12 p-0 self-center"
+      className={`rounded-full flex-shrink-0 border-2 p-0 self-center ${
+        isVoiceOnly ? 'h-20 w-20' : 'h-12 w-12'
+      }`}
       style={{
         background: isRecording
-          ? 'linear-gradient(white, white) padding-box, linear-gradient(135deg, #dc2626 0%, #991b1b 100%) border-box'
+          ? 'linear-gradient(135deg, #ef4444 0%, #dc2626 100%) padding-box, linear-gradient(135deg, #dc2626 0%, #991b1b 100%) border-box'
           : 'linear-gradient(white, white) padding-box, linear-gradient(135deg, #3b82f6 0%, #8b5cf6 100%) border-box',
         borderColor: 'transparent',
         display: 'flex',
@@ -84,7 +88,11 @@ export function VoiceRecorder({
         justifyContent: 'center',
       }}
     >
-      {isRecording ? <Square className="h-4 w-4" /> : <Mic className="h-4 w-4" />}
+      {isRecording ? (
+        <Square className={`text-red-600 ${isVoiceOnly ? 'h-6 w-6' : 'h-4 w-4'}`} />
+      ) : (
+        <Mic className={`text-slate-700 ${isVoiceOnly ? 'h-6 w-6' : 'h-4 w-4'}`} />
+      )}
     </Button>
   );
 }
