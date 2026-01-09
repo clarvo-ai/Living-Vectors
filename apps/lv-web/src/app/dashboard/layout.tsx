@@ -250,26 +250,25 @@ function DashboardLayoutContent({ children }: { children: React.ReactNode }) {
 
       {/* Main Area */}
       <main className="flex-1 flex flex-col overflow-hidden">
-        {pathname?.startsWith('/dashboard/interview') ? (
-          <>
-            {/* Top bar for interview page */}
-            <div
-              className="w-full border-b px-6 py-4"
-              style={{ backgroundColor: '#f3f4f8', borderColor: '#edeef2' }}
-            >
-              <h2 className="text-xl font-semibold text-gray-900 md:pl-0 pl-10">Interview</h2>
-            </div>
-            {/* Full-width content area */}
-            <div className="flex-1 overflow-auto" style={{ backgroundColor: '#f3f4f8' }}>
-              {children}
-            </div>
-          </>
-        ) : (
-          /* Content Area for other pages */
-          <div className="flex-1 overflow-hidden" style={{ backgroundColor: '#f3f4f8' }}>
-            {children}
-          </div>
-        )}
+        {/* Header for all pages */}
+        <div
+          className="w-full border-b px-6 py-4"
+          style={{ backgroundColor: '#f3f4f8', borderColor: '#edeef2' }}
+        >
+          <h2 className="text-xl font-semibold text-gray-900 md:pl-0 pl-10">
+            {pathname?.startsWith('/dashboard/interview')
+              ? 'Interview'
+              : pathname?.startsWith('/dashboard/profile')
+                ? 'Profile Settings'
+                : pathname?.startsWith('/dashboard/opportunities')
+                  ? 'Opportunities'
+                  : 'Dashboard'}
+          </h2>
+        </div>
+        {/* Full-width content area */}
+        <div className="flex-1 overflow-auto" style={{ backgroundColor: '#f3f4f8' }}>
+          {children}
+        </div>
       </main>
     </div>
   );
