@@ -24,6 +24,16 @@ export function VoiceOnlyMode({
       data-testid="voice-only-mode"
       className="flex-1 w-full flex flex-col items-center justify-center space-y-8"
     >
+      {!isAiSpeaking && !isUserRecording && !isProcessing && !hasStarted && (
+        <div className="text-center space-y-2">
+          <p className="text-2xl font-semibold text-gray-700">
+            Welcome to the interview!
+          </p>
+          <p className="text-sm text-gray-500">
+            Press the button to start
+          </p>
+        </div>
+      )}
       {isAiSpeaking ? (
         <div className="flex items-center justify-center animate-pulse">
           <div

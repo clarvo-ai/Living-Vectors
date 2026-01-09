@@ -26,7 +26,7 @@ import { usePathname, useRouter } from 'next/navigation';
 import { useEffect, useState } from 'react';
 
 function DashboardLayoutContent({ children }: { children: React.ReactNode }) {
-  const { toggleSidebar, open, setOpen } = useSidebar();
+  const { toggleSidebar, open } = useSidebar();
   const router = useRouter();
   const pathname = usePathname();
   const { data: session, status } = useSession();
@@ -235,8 +235,11 @@ function DashboardLayoutContent({ children }: { children: React.ReactNode }) {
                         </div>
                       )}
                       <div className="flex-1 min-w-0 text-left group-data-[state=collapsed]:hidden">
-                        <span className="text-sm font-medium truncate block text-gray-600">
+                        <span className="text-sm font-medium truncate block text-gray-900">
                           {session.user?.name || session.user?.email}
+                        </span>
+                        <span className="text-xs truncate block text-gray-500">
+                          {session.user?.email}
                         </span>
                       </div>
                       <ChevronDown className="w-4 h-4 flex-shrink-0 text-gray-500 group-data-[state=collapsed]:hidden" />
