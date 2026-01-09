@@ -74,7 +74,7 @@ export function VoiceOnlyMode({
               }}
             >
               <Phone className="w-4 h-4" />
-              Let's talk!
+              Let&apos;s talk!
             </button>
             <button
               onClick={onGoToChat}
