@@ -82,18 +82,29 @@ describe('InterviewPage - Voice Only Mode', () => {
       return {
         message: 'Hello Human',
         status: 200,
+        nextQuestionId: { goalIndex: 0, questionIndex: 1 },
+        completed: false,
       };
     });
     (getTTS as jest.Mock).mockResolvedValue(new Blob(['audio'], { type: 'audio/mp3' }));
 
     render(<InterviewPage />);
 
-    // Switch to Voice Only
-    const voiceOnlySwitch = screen.getByLabelText(/Voice Only/i);
-    fireEvent.click(voiceOnlySwitch);
-
+    // Already in Voice Only mode (default)
     await waitFor(() => {
       expect(screen.getByTestId('voice-only-mode')).toBeInTheDocument();
+    });
+
+    // Start the voice conversation
+    await waitFor(() => {
+      expect(screen.getByText(/Let's talk!/)).toBeInTheDocument();
+    });
+    const startButton = screen.getByText(/Let's talk!/);
+    fireEvent.click(startButton);
+
+    // Wait for voice recorder to appear
+    await waitFor(() => {
+      expect(screen.getByTestId('mock-voice-recorder')).toBeInTheDocument();
     });
 
     const recordButton = screen.getByTestId('mock-voice-recorder');

@@ -65,6 +65,11 @@ describe('InterviewPage - Voice Errors', () => {
 
     render(<InterviewPage />);
 
+    // Wait for voice-only mode to be ready
+    await waitFor(() => {
+      expect(screen.getByTestId('mock-voice-recorder')).toBeInTheDocument();
+    });
+
     const recordButton = screen.getByTestId('mock-voice-recorder');
     fireEvent.click(recordButton);
 
@@ -87,11 +92,20 @@ describe('InterviewPage - Voice Errors', () => {
 
     render(<InterviewPage />);
 
+    // Switch to chat mode first
     await waitFor(() => {
-      expect(screen.getByText(/Welcome!/)).toBeInTheDocument();
+      expect(screen.getByText('Or Chat')).toBeInTheDocument();
     });
 
-    const voiceModeSwitch = screen.getByLabelText(/AI Voice/i);
+    const chatButton = screen.getByText(/Or Chat/i);
+    fireEvent.click(chatButton);
+
+    await waitFor(() => {
+      expect(screen.getByPlaceholderText(/Type your response.../i)).toBeInTheDocument();
+    });
+
+    // Enable AI Voice
+    const voiceModeSwitch = screen.getByTitle(/Enable AI Voice/i);
     fireEvent.click(voiceModeSwitch);
 
     // Send message

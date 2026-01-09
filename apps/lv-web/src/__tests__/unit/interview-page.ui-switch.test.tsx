@@ -63,25 +63,31 @@ describe('InterviewPage - UI Switch', () => {
     (getTTS as jest.Mock).mockResolvedValue(new Blob(['audio'], { type: 'audio/mp3' }));
     render(<InterviewPage />);
 
-    expect(screen.getByPlaceholderText(/Type your response.../i)).toBeInTheDocument();
+    // Start in Voice Only mode (default)
+    await waitFor(() => {
+      expect(screen.getByTestId('voice-only-mode')).toBeInTheDocument();
+    });
 
-    // Switch to Voice Only
-    const voiceOnlySwitch = screen.getByLabelText(/Voice Only/i);
+    // Switch to Chat
+    const chatButton = screen.getByText(/Or Chat/i);
+    fireEvent.click(chatButton);
+
+    await waitFor(() => {
+      expect(screen.queryByTestId('voice-only-mode')).not.toBeInTheDocument();
+    });
+    await waitFor(() => {
+      expect(screen.getByPlaceholderText(/Type your response.../i)).toBeInTheDocument();
+    });
+
+    // Switch back to Voice Only
+    const voiceOnlySwitch = screen.getByTitle(/Switch to Voice/i);
     fireEvent.click(voiceOnlySwitch);
+
     await waitFor(() => {
       expect(screen.queryByPlaceholderText(/Type your response.../i)).not.toBeInTheDocument();
     });
     await waitFor(() => {
       expect(screen.getByTestId('voice-only-mode')).toBeInTheDocument();
-    });
-
-    // Back to Chat
-    fireEvent.click(voiceOnlySwitch);
-    await waitFor(() => {
-      expect(screen.getByPlaceholderText(/Type your response.../i)).toBeInTheDocument();
-    });
-    await waitFor(() => {
-      expect(screen.queryByTestId('voice-only-mode')).not.toBeInTheDocument();
     });
   });
 });
