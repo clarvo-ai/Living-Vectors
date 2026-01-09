@@ -270,7 +270,6 @@ export default function InterviewPage() {
           style={{ backgroundColor: '#f3f4f8' }}
         >
           <ChatHeader
-            currentGoal="Build Trust & Explore Current Motivation"
             voiceMode={voiceMode}
             setVoiceMode={setVoiceMode}
             voiceOnlyMode={voiceOnlyMode}

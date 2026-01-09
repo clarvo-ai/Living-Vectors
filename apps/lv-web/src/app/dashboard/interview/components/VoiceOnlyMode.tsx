@@ -85,7 +85,7 @@ export function VoiceOnlyMode({
           </div>
         ) : (
           <div className="flex flex-col items-center gap-2">
-            <span>"Let's talk!"</span>
+            <span>&quot;Let&apos;s talk!&quot;</span>
             <button
               onClick={onGoToChat}
               className="px-4 py-1 text-sm text-gray-500 hover:text-gray-700 transition-colors"

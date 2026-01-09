@@ -1,7 +1,6 @@
 import { Bot, MessageSquare, Phone, Volume2, VolumeX } from 'lucide-react';
 
 interface ChatHeaderProps {
-  currentGoal: string;
   voiceMode: boolean;
   setVoiceMode: (value: boolean) => void;
   voiceOnlyMode: boolean;
@@ -9,7 +8,6 @@ interface ChatHeaderProps {
 }
 
 export function ChatHeader({
-  currentGoal,
   voiceMode,
   setVoiceMode,
   voiceOnlyMode,

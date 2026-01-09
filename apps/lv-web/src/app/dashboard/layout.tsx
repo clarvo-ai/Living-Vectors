@@ -21,6 +21,7 @@ import {
 } from '@repo/ui/components/sidebar';
 import { Briefcase, ChevronDown, LogOut, Menu, Phone, User } from 'lucide-react';
 import { signOut, useSession } from 'next-auth/react';
+import Image from 'next/image';
 import { usePathname, useRouter } from 'next/navigation';
 import { useEffect, useState } from 'react';
 
@@ -211,9 +212,11 @@ function DashboardLayoutContent({ children }: { children: React.ReactNode }) {
                   <SidebarMenuButton className="w-full h-auto p-2 group-data-[state=collapsed]:p-3 group-data-[state=collapsed]:flex group-data-[state=collapsed]:justify-center">
                     <div className="flex items-center gap-3 w-full group-data-[state=collapsed]:w-auto">
                       {session.user?.image ? (
-                        <img
+                        <Image
                           src={session.user.image}
                           alt={session.user.name || 'User'}
+                          width={32}
+                          height={32}
                           className="w-8 h-8 min-w-8 min-h-8 rounded-full flex-shrink-0 object-cover"
                         />
                       ) : (
