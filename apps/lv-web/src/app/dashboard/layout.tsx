@@ -266,7 +266,7 @@ function DashboardLayoutContent({ children }: { children: React.ReactNode }) {
         {/* Header for all pages */}
         <div
           className="w-full border-b px-6 py-4"
-          style={{ backgroundColor: '#f3f4f8', borderColor: '#edeef2' }}
+          style={{ backgroundColor: '#f3f4f8', borderColor: '#d1d5db' }}
         >
           <h2 className="text-xl font-semibold text-gray-900 md:pl-0 pl-10">
             {pathname?.startsWith('/dashboard/interview')

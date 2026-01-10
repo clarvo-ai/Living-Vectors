@@ -4,20 +4,20 @@ interface VoiceOnlyModeProps {
   isAiSpeaking: boolean;
   isUserRecording: boolean;
   isProcessing: boolean;
-  hasStarted: boolean;
   onStart?: () => void;
   onGoToChat?: () => void;
   messageCount?: number;
+  hasStarted: boolean;
 }
 
 export function VoiceOnlyMode({
   isAiSpeaking,
   isUserRecording,
   isProcessing,
-  hasStarted,
   onStart,
   onGoToChat,
   messageCount = 0,
+  hasStarted,
 }: VoiceOnlyModeProps) {
   return (
     <div
@@ -65,13 +65,27 @@ export function VoiceOnlyMode({
       )}
       <div className="text-xl font-medium text-gray-600">
         {isAiSpeaking ? (
-          'AI is speaking...'
+          <div className="flex flex-col items-center gap-2">
+            <span>AI is speaking...</span>
+            <button
+              onClick={onGoToChat}
+              className="px-4 py-1 text-sm text-gray-500 hover:text-gray-700 transition-colors"
+            >
+              Chat instead
+            </button>
+          </div>
         ) : isUserRecording ? (
           'Listening...'
         ) : isProcessing ? (
           'Waiting for AI...'
         ) : !hasStarted && messageCount === 1 ? (
           <div className="flex flex-col items-center gap-4">
+            <button
+              onClick={onGoToChat}
+              className="px-4 py-1 text-sm text-gray-500 hover:text-gray-700 transition-colors"
+            >
+              Chat instead
+            </button>
             <button
               onClick={onStart}
               className="px-6 py-2 rounded-lg text-white font-normal transition-all transform hover:scale-105 shadow-lg flex items-center gap-2"
@@ -80,13 +94,7 @@ export function VoiceOnlyMode({
               }}
             >
               <Phone className="w-4 h-4" />
-              Let&apos;s talk!
-            </button>
-            <button
-              onClick={onGoToChat}
-              className="px-4 py-1 text-sm text-gray-500 hover:text-gray-700 transition-colors"
-            >
-              Or Chat
+              Start Call
             </button>
           </div>
         ) : (
@@ -96,7 +104,7 @@ export function VoiceOnlyMode({
               onClick={onGoToChat}
               className="px-4 py-1 text-sm text-gray-500 hover:text-gray-700 transition-colors"
             >
-              Or Chat
+              Chat instead
             </button>
           </div>
         )}

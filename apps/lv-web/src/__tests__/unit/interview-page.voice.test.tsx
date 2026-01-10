@@ -81,9 +81,9 @@ describe('InterviewPage - Voice Only Mode', () => {
       await new Promise((resolve) => setTimeout(resolve, 100));
       return {
         message: 'Hello Human',
-        status: 200,
         nextQuestionId: { goalIndex: 0, questionIndex: 1 },
         completed: false,
+        status: 200,
       };
     });
     (getTTS as jest.Mock).mockResolvedValue(new Blob(['audio'], { type: 'audio/mp3' }));
@@ -97,9 +97,9 @@ describe('InterviewPage - Voice Only Mode', () => {
 
     // Start the voice conversation
     await waitFor(() => {
-      expect(screen.getByText(/Let's talk!/)).toBeInTheDocument();
+      expect(screen.getByText(/Start Call/)).toBeInTheDocument();
     });
-    const startButton = screen.getByText(/Let's talk!/);
+    const startButton = screen.getByText(/Start Call/);
     fireEvent.click(startButton);
 
     // Wait for voice recorder to appear

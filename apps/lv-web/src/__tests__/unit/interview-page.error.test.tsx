@@ -63,10 +63,10 @@ describe('InterviewPage - Error Handling', () => {
 
     // Switch to chat mode
     await waitFor(() => {
-      expect(screen.getByText('Or Chat')).toBeInTheDocument();
+      expect(screen.getByText('Chat instead')).toBeInTheDocument();
     });
 
-    const chatButton = screen.getByText(/Or Chat/i);
+    const chatButton = screen.getByText(/Chat instead/i);
     fireEvent.click(chatButton);
 
     // Wait for chat UI to appear

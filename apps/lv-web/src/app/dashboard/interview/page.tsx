@@ -108,7 +108,16 @@ export default function InterviewPage() {
 
   useEffect(() => {
     sessionStorage.setItem('interview-voiceOnlyMode', JSON.stringify(voiceOnlyMode));
+    // Mark that user activated voice-only mode manually
+    if (voiceOnlyMode) {
+      sessionStorage.setItem('voiceOnlyActivatedByUser', 'true');
+    }
   }, [voiceOnlyMode]);
+
+  // Clear the activation flag on mount
+  useEffect(() => {
+    sessionStorage.removeItem('voiceOnlyActivatedByUser');
+  }, []);
 
   // Save messages to sessionStorage
   useEffect(() => {
@@ -143,17 +152,18 @@ export default function InterviewPage() {
     audio.play();
   }, []);
 
-  // Handle playing TTS when user clicks start button or after sending a message
+  // Handle playing TTS when switching to voice-only mode (only on mode change, not on message change)
   useEffect(() => {
-    if (voiceOnlyMode && hasStarted && messages.length > 0) {
+    const wasActivatedByUser = sessionStorage.getItem('voiceOnlyActivatedByUser') === 'true';
+    if (voiceOnlyMode && messages.length > 1 && wasActivatedByUser) {
       const lastMessage = messages[messages.length - 1];
-      if (lastMessage?.role === 'ai' && lastMessage.id !== 'initial-ai-message') {
+      if (lastMessage?.role === 'ai') {
         getTTS(lastMessage.content)
           .then((blob) => playAudio(blob))
           .catch((e) => console.error('TTS error', e));
       }
     }
-  }, [voiceOnlyMode, hasStarted, messages, playAudio]);
+  }, [voiceOnlyMode]); // Only depend on voiceOnlyMode to trigger when switching modes
 
   // Pause audio when user starts recording or when voice modes are off
   useEffect(() => {
@@ -220,7 +230,7 @@ export default function InterviewPage() {
       setMessages((prev) => [...prev, aiMessage]);
       setIsLoading(false);
 
-      if (voiceMode && !voiceOnlyMode) {
+      if ((voiceMode && !voiceOnlyMode) || voiceOnlyMode) {
         getTTS(data.message)
           .then((audioBlob) => playAudio(audioBlob))
           .catch((e) => console.error('TTS error', e));
@@ -250,7 +260,6 @@ export default function InterviewPage() {
   const handleEndInterview = () => {
     stopAudio();
     sessionStorage.removeItem('interview-messages');
-    setHasStarted(false);
     router.push('/dashboard');
   };
 
@@ -274,7 +283,7 @@ export default function InterviewPage() {
       {!voiceOnlyMode && (
         <div
           className="flex items-center px-6 py-2 border-b"
-          style={{ backgroundColor: '#f3f4f8' }}
+          style={{ backgroundColor: '#f3f4f8', borderColor: '#d1d5db' }}
         >
           <ChatHeader
             voiceMode={voiceMode}
@@ -284,18 +293,15 @@ export default function InterviewPage() {
           />
         </div>
       )}
-      <div
-        className="flex-1 flex flex-col overflow-hidden border-t"
-        style={{ backgroundColor: '#f3f4f8', borderColor: '#edeef2' }}
-      >
+      <div className="flex-1 flex flex-col overflow-hidden" style={{ backgroundColor: '#f3f4f8' }}>
         {voiceOnlyMode ? (
           <div className="flex-1 flex flex-col items-center justify-center px-6 pt-6 relative">
             <VoiceOnlyMode
               isAiSpeaking={isAiSpeaking}
               isUserRecording={isUserRecording}
               isProcessing={isLoading || isTranscribing}
-              hasStarted={hasStarted}
               messageCount={messages.length}
+              hasStarted={hasStarted}
               onStart={() => {
                 setHasStarted(true);
                 getTTS(messages[0]?.content)
@@ -307,11 +313,11 @@ export default function InterviewPage() {
             <div className="absolute left-0 right-0 bottom-4 flex justify-center">
               {isTranscribing ? (
                 <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
-              ) : hasStarted ? (
+              ) : hasStarted || messages.length > 1 ? (
                 <VoiceRecorder
                   onRecordingComplete={handleVoiceRecording}
                   onRecordingStateChange={setIsUserRecording}
-                  disabled={isLoading || messages.length === 0}
+                  disabled={isLoading}
                   isVoiceOnly={voiceOnlyMode}
                 />
               ) : null}
@@ -328,7 +334,7 @@ export default function InterviewPage() {
             </div>
             <div
               className="flex gap-2 items-start pb-4 border-t pt-4 px-6"
-              style={{ borderColor: '#edeef2' }}
+              style={{ borderColor: '#d1d5db' }}
             >
               <div className="flex-1">
                 <ChatInput

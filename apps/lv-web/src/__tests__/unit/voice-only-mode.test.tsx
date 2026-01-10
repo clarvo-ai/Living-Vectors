@@ -7,48 +7,50 @@ describe('VoiceOnlyMode Component', () => {
     isAiSpeaking: false,
     isUserRecording: false,
     isProcessing: false,
-    hasStarted: false,
     messageCount: 1,
+    hasStarted: false,
   };
 
-  it('should render "Let\'s talk!" button when not started and messageCount is 1', () => {
+  it('should render "Start Call" button when not started and messageCount is 1', () => {
     render(<VoiceOnlyMode {...defaultProps} />);
 
-    expect(screen.getByText(/Let's talk!/)).toBeInTheDocument();
-    expect(screen.getByText(/Or Chat/)).toBeInTheDocument();
+    expect(screen.getByText(/Start Call/)).toBeInTheDocument();
+    expect(screen.getByText(/Chat instead/)).toBeInTheDocument();
   });
 
-  it('should call onStart when "Let\'s talk!" button is clicked', () => {
+  it('should call onStart when "Start Call" button is clicked', () => {
     const onStart = jest.fn();
     const onGoToChat = jest.fn();
     render(<VoiceOnlyMode {...defaultProps} onStart={onStart} onGoToChat={onGoToChat} />);
 
-    const startButton = screen.getByText(/Let's talk!/);
+    const startButton = screen.getByText(/Start Call/);
     fireEvent.click(startButton);
 
     expect(onStart).toHaveBeenCalledTimes(1);
   });
 
-  it('should call onGoToChat when "Or Chat" button is clicked', () => {
+  it('should call onGoToChat when "Chat instead" button is clicked', () => {
     const onStart = jest.fn();
     const onGoToChat = jest.fn();
     render(<VoiceOnlyMode {...defaultProps} onStart={onStart} onGoToChat={onGoToChat} />);
 
-    const chatButton = screen.getByText(/Or Chat/);
+    const chatButton = screen.getByText(/Chat instead/);
     fireEvent.click(chatButton);
 
     expect(onGoToChat).toHaveBeenCalledTimes(1);
   });
 
   it('should show "AI is speaking..." when isAiSpeaking is true', () => {
-    render(<VoiceOnlyMode {...defaultProps} isAiSpeaking={true} hasStarted={true} />);
+    render(
+      <VoiceOnlyMode {...defaultProps} isAiSpeaking={true} messageCount={2} hasStarted={true} />
+    );
 
     expect(screen.getByText('AI is speaking...')).toBeInTheDocument();
   });
 
   it('should show pulsing bot icon when AI is speaking', () => {
     const { container } = render(
-      <VoiceOnlyMode {...defaultProps} isAiSpeaking={true} hasStarted={true} />
+      <VoiceOnlyMode {...defaultProps} isAiSpeaking={true} messageCount={2} hasStarted={true} />
     );
 
     const pulsingElement = container.querySelector('.animate-pulse');
@@ -56,14 +58,16 @@ describe('VoiceOnlyMode Component', () => {
   });
 
   it('should show "Listening..." when isUserRecording is true', () => {
-    render(<VoiceOnlyMode {...defaultProps} isUserRecording={true} hasStarted={true} />);
+    render(
+      <VoiceOnlyMode {...defaultProps} isUserRecording={true} messageCount={2} hasStarted={true} />
+    );
 
     expect(screen.getByText('Listening...')).toBeInTheDocument();
   });
 
   it('should show microphone icon when user is recording', () => {
     const { container } = render(
-      <VoiceOnlyMode {...defaultProps} isUserRecording={true} hasStarted={true} />
+      <VoiceOnlyMode {...defaultProps} isUserRecording={true} messageCount={2} hasStarted={true} />
     );
 
     // Check for mic icon with animate-pulse class
@@ -72,14 +76,16 @@ describe('VoiceOnlyMode Component', () => {
   });
 
   it('should show "Waiting for AI..." when isProcessing is true', () => {
-    render(<VoiceOnlyMode {...defaultProps} isProcessing={true} hasStarted={true} />);
+    render(
+      <VoiceOnlyMode {...defaultProps} isProcessing={true} messageCount={2} hasStarted={true} />
+    );
 
     expect(screen.getByText('Waiting for AI...')).toBeInTheDocument();
   });
 
   it('should show loader icon when processing', () => {
     const { container } = render(
-      <VoiceOnlyMode {...defaultProps} isProcessing={true} hasStarted={true} />
+      <VoiceOnlyMode {...defaultProps} isProcessing={true} messageCount={2} hasStarted={true} />
     );
 
     const loaderIcon = container.querySelector('.lucide-loader-circle');
@@ -88,10 +94,10 @@ describe('VoiceOnlyMode Component', () => {
   });
 
   it('should show static bot icon and quoted text when conversation started but idle', () => {
-    render(<VoiceOnlyMode {...defaultProps} hasStarted={true} messageCount={2} />);
+    render(<VoiceOnlyMode {...defaultProps} messageCount={2} hasStarted={true} />);
 
-    expect(screen.getByText('"Let\'s talk!"')).toBeInTheDocument();
-    expect(screen.getByText(/Or Chat/)).toBeInTheDocument();
+    expect(screen.getByText(/Let's talk!/)).toBeInTheDocument();
+    expect(screen.getByText(/Chat instead/)).toBeInTheDocument();
   });
 
   it('should always render voice-only-mode testid', () => {
@@ -108,6 +114,7 @@ describe('VoiceOnlyMode Component', () => {
         isAiSpeaking={true}
         isUserRecording={true}
         isProcessing={true}
+        messageCount={2}
         hasStarted={true}
       />
     );
@@ -120,6 +127,7 @@ describe('VoiceOnlyMode Component', () => {
         isAiSpeaking={false}
         isUserRecording={true}
         isProcessing={true}
+        messageCount={2}
         hasStarted={true}
       />
     );
@@ -132,19 +140,20 @@ describe('VoiceOnlyMode Component', () => {
         isAiSpeaking={false}
         isUserRecording={false}
         isProcessing={true}
+        messageCount={2}
         hasStarted={true}
       />
     );
     expect(screen.getByText('Waiting for AI...')).toBeInTheDocument();
   });
 
-  it('should render "Or Chat" button in all non-started states', () => {
-    render(<VoiceOnlyMode {...defaultProps} hasStarted={false} />);
-    expect(screen.getByText(/Or Chat/)).toBeInTheDocument();
+  it('should render "Chat instead" button in all non-started states', () => {
+    render(<VoiceOnlyMode {...defaultProps} />);
+    expect(screen.getByText(/Chat instead/)).toBeInTheDocument();
   });
 
-  it('should render "Or Chat" button after conversation has started', () => {
-    render(<VoiceOnlyMode {...defaultProps} hasStarted={true} messageCount={2} />);
-    expect(screen.getByText(/Or Chat/)).toBeInTheDocument();
+  it('should render "Chat instead" button after conversation has started', () => {
+    render(<VoiceOnlyMode {...defaultProps} messageCount={2} hasStarted={true} />);
+    expect(screen.getByText(/Chat instead/)).toBeInTheDocument();
   });
 });

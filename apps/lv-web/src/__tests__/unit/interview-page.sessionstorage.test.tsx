@@ -60,10 +60,10 @@ describe('Interview Page Mode Switching', () => {
     render(<InterviewPage />);
 
     await waitFor(() => {
-      expect(screen.getByText(/Or Chat/)).toBeInTheDocument();
+      expect(screen.getByText(/Chat instead/)).toBeInTheDocument();
     });
 
-    const chatButton = screen.getByText(/Or Chat/);
+    const chatButton = screen.getByText(/Chat instead/);
     fireEvent.click(chatButton);
 
     await waitFor(() => {
@@ -75,10 +75,10 @@ describe('Interview Page Mode Switching', () => {
     render(<InterviewPage />);
 
     await waitFor(() => {
-      expect(screen.getByText(/Or Chat/)).toBeInTheDocument();
+      expect(screen.getByText(/Chat instead/)).toBeInTheDocument();
     });
 
-    const chatButton = screen.getByText(/Or Chat/);
+    const chatButton = screen.getByText(/Chat instead/);
     fireEvent.click(chatButton);
 
     await waitFor(() => {

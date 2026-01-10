@@ -61,10 +61,10 @@ describe('InterviewPage - Chat Interaction', () => {
 
     // Switch to chat mode (voice-only is default)
     await waitFor(() => {
-      expect(screen.getByText('Or Chat')).toBeInTheDocument();
+      expect(screen.getByText('Chat instead')).toBeInTheDocument();
     });
 
-    const chatButton = screen.getByText(/Or Chat/i);
+    const chatButton = screen.getByText(/Chat instead/i);
     fireEvent.click(chatButton);
 
     // Wait for chat UI to appear
@@ -118,10 +118,10 @@ describe('InterviewPage - Chat Interaction', () => {
 
     // Switch to chat mode
     await waitFor(() => {
-      expect(screen.getByText('Or Chat')).toBeInTheDocument();
+      expect(screen.getByText('Chat instead')).toBeInTheDocument();
     });
 
-    const chatButton = screen.getByText(/Or Chat/i);
+    const chatButton = screen.getByText(/Chat instead/i);
     fireEvent.click(chatButton);
 
     // Wait for chat UI to appear

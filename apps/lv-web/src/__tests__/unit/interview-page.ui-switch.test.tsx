@@ -69,7 +69,7 @@ describe('InterviewPage - UI Switch', () => {
     });
 
     // Switch to Chat
-    const chatButton = screen.getByText(/Or Chat/i);
+    const chatButton = screen.getByText(/Chat instead/i);
     fireEvent.click(chatButton);
 
     await waitFor(() => {
