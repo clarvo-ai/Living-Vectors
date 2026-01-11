@@ -226,9 +226,7 @@ function DashboardLayoutContent({ children }: { children: React.ReactNode }) {
                       isActive={pathname?.startsWith('/admin')}
                       tooltip="Admin"
                       style={
-                        pathname?.startsWith('/admin')
-                          ? { backgroundColor: 'var(--bg-hover)' }
-                          : {}
+                        pathname?.startsWith('/admin') ? { backgroundColor: 'var(--bg-hover)' } : {}
                       }
                       className="justify-between hover:bg-blue-50"
                     >
@@ -239,9 +237,7 @@ function DashboardLayoutContent({ children }: { children: React.ReactNode }) {
                         />
                         <span
                           className={
-                            pathname?.startsWith('/admin')
-                              ? 'text-gray-900'
-                              : 'text-gray-600'
+                            pathname?.startsWith('/admin') ? 'text-gray-900' : 'text-gray-600'
                           }
                         >
                           Admin

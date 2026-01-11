@@ -130,18 +130,5 @@ describe('AdminUsersPage', () => {
     expect(mockPush).toHaveBeenCalledWith('/admin/users/clickable-user-id');
   });
 
-  it('displays "Back to Dashboard" link', async () => {
-    (fetch as jest.Mock).mockResolvedValueOnce({
-      ok: true,
-      json: async () => [],
-    });
-
-    render(<AdminUsersPage />);
-
-    await waitFor(() => {
-      const backLink = screen.getByText(/Back to Dashboard/);
-      expect(backLink).toBeInTheDocument();
-      expect(backLink.getAttribute('href')).toBe('/dashboard');
-    });
-  });
+  // Note: "Back to Dashboard" link was removed as navigation is now available via sidebar
 });

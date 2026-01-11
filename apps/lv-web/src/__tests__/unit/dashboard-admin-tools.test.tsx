@@ -1,12 +1,11 @@
 import '@testing-library/jest-dom';
-import { fireEvent, render, screen, waitFor } from '@testing-library/react';
+import { render, waitFor } from '@testing-library/react';
 import { useSession } from 'next-auth/react';
 import DashboardPage from '../../app/dashboard/page';
 
 //Tests for DashboardPage:
-// - Admin Tools card visibility
-// - Navigation to /admin/users
-// - Redirect to login when not authenticated
+// - Redirects to /dashboard/interview
+// Note: Admin Tools are now in the sidebar navigation, not on the dashboard page
 
 // Mock next-auth/react
 jest.mock('next-auth/react', () => ({
@@ -15,55 +14,27 @@ jest.mock('next-auth/react', () => ({
 }));
 
 // Mock next/navigation
-const mockPush = jest.fn();
+const mockReplace = jest.fn();
 jest.mock('next/navigation', () => ({
   useRouter: () => ({
-    push: mockPush,
+    replace: mockReplace,
   }),
-}));
-
-// Mock the pyapi service
-// Without this, there will be some console errors (even though all tests pass)
-jest.mock('../../lib/services/pyapi', () => ({
-  checkHealth: jest.fn().mockResolvedValue({ status: 'healthy', service: 'lv-pyapi' }),
-  getHello: jest.fn().mockResolvedValue({ message: 'Hello from PyAPI' }),
 }));
 
 const mockUseSession = useSession as jest.Mock;
 
-describe('DashboardPage - Admin Tools Visibility', () => {
+describe('DashboardPage - Redirect Behavior', () => {
   beforeEach(() => {
     jest.clearAllMocks();
   });
 
-  it('shows Admin Tools card when user has ADMIN role', async () => {
+  it('redirects to /dashboard/interview when rendered', async () => {
     mockUseSession.mockReturnValue({
       data: {
         user: {
-          id: 'admin-user-id',
-          name: 'Admin User',
-          email: 'admin@example.com',
-          role: 'ADMIN',
-        },
-      },
-      status: 'authenticated',
-    });
-
-    render(<DashboardPage />);
-
-    await waitFor(() => {
-      expect(screen.getByText(/Admin Tools/i)).toBeInTheDocument();
-      expect(screen.getByRole('button', { name: /Go to Users/ })).toBeInTheDocument();
-    });
-  });
-
-  it('hides Admin Tools card when user has USER role', async () => {
-    mockUseSession.mockReturnValue({
-      data: {
-        user: {
-          id: 'regular-user-id',
-          name: 'Regular User',
-          email: 'user@example.com',
+          id: 'user-id',
+          name: 'Test User',
+          email: 'test@example.com',
           role: 'USER',
         },
       },
@@ -73,15 +44,11 @@ describe('DashboardPage - Admin Tools Visibility', () => {
     render(<DashboardPage />);
 
     await waitFor(() => {
-      expect(screen.getByText('Dashboard')).toBeInTheDocument();
+      expect(mockReplace).toHaveBeenCalledWith('/dashboard/interview');
     });
-
-    // Admin Tools should NOT be visible
-    expect(screen.queryByText(/Admin Tools/i)).not.toBeInTheDocument();
-    expect(screen.queryByRole('button', { name: /Go to Users/ })).not.toBeInTheDocument();
   });
 
-  it('navigates to /admin/users when "Go to Users" button is clicked', async () => {
+  it('redirects to /dashboard/interview for admin users', async () => {
     mockUseSession.mockReturnValue({
       data: {
         user: {
@@ -97,25 +64,10 @@ describe('DashboardPage - Admin Tools Visibility', () => {
     render(<DashboardPage />);
 
     await waitFor(() => {
-      expect(screen.getByRole('button', { name: /Go to Users/ })).toBeInTheDocument();
-    });
-
-    fireEvent.click(screen.getByRole('button', { name: /Go to Users/ }));
-
-    expect(mockPush).toHaveBeenCalledWith('/admin/users');
-  });
-
-  it('redirects to login when not authenticated', async () => {
-    mockUseSession.mockReturnValue({
-      data: null,
-      status: 'unauthenticated',
-    });
-
-    render(<DashboardPage />);
-
-    await waitFor(() => {
-      expect(mockPush).toHaveBeenCalledWith('/login');
+      expect(mockReplace).toHaveBeenCalledWith('/dashboard/interview');
     });
   });
 
+  // Note: Admin Tools are now in the sidebar navigation, not on the dashboard page
+  // The dashboard page simply redirects to /dashboard/interview
 });
