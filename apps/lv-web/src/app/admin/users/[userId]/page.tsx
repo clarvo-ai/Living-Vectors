@@ -2,7 +2,8 @@
 
 import { Button } from '@/components/ui/button';
 import { useRouter } from 'next/navigation';
-import { useState, use } from 'react';
+import { useState } from 'react';
+import * as React from 'react';
 import { useAdminUserData } from '@/hooks/useAdminUserData';
 import { useExpansionState } from '@/hooks/useExpansionState';
 import { useVisualMode } from '@/hooks/useVisualMode';
@@ -16,15 +17,30 @@ import { VisualModeView } from '@/components/admin/user-detail/VisualModeView';
 interface AdminUserDetailPageProps {
   params: Promise<{
     userId: string;
-  }>;
+  }> | {
+    userId: string;
+  };
 }
 
 export default function AdminUserDetailPage({ params }: AdminUserDetailPageProps) {
   const router = useRouter();
   const [viewMode, setViewMode] = useState<'list' | 'visual'>('list');
 
-  // Unwrap params using React.use()
-  const { userId } = use(params);
+  // Unwrap params using React.use() if it's a Promise, otherwise use directly
+  // In tests, params may be a plain object, so we handle both cases
+  let userId: string;
+  if (params instanceof Promise) {
+    // In Next.js 15, params is a Promise and needs to be unwrapped with React.use()
+    // Check if React.use is available (it may not be in older React versions or test environments)
+    if (React.use && typeof React.use === 'function') {
+      userId = React.use(params).userId;
+    } else {
+      throw new Error('React.use() is not available. Please use React 19+ or ensure params is not a Promise in tests.');
+    }
+  } else {
+    // In tests, params is a plain object
+    userId = params.userId;
+  }
 
   // Data fetching
   const {
