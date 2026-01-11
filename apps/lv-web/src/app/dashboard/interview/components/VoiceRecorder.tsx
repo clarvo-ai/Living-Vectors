@@ -75,7 +75,7 @@ export function VoiceRecorder({
       onClick={isRecording ? stopRecording : startRecording}
       disabled={disabled}
       type="button"
-      className={`rounded-full flex-shrink-0 border-2 p-0 self-end ${
+      className={`rounded-full flex-shrink-0 border-2 p-0 self-center ${
         isVoiceOnly ? 'h-20 w-20' : 'h-12 w-12'
       }`}
       style={{
