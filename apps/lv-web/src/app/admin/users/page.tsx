@@ -1,7 +1,6 @@
 'use client';
 
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { useEffect, useState } from 'react';
 
@@ -43,12 +42,6 @@ export default function AdminUsersPage() {
 
   return (
     <div className="p-8">
-      <Link
-        href="/dashboard"
-        className="mb-4 inline-flex items-center gap-1 text-sm text-muted-foreground hover:text-foreground"
-      >
-        ← Back to Dashboard
-      </Link>
       <Card>
         <CardHeader>
           <CardTitle>Users</CardTitle>

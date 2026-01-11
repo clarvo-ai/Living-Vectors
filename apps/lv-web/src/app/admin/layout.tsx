@@ -2,6 +2,7 @@ import { authOptions } from '@repo/lib';
 import { getServerSession } from 'next-auth';
 import { redirect } from 'next/navigation';
 import { ReactNode } from 'react';
+import AdminLayoutWrapper from './admin-layout-wrapper';
 
 interface AdminLayoutProps {
   children: ReactNode;
@@ -21,5 +22,5 @@ export default async function AdminLayout({ children }: AdminLayoutProps) {
     redirect('/dashboard');
   }
 
-  return <>{children}</>;
+  return <AdminLayoutWrapper>{children}</AdminLayoutWrapper>;
 }
