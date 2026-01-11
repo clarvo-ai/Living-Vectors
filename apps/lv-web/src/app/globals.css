@@ -26,19 +26,19 @@
     --radius: 0.5rem;
 
     /* Primary gradient colors */
-    --gradient-primary-start: #155DFC;
-    --gradient-primary-end: #4F39F6;
+    --gradient-primary-start: #155dfc;
+    --gradient-primary-end: #4f39f6;
 
     /* Background gradient colors */
-    --bg-gradient-start: #EFF6FF;
+    --bg-gradient-start: #eff6ff;
     --bg-gradient-middle: rgba(238, 242, 255, 0.3);
-    --bg-gradient-end: #FAFBFC;
+    --bg-gradient-end: #fafbfc;
 
     /* Border gradient colors */
     --border-gradient-primary: rgba(190, 219, 255, 1);
     --border-gradient-secondary: rgba(21, 93, 252, 0.5);
     --border-gradient-accent: rgba(96, 165, 250, 1);
-    --border-bg: #DBEAFE;
+    --border-bg: #dbeafe;
 
     /* Box shadow colors */
     --shadow-blue-light: rgba(40, 130, 252, 1);
@@ -58,6 +58,35 @@
     --gradient-default-secondary: #c7a03c;
     --gradient-default-accent: #f9de90;
     --gradient-default-bg: #2d230f;
+
+    /* Interview page colors */
+    --bg-light: #f3f4f8;
+    --bg-light-purple: #f1eefa;
+    --border-gray: #d1d5db;
+    --border-purple: #c4c8ee;
+    --icon-purple: #626edb;
+    --btn-success: #10b981;
+    --bg-white: #ffffff;
+    --bg-disabled: rgb(156, 163, 175);
+    --bg-disabled-dark: rgb(107, 114, 128);
+    --gradient-primary: linear-gradient(135deg, #3b82f6 0%, #8b5cf6 100%);
+    --gradient-primary-shadow: rgba(139, 92, 246, 0.4);
+    --gradient-message-shadow: rgba(139, 92, 246, 0.3);
+    --border-white: #ffffffff;
+    --border-light-gray: #e8e9ee;
+    --gradient-record-active: linear-gradient(135deg, #ef4444 0%, #dc2626 100%);
+    --gradient-record-border: linear-gradient(135deg, #dc2626 0%, #991b1b 100%);
+    --gradient-record-inactive: linear-gradient(135deg, #3b82f6 0%, #8b5cf6 100%);
+    --color-record-active: #ef4444;
+    --color-record-border: #dc2626;
+    --icon-record-active: #ffffff;
+    --icon-record-inactive: #64748b;
+
+    /* Dashboard layout colors */
+    --bg-sidebar: #edeef2;
+    --bg-hover: #dfe3eb;
+    --icon-sidebar: #465280;
+    --border-top: #d0d2d8;
   }
 
   .dark {

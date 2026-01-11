@@ -1,7 +1,7 @@
 import '@testing-library/jest-dom';
 import { fireEvent, render, screen, waitFor } from '@testing-library/react';
 import { useSession } from 'next-auth/react';
-import InterviewPage from '../../app/interview/page';
+import InterviewPage from '../../app/dashboard/interview/page';
 import { getGeminiResponse, getSTT, getTTS, startConversation } from '../../lib/services/pyapi';
 import { setupVoiceMocks } from '../mocks/voice-mocks';
 
@@ -27,7 +27,7 @@ jest.mock('next/navigation', () => ({
 }));
 
 // Mock VoiceRecorder component
-jest.mock('../../app/interview/components/VoiceRecorder', () => ({
+jest.mock('../../app/dashboard/interview/components/VoiceRecorder', () => ({
   VoiceRecorder: ({ onRecordingComplete }: { onRecordingComplete: (blob: Blob) => void }) => (
     <button
       data-testid="mock-voice-recorder"
@@ -57,6 +57,15 @@ describe('InterviewPage - Voice Errors', () => {
       goalCategory: 'career',
       questionId: { goalIndex: 0, questionIndex: 0 },
     });
+    // Mock getTTS to resolve successfully by default
+    (getTTS as jest.Mock).mockResolvedValue(new Blob(['audio'], { type: 'audio/mp3' }));
+    // Mock getGeminiResponse to resolve successfully by default
+    (getGeminiResponse as jest.Mock).mockResolvedValue({
+      message: 'Test response',
+      nextQuestionId: { goalIndex: 0, questionIndex: 1 },
+      completed: false,
+      status: 200,
+    });
   });
 
   it('should handle STT error', async () => {
@@ -65,6 +74,27 @@ describe('InterviewPage - Voice Errors', () => {
 
     render(<InterviewPage />);
 
+    // Wait for voice-only mode to be ready
+    await waitFor(
+      () => {
+        expect(screen.getByTestId('voice-only-mode')).toBeInTheDocument();
+      },
+      { timeout: 5000 }
+    );
+
+    // Click "Start Call" button to start conversation
+    const startButton = screen.getByText(/Start Call/);
+    fireEvent.click(startButton);
+
+    // Wait for VoiceRecorder to be rendered after conversation starts
+    await waitFor(
+      () => {
+        expect(screen.getByTestId('mock-voice-recorder')).toBeInTheDocument();
+      },
+      { timeout: 5000 }
+    );
+
+    // Click record button and trigger STT error
     const recordButton = screen.getByTestId('mock-voice-recorder');
     fireEvent.click(recordButton);
 
@@ -87,11 +117,20 @@ describe('InterviewPage - Voice Errors', () => {
 
     render(<InterviewPage />);
 
+    // Switch to chat mode first
     await waitFor(() => {
-      expect(screen.getByText(/Welcome!/)).toBeInTheDocument();
+      expect(screen.getByText('Chat instead')).toBeInTheDocument();
     });
 
-    const voiceModeSwitch = screen.getByLabelText(/AI Voice/i);
+    const chatButton = screen.getByText(/Chat instead/i);
+    fireEvent.click(chatButton);
+
+    await waitFor(() => {
+      expect(screen.getByPlaceholderText(/Type your response.../i)).toBeInTheDocument();
+    });
+
+    // Enable AI Voice
+    const voiceModeSwitch = screen.getByTitle(/Enable AI Voice/i);
     fireEvent.click(voiceModeSwitch);
 
     // Send message

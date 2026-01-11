@@ -1,6 +1,6 @@
 import '@testing-library/jest-dom';
 import { fireEvent, render, screen, waitFor } from '@testing-library/react';
-import { VoiceRecorder } from '../../app/interview/components/VoiceRecorder';
+import { VoiceRecorder } from '../../app/dashboard/interview/components/VoiceRecorder';
 
 // Mock MediaRecorder
 const mockStart = jest.fn();

@@ -1,7 +1,7 @@
 import '@testing-library/jest-dom';
 import { fireEvent, render, screen, waitFor } from '@testing-library/react';
 import { useSession } from 'next-auth/react';
-import InterviewPage from '../../app/interview/page';
+import InterviewPage from '../../app/dashboard/interview/page';
 import { getGeminiResponse, getSTT, getTTS, startConversation } from '../../lib/services/pyapi';
 import { setupVoiceMocks } from '../mocks/voice-mocks';
 
@@ -27,7 +27,7 @@ jest.mock('next/navigation', () => ({
 }));
 
 // Mock VoiceRecorder component
-jest.mock('../../app/interview/components/VoiceRecorder', () => ({
+jest.mock('../../app/dashboard/interview/components/VoiceRecorder', () => ({
   VoiceRecorder: ({
     onRecordingComplete,
     onRecordingStateChange,
@@ -81,6 +81,8 @@ describe('InterviewPage - Voice Only Mode', () => {
       await new Promise((resolve) => setTimeout(resolve, 100));
       return {
         message: 'Hello Human',
+        nextQuestionId: { goalIndex: 0, questionIndex: 1 },
+        completed: false,
         status: 200,
       };
     });
@@ -88,12 +90,21 @@ describe('InterviewPage - Voice Only Mode', () => {
 
     render(<InterviewPage />);
 
-    // Switch to Voice Only
-    const voiceOnlySwitch = screen.getByLabelText(/Voice Only/i);
-    fireEvent.click(voiceOnlySwitch);
-
+    // Already in Voice Only mode (default)
     await waitFor(() => {
       expect(screen.getByTestId('voice-only-mode')).toBeInTheDocument();
+    });
+
+    // Start the voice conversation
+    await waitFor(() => {
+      expect(screen.getByText(/Start Call/)).toBeInTheDocument();
+    });
+    const startButton = screen.getByText(/Start Call/);
+    fireEvent.click(startButton);
+
+    // Wait for voice recorder to appear
+    await waitFor(() => {
+      expect(screen.getByTestId('mock-voice-recorder')).toBeInTheDocument();
     });
 
     const recordButton = screen.getByTestId('mock-voice-recorder');
