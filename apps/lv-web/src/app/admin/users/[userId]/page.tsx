@@ -2,7 +2,7 @@
 
 import { Button } from '@/components/ui/button';
 import { useRouter } from 'next/navigation';
-import { useState } from 'react';
+import { useState, use } from 'react';
 import { useAdminUserData } from '@/hooks/useAdminUserData';
 import { useExpansionState } from '@/hooks/useExpansionState';
 import { useVisualMode } from '@/hooks/useVisualMode';
@@ -14,14 +14,17 @@ import { LearningConnectionsList } from '@/components/admin/user-detail/Learning
 import { VisualModeView } from '@/components/admin/user-detail/VisualModeView';
 
 interface AdminUserDetailPageProps {
-  params: {
+  params: Promise<{
     userId: string;
-  };
+  }>;
 }
 
 export default function AdminUserDetailPage({ params }: AdminUserDetailPageProps) {
   const router = useRouter();
   const [viewMode, setViewMode] = useState<'list' | 'visual'>('list');
+
+  // Unwrap params using React.use()
+  const { userId } = use(params);
 
   // Data fetching
   const {
@@ -34,7 +37,7 @@ export default function AdminUserDetailPage({ params }: AdminUserDetailPageProps
     messagesLoading,
     learningConnections,
     learningConnectionsLoading,
-  } = useAdminUserData(params.userId);
+  } = useAdminUserData(userId);
 
   // Expansion state management
   const {
