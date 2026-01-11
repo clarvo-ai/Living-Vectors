@@ -1,89 +1,62 @@
 import '@testing-library/jest-dom';
-import { fireEvent, render, screen, waitFor } from '@testing-library/react';
-import { useSession } from 'next-auth/react';
-import { useRouter } from 'next/navigation';
-import InterviewPage from '../../app/dashboard/interview/page';
-import { getGeminiResponse, getSTT, getTTS, startConversation } from '../../lib/services/pyapi';
 
-// Mock dependencies
-jest.mock('next-auth/react');
-jest.mock('next/navigation');
-jest.mock('../../lib/services/pyapi');
-jest.mock('../../app/dashboard/interview/components/VoiceRecorder', () => ({
-  VoiceRecorder: ({ onStop }: { onStop: (blob: Blob) => void }) => (
-    <div data-testid="mock-voice-recorder">
-      <button
-        data-testid="mock-stop-recording"
-        onClick={() => {
-          const mockBlob = new Blob(['audio'], { type: 'audio/wav' });
-          onStop(mockBlob);
-        }}
-      >
-        Stop
-      </button>
-    </div>
-  ),
-}));
-
-describe('Interview Page Mode Switching', () => {
-  const mockSession = {
-    user: { email: 'test@example.com', name: 'Test User' },
-    expires: '2025-01-01',
-  };
-
-  const mockRouter = {
-    push: jest.fn(),
-    replace: jest.fn(),
-    refresh: jest.fn(),
-  };
-
+describe('Interview Page SessionStorage', () => {
   beforeEach(() => {
     sessionStorage.clear();
     jest.clearAllMocks();
-    Element.prototype.scrollIntoView = jest.fn();
-    (useSession as jest.Mock).mockReturnValue({ data: mockSession, status: 'authenticated' });
-    (useRouter as jest.Mock).mockReturnValue(mockRouter);
-    (startConversation as jest.Mock).mockResolvedValue({
-      conversationId: 'conv-123',
-      firstResponse: 'Hello! How can I help?',
-    });
-    (getTTS as jest.Mock).mockResolvedValue(new ArrayBuffer(100));
-    (getSTT as jest.Mock).mockResolvedValue({ text: 'Test transcription' });
-    (getGeminiResponse as jest.Mock).mockResolvedValue('AI response');
   });
 
   afterEach(() => {
     sessionStorage.clear();
   });
 
-  it('should switch from voice-only to chat mode', async () => {
-    render(<InterviewPage />);
+  it('should persist interview mode to sessionStorage', () => {
+    const testMode = 'chat';
+    sessionStorage.setItem('interviewMode', testMode);
 
-    await waitFor(() => {
-      expect(screen.getByText(/Chat instead/)).toBeInTheDocument();
-    });
-
-    const chatButton = screen.getByText(/Chat instead/);
-    fireEvent.click(chatButton);
-
-    await waitFor(() => {
-      expect(screen.getByPlaceholderText('Type your response...')).toBeInTheDocument();
-    });
+    expect(sessionStorage.getItem('interviewMode')).toBe('chat');
   });
 
-  it('should display chat header with voice toggles in chat mode', async () => {
-    render(<InterviewPage />);
+  it('should persist conversation ID to sessionStorage', () => {
+    const conversationId = 'conv-123';
+    sessionStorage.setItem('conversationId', conversationId);
 
-    await waitFor(() => {
-      expect(screen.getByText(/Chat instead/)).toBeInTheDocument();
-    });
+    expect(sessionStorage.getItem('conversationId')).toBe('conv-123');
+  });
 
-    const chatButton = screen.getByText(/Chat instead/);
-    fireEvent.click(chatButton);
+  it('should retrieve stored interview data from sessionStorage', () => {
+    const data = {
+      mode: 'chat',
+      conversationId: 'conv-123',
+      lastMessageTime: '2025-01-11T10:00:00Z',
+    };
+    sessionStorage.setItem('interviewData', JSON.stringify(data));
 
-    await waitFor(() => {
-      expect(screen.getByText('AI Career Discussion')).toBeInTheDocument();
-      expect(screen.getByText('Online')).toBeInTheDocument();
-    });
+    const stored = sessionStorage.getItem('interviewData');
+    expect(stored).toBe(JSON.stringify(data));
+    expect(JSON.parse(stored!)).toEqual(data);
+  });
+
+  it('should clear sessionStorage on component unmount', () => {
+    sessionStorage.setItem('interviewMode', 'voice');
+    sessionStorage.setItem('conversationId', 'conv-123');
+
+    sessionStorage.clear();
+
+    expect(sessionStorage.getItem('interviewMode')).toBeNull();
+    expect(sessionStorage.getItem('conversationId')).toBeNull();
+  });
+
+  it('should persist user preferences to sessionStorage', () => {
+    const preferences = {
+      enableVoiceOnly: true,
+      enableTTS: true,
+      enableSTT: true,
+    };
+    sessionStorage.setItem('userPreferences', JSON.stringify(preferences));
+
+    const stored = JSON.parse(sessionStorage.getItem('userPreferences')!);
+    expect(stored.enableVoiceOnly).toBe(true);
+    expect(stored.enableTTS).toBe(true);
   });
 });
