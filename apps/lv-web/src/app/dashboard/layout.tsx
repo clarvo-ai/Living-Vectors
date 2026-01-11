@@ -64,7 +64,7 @@ function DashboardLayoutContent({ children }: { children: React.ReactNode }) {
     return (
       <div
         className="w-screen h-screen flex items-center justify-center"
-        style={{ backgroundColor: '#edeef2' }}
+        style={{ backgroundColor: 'var(--bg-sidebar)' }}
       >
         <div className="animate-spin rounded-full h-32 w-32 border-b-2 border-gray-900"></div>
       </div>
@@ -76,7 +76,7 @@ function DashboardLayoutContent({ children }: { children: React.ReactNode }) {
   }
 
   return (
-    <div className="flex h-screen w-full" style={{ backgroundColor: '#edeef2' }}>
+    <div className="flex h-screen w-full" style={{ backgroundColor: 'var(--bg-sidebar)' }}>
       {/* Mobile sidebar trigger - hidden on larger screens */}
       <div className="md:hidden fixed top-3 left-4 z-50 pointer-events-auto">
         <button
@@ -92,13 +92,16 @@ function DashboardLayoutContent({ children }: { children: React.ReactNode }) {
       <Sidebar
         collapsible="icon"
         variant="sidebar"
-        style={{ backgroundColor: '#edeef2', cursor: isHovering ? 'col-resize' : 'default' }}
+        style={{
+          backgroundColor: 'var(--bg-sidebar)',
+          cursor: isHovering ? 'col-resize' : 'default',
+        }}
         onMouseEnter={() => setIsHovering(true)}
         onMouseLeave={() => setIsHovering(false)}
         onClick={handleSidebarClick}
       >
         <SidebarContent
-          style={{ backgroundColor: '#edeef2' }}
+          style={{ backgroundColor: 'var(--bg-sidebar)' }}
           className="overflow-y-auto overflow-x-hidden"
         >
           {/* Logo and Sidebar icon */}
@@ -127,13 +130,16 @@ function DashboardLayoutContent({ children }: { children: React.ReactNode }) {
                     tooltip="Interview"
                     style={
                       pathname?.startsWith('/dashboard/interview')
-                        ? { backgroundColor: '#dfe3eb' }
+                        ? { backgroundColor: 'var(--bg-hover)' }
                         : {}
                     }
                     className="justify-between hover:bg-blue-50"
                   >
                     <div className="flex items-center gap-3">
-                      <Phone className="w-5 h-5 flex-shrink-0" style={{ color: '#465280' }} />
+                      <Phone
+                        className="w-5 h-5 flex-shrink-0"
+                        style={{ color: 'var(--icon-sidebar)' }}
+                      />
                       <span
                         className={
                           pathname?.startsWith('/dashboard/interview')
@@ -155,13 +161,16 @@ function DashboardLayoutContent({ children }: { children: React.ReactNode }) {
                     tooltip="Opportunities"
                     style={
                       pathname?.startsWith('/dashboard/opportunities')
-                        ? { backgroundColor: '#dfe3eb' }
+                        ? { backgroundColor: 'var(--bg-hover)' }
                         : {}
                     }
                     className="justify-between hover:bg-blue-50"
                   >
                     <div className="flex items-center gap-3">
-                      <Briefcase className="w-5 h-5 flex-shrink-0" style={{ color: '#465280' }} />
+                      <Briefcase
+                        className="w-5 h-5 flex-shrink-0"
+                        style={{ color: 'var(--icon-sidebar)' }}
+                      />
                       <span
                         className={
                           pathname?.startsWith('/dashboard/opportunities')
@@ -186,13 +195,16 @@ function DashboardLayoutContent({ children }: { children: React.ReactNode }) {
                     tooltip="Profile"
                     style={
                       pathname?.startsWith('/dashboard/profile')
-                        ? { backgroundColor: '#dfe3eb' }
+                        ? { backgroundColor: 'var(--bg-hover)' }
                         : {}
                     }
                     className="justify-between hover:bg-blue-50"
                   >
                     <div className="flex items-center gap-3">
-                      <User className="w-5 h-5 flex-shrink-0" style={{ color: '#465280' }} />
+                      <User
+                        className="w-5 h-5 flex-shrink-0"
+                        style={{ color: 'var(--icon-sidebar)' }}
+                      />
                       <span
                         className={
                           pathname?.startsWith('/dashboard/profile')
@@ -212,7 +224,7 @@ function DashboardLayoutContent({ children }: { children: React.ReactNode }) {
 
         {/* Bottom Profile Menu with Dropdown */}
         <SidebarFooter
-          style={{ backgroundColor: '#edeef2', borderColor: '#d0d2d8' }}
+          style={{ backgroundColor: 'var(--bg-sidebar)', borderColor: 'var(--border-top)' }}
           className="border-t"
         >
           <SidebarMenu>
@@ -266,7 +278,7 @@ function DashboardLayoutContent({ children }: { children: React.ReactNode }) {
         {/* Header for all pages */}
         <div
           className="w-full border-b px-6 py-4"
-          style={{ backgroundColor: '#f3f4f8', borderColor: '#d1d5db' }}
+          style={{ backgroundColor: 'var(--bg-light)', borderColor: 'var(--border-gray)' }}
         >
           <h2 className="text-xl font-semibold text-gray-900 md:pl-0 pl-10">
             {pathname?.startsWith('/dashboard/interview')
@@ -279,7 +291,7 @@ function DashboardLayoutContent({ children }: { children: React.ReactNode }) {
           </h2>
         </div>
         {/* Full-width content area */}
-        <div className="flex-1 overflow-auto" style={{ backgroundColor: '#f3f4f8' }}>
+        <div className="flex-1 overflow-auto" style={{ backgroundColor: 'var(--bg-light)' }}>
           {children}
         </div>
       </main>
@@ -303,7 +315,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
     return (
       <div
         className="w-screen h-screen flex items-center justify-center"
-        style={{ backgroundColor: '#edeef2' }}
+        style={{ backgroundColor: 'var(--bg-sidebar)' }}
       >
         <div className="animate-spin rounded-full h-32 w-32 border-b-2 border-gray-900"></div>
       </div>

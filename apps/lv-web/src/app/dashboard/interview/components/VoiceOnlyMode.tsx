@@ -34,13 +34,19 @@ export function VoiceOnlyMode({
         <div className="flex items-center justify-center animate-pulse">
           <div
             className="w-28 h-28 rounded-full flex items-center justify-center flex-shrink-0"
-            style={{ backgroundColor: '#ffffffff', border: '5px solid #e8e9ee' }}
+            style={{
+              backgroundColor: 'var(--border-white)',
+              border: '5px solid var(--border-light-gray)',
+            }}
           >
             <div
               className="w-16 h-16 rounded-full flex items-center justify-center flex-shrink-0"
-              style={{ backgroundColor: '#f1eefa', border: '3px solid #c4c8ee' }}
+              style={{
+                backgroundColor: 'var(--bg-light-purple)',
+                border: '3px solid var(--border-purple)',
+              }}
             >
-              <Bot className="h-10 w-10" style={{ color: '#626edb' }} />
+              <Bot className="h-10 w-10" style={{ color: 'var(--icon-purple)' }} />
             </div>
           </div>
         </div>
@@ -52,13 +58,19 @@ export function VoiceOnlyMode({
         <div className="flex items-center justify-center">
           <div
             className="w-28 h-28 rounded-full flex items-center justify-center flex-shrink-0"
-            style={{ backgroundColor: '#ffffffff', border: '5px solid #e8e9ee' }}
+            style={{
+              backgroundColor: 'var(--border-white)',
+              border: '5px solid var(--border-light-gray)',
+            }}
           >
             <div
               className="w-16 h-16 rounded-full flex items-center justify-center flex-shrink-0"
-              style={{ backgroundColor: '#f1eefa', border: '3px solid #c4c8ee' }}
+              style={{
+                backgroundColor: 'var(--bg-light-purple)',
+                border: '3px solid var(--border-purple)',
+              }}
             >
-              <Bot className="h-10 w-10" style={{ color: '#626edb' }} />
+              <Bot className="h-10 w-10" style={{ color: 'var(--icon-purple)' }} />
             </div>
           </div>
         </div>
@@ -90,7 +102,7 @@ export function VoiceOnlyMode({
               onClick={onStart}
               className="px-6 py-2 rounded-lg text-white font-normal transition-all transform hover:scale-105 shadow-lg flex items-center gap-2"
               style={{
-                background: 'linear-gradient(135deg, #3b82f6 0%, #8b5cf6 100%)',
+                background: 'var(--gradient-primary)',
               }}
             >
               <Phone className="w-4 h-4" />

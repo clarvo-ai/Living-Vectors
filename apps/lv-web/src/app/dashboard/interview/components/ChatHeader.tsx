@@ -20,11 +20,11 @@ export function ChatHeader({
           <div
             className="w-10 h-10 rounded-full flex items-center justify-center flex-shrink-0"
             style={{
-              backgroundColor: '#f1eefa',
-              border: '2px solid #c4c8ee',
+              backgroundColor: 'var(--bg-light-purple)',
+              border: '2px solid var(--border-purple)',
             }}
           >
-            <Bot className="h-5 w-5" style={{ color: '#626edb' }} />
+            <Bot className="h-5 w-5" style={{ color: 'var(--icon-purple)' }} />
           </div>
           <div className="flex flex-col gap-0 justify-center">
             <h2 className="text-base font-semibold text-gray-900 leading-tight">
@@ -60,7 +60,7 @@ export function ChatHeader({
       </div>
       <div
         className="w-2.5 h-2.5 rounded-full flex-shrink-0 shadow-sm"
-        style={{ backgroundColor: '#10b981' }}
+        style={{ backgroundColor: 'var(--btn-success)' }}
       ></div>
     </div>
   );

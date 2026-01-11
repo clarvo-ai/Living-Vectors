@@ -19,8 +19,8 @@ export function ChatMessage({ message }: { message: Message }) {
           style={
             isUser
               ? {
-                  background: `linear-gradient(135deg, #3b82f6 0%, #8b5cf6 100%)`,
-                  boxShadow: `0px 5px 15px -4px rgba(139, 92, 246, 0.3)`,
+                  background: `var(--gradient-primary)`,
+                  boxShadow: `0px 5px 15px -4px var(--gradient-message-shadow)`,
                   borderRadius: '18px 18px 8px 18px',
                 }
               : {

@@ -283,7 +283,7 @@ export default function InterviewPage() {
       {!voiceOnlyMode && (
         <div
           className="flex items-center px-6 py-2 border-b"
-          style={{ backgroundColor: '#f3f4f8', borderColor: '#d1d5db' }}
+          style={{ backgroundColor: 'var(--bg-light)', borderColor: 'var(--border-gray)' }}
         >
           <ChatHeader
             voiceMode={voiceMode}
@@ -293,7 +293,10 @@ export default function InterviewPage() {
           />
         </div>
       )}
-      <div className="flex-1 flex flex-col overflow-hidden" style={{ backgroundColor: '#f3f4f8' }}>
+      <div
+        className="flex-1 flex flex-col overflow-hidden"
+        style={{ backgroundColor: 'var(--bg-light)' }}
+      >
         {voiceOnlyMode ? (
           <div className="flex-1 flex flex-col items-center justify-center px-6 pt-6 relative">
             <VoiceOnlyMode
@@ -333,8 +336,8 @@ export default function InterviewPage() {
               />
             </div>
             <div
-              className="flex gap-2 items-start pb-4 border-t pt-4 px-6"
-              style={{ borderColor: '#d1d5db' }}
+              className="flex gap-2 items-end pb-4 border-t pt-4 px-6"
+              style={{ borderColor: 'var(--border-gray)' }}
             >
               <div className="flex-1">
                 <ChatInput
@@ -345,7 +348,7 @@ export default function InterviewPage() {
                   onKeyDown={handleKeyDown}
                 />
               </div>
-              <div className="flex h-12 items-center justify-center">
+              <div className="flex items-center justify-center">
                 {isTranscribing ? (
                   <Loader2 className="h-5 w-5 animate-spin text-muted-foreground" />
                 ) : (

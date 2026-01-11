@@ -39,7 +39,7 @@ export function ChatInput({ value, onChange, onSend, isLoading, onKeyDown }: Cha
           style={{
             height: '48px',
             minHeight: '48px',
-            backgroundColor: '#ffffff',
+            backgroundColor: 'var(--bg-white)',
             paddingTop: '12px',
             paddingBottom: '12px',
             paddingLeft: '16px',
@@ -56,14 +56,14 @@ export function ChatInput({ value, onChange, onSend, isLoading, onKeyDown }: Cha
           style={{
             background:
               isLoading || !value.trim()
-                ? `linear-gradient(90deg, rgb(156 163 175) 0%, rgb(107 114 128) 100%)`
-                : `linear-gradient(135deg, #3b82f6 0%, #8b5cf6 100%)`,
+                ? `linear-gradient(90deg, var(--bg-disabled) 0%, var(--bg-disabled-dark) 100%)`
+                : `var(--gradient-primary)`,
             transition: 'all 0.2s ease-in-out',
           }}
           onMouseEnter={(e) => {
             if (!isLoading && value.trim()) {
               e.currentTarget.style.transform = 'scale(1.1)';
-              e.currentTarget.style.boxShadow = `0 8px 16px rgba(139, 92, 246, 0.4)`;
+              e.currentTarget.style.boxShadow = `0 8px 16px var(--gradient-primary-shadow)`;
             }
           }}
           onMouseLeave={(e) => {

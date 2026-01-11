@@ -75,13 +75,13 @@ export function VoiceRecorder({
       onClick={isRecording ? stopRecording : startRecording}
       disabled={disabled}
       type="button"
-      className={`rounded-full flex-shrink-0 border-2 p-0 self-center ${
+      className={`rounded-full flex-shrink-0 border-2 p-0 self-end ${
         isVoiceOnly ? 'h-20 w-20' : 'h-12 w-12'
       }`}
       style={{
         background: isRecording
-          ? 'linear-gradient(135deg, #ef4444 0%, #dc2626 100%) padding-box, linear-gradient(135deg, #dc2626 0%, #991b1b 100%) border-box'
-          : 'linear-gradient(white, white) padding-box, linear-gradient(135deg, #3b82f6 0%, #8b5cf6 100%) border-box',
+          ? `linear-gradient(135deg, var(--color-record-active) 0%, var(--color-record-border) 100%) padding-box, linear-gradient(135deg, var(--color-record-border) 0%, var(--color-record-border) 100%) border-box`
+          : 'linear-gradient(white, white) padding-box, var(--gradient-record-inactive) border-box',
         borderColor: 'transparent',
         display: 'flex',
         alignItems: 'center',
@@ -89,9 +89,15 @@ export function VoiceRecorder({
       }}
     >
       {isRecording ? (
-        <Square className={`text-red-600 ${isVoiceOnly ? 'h-6 w-6' : 'h-4 w-4'}`} />
+        <Square
+          className={`${isVoiceOnly ? 'h-6 w-6' : 'h-4 w-4'}`}
+          style={{ color: 'var(--icon-record-active)' }}
+        />
       ) : (
-        <Mic className={`text-slate-700 ${isVoiceOnly ? 'h-6 w-6' : 'h-4 w-4'}`} />
+        <Mic
+          className={`${isVoiceOnly ? 'h-6 w-6' : 'h-4 w-4'}`}
+          style={{ color: 'var(--icon-record-inactive)' }}
+        />
       )}
     </Button>
   );
