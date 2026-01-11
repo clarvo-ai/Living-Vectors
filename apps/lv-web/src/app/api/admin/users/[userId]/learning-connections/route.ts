@@ -1,20 +1,6 @@
-import { MessageSender, prisma } from '@repo/db';
+import { prisma } from '@repo/db';
 import { requireAdminAuth } from '@repo/lib';
 import { NextRequest, NextResponse } from 'next/server';
-
-export interface LearningConnectionMessage {
-  messageId: string;
-  sender: MessageSender;
-  content: string;
-  createdAt: Date;
-}
-
-export interface LearningConnection {
-  id: string;
-  summary: string;
-  createdAt: Date;
-  messages: LearningConnectionMessage[];
-}
 
 interface RouteParams {
   params: {

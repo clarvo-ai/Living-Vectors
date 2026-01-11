@@ -2,49 +2,14 @@
 
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { MessageSender, UserRole } from '@repo/db';
 import { useRouter } from 'next/navigation';
 import { useCallback, useEffect, useRef, useState } from 'react';
-
-// User data returned by /api/admin/users/[userId]
-interface AdminUserDetail {
-  id: string;
-  name: string | null;
-  email: string;
-  createdAt: string;
-  first_name: string | null;
-  last_name: string | null;
-  role: UserRole;
-}
-
-// Stats data returned by /api/admin/users/[userId]/stats
-interface AdminUserStats {
-  messageCount: number;
-  learningCount: number;
-}
-
-// Messages data returned by /api/admin/users/[userId]/messages
-interface AdminUserMessage {
-  messageId: string;
-  sender: MessageSender;
-  content: string;
-  createdAt: string;
-}
-
-// Learning connections data
-interface LearningConnectionMessage {
-  messageId: string;
-  sender: MessageSender;
-  content: string;
-  createdAt: string;
-}
-
-interface LearningConnection {
-  id: string;
-  summary: string;
-  createdAt: string;
-  messages: LearningConnectionMessage[];
-}
+import type {
+  AdminUserDetail,
+  AdminUserStats,
+  AdminUserMessage,
+  LearningConnection,
+} from '@/types/admin';
 
 interface AdminUserDetailPageProps {
   params: {

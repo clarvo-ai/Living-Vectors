@@ -1,13 +1,6 @@
-import { prisma, MessageSender } from '@repo/db';
+import { prisma } from '@repo/db';
 import { requireAdminAuth } from '@repo/lib';
 import { NextRequest, NextResponse } from 'next/server';
-
-export interface AdminUserMessage {
-  messageId: string;
-  sender: MessageSender;
-  content: string;
-  createdAt: Date;
-}
 
 interface RouteParams {
   params: {
