@@ -9,7 +9,7 @@
     "@types/nodemailer": "^6.4.17",
     "ai": "^5.0.39",
     "next": "^15.5.9",
-    "next-auth": "^4.24.13",
+    "next-auth": "^4.24.11",
     "nodemailer": "^7.0.11",
     "zod": "^3.24.1"
   },
