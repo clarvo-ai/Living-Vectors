@@ -8,9 +8,9 @@ export type AdminUserDetail = Pick<
 >;
 
 interface RouteParams {
-  params: {
+  params: Promise<{
     userId: string;
-  };
+  }>;
 }
 
 export async function GET(request: NextRequest, { params }: RouteParams) {
@@ -20,7 +20,7 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
   }
 
   try {
-    const { userId } = params;
+    const { userId } = await params;
     const user: AdminUserDetail | null = await prisma.user.findUnique({
       where: { id: userId },
       select: {

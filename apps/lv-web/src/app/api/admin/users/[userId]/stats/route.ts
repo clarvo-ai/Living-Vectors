@@ -8,9 +8,9 @@ export interface AdminUserStats {
 }
 
 interface RouteParams {
-  params: {
+  params: Promise<{
     userId: string;
-  };
+  }>;
 }
 
 export async function GET(request: NextRequest, { params }: RouteParams) {
@@ -20,7 +20,7 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
   }
 
   try {
-    const { userId } = params;
+    const { userId } = await params;
 
     // Verify user exists
     const user = await prisma.user.findUnique({
