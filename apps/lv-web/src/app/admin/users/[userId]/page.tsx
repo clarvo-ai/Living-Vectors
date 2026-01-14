@@ -17,9 +17,7 @@ import { VisualModeView } from '@/components/admin/user-detail/VisualModeView';
 interface AdminUserDetailPageProps {
   params: Promise<{
     userId: string;
-  }> | {
-    userId: string;
-  };
+  }>;
 }
 
 export default function AdminUserDetailPage({ params }: AdminUserDetailPageProps) {
