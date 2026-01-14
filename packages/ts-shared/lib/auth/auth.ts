@@ -1,9 +1,8 @@
 import { PrismaAdapter } from '@auth/prisma-adapter';
-import { prisma, Account as PrismaAccount, UserRole } from '@repo/db';
-import { Account, AuthOptions, getServerSession, User } from 'next-auth';
+import { prisma, Account as PrismaAccount } from '@repo/db';
+import { Account, AuthOptions, User } from 'next-auth';
 import { AdapterUser } from 'next-auth/adapters';
 import GoogleProvider from 'next-auth/providers/google';
-import { NextResponse } from 'next/server';
 
 export const isDev = process.env.NODE_ENV === 'development';
 
@@ -15,7 +14,6 @@ declare module 'next-auth' {
       email: string | null;
       image: string | null;
       name: string | null;
-      role: UserRole;
     };
   }
 }
@@ -161,7 +159,6 @@ export const authOptions: AuthOptions = {
           user: {
             ...session.user,
             id: user.id,
-            role: user.role as UserRole,
           },
         };
       } catch (error) {
@@ -250,22 +247,3 @@ const getAccountData = (account: Account, user: User, profile?: any) => {
     picture_url: profileData.picture_url,
   };
 };
-
-/**
- * Admin-only API route guard
- * @returns Returns NextResponse with error if access is denied, null if authorized
- */
-export async function requireAdminAuth() {
-  const session = await getServerSession(authOptions);
-
-  if (!session?.user) {
-    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-  }
-
-  if (session.user.role !== 'ADMIN') {
-    return NextResponse.json({ error: 'Forbidden - Admin access required' }, { status: 403 });
-  }
-
-  return null;
-}
-
