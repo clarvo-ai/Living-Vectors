@@ -99,6 +99,9 @@ const mockLearningConnections = [
   },
 ];
 
+// Helper to create params Promise for the component
+const createParams = (userId: string) => Promise.resolve({ userId });
+
 describe('AdminUserDetailPage', () => {
   // Before each test, clear all mocks and set up the mock fetch responses
   beforeEach(() => {
@@ -113,11 +116,14 @@ describe('AdminUserDetailPage', () => {
     );
   });
 
-  it('displays loading state initially', () => {
+  it('displays loading state initially', async () => {
     (fetch as jest.Mock).mockImplementation(() => new Promise(() => {}));
-    render(<AdminUserDetailPage params={{ userId: 'test-user-id' }} />);
 
-    expect(screen.getByText(/Loading user…/)).toBeInTheDocument();
+    render(<AdminUserDetailPage params={createParams('test-user-id')} />);
+
+    await waitFor(() => {
+      expect(screen.getByText(/Loading user…/)).toBeInTheDocument();
+    });
   });
 
   it('displays error when user fetch fails', async () => {
@@ -130,7 +136,7 @@ describe('AdminUserDetailPage', () => {
       })
     );
 
-    render(<AdminUserDetailPage params={{ userId: 'test-user-id' }} />);
+    render(<AdminUserDetailPage params={createParams('test-user-id')} />);
 
     await waitFor(() => {
       expect(screen.getByText(/Error: Failed to fetch user/)).toBeInTheDocument();
@@ -150,7 +156,7 @@ describe('AdminUserDetailPage', () => {
       })
     );
 
-    render(<AdminUserDetailPage params={{ userId: 'nonexistent' }} />);
+    render(<AdminUserDetailPage params={createParams('nonexistent')} />);
 
     await waitFor(() => {
       expect(screen.getByText(/Error: User not found/)).toBeInTheDocument();
@@ -158,7 +164,7 @@ describe('AdminUserDetailPage', () => {
   });
 
   it('renders user details correctly', async () => {
-    render(<AdminUserDetailPage params={{ userId: 'test-user-id' }} />);
+    render(<AdminUserDetailPage params={createParams('test-user-id')} />);
 
     await waitFor(() => {
       expect(screen.getByText('test@example.com')).toBeInTheDocument();
@@ -172,7 +178,7 @@ describe('AdminUserDetailPage', () => {
   });
 
   it('renders stats cards with counts', async () => {
-    render(<AdminUserDetailPage params={{ userId: 'test-user-id' }} />);
+    render(<AdminUserDetailPage params={createParams('test-user-id')} />);
 
     await waitFor(() => {
       expect(screen.getByText('25')).toBeInTheDocument(); // messageCount
@@ -183,7 +189,7 @@ describe('AdminUserDetailPage', () => {
   });
 
   it('renders chat history with messages', async () => {
-    render(<AdminUserDetailPage params={{ userId: 'test-user-id' }} />);
+    render(<AdminUserDetailPage params={createParams('test-user-id')} />);
 
     await waitFor(() => {
       expect(screen.getByText(/Chat History/i));
@@ -192,7 +198,7 @@ describe('AdminUserDetailPage', () => {
   });
 
   it('shows "Show more" for long messages and toggles expansion', async () => {
-    render(<AdminUserDetailPage params={{ userId: 'test-user-id' }} />);
+    render(<AdminUserDetailPage params={createParams('test-user-id')} />);
 
     await waitFor(() => {
       // Long message should have "Show more" button
@@ -215,7 +221,7 @@ describe('AdminUserDetailPage', () => {
   });
 
   it('renders learning connections with message count', async () => {
-    render(<AdminUserDetailPage params={{ userId: 'test-user-id' }} />);
+    render(<AdminUserDetailPage params={createParams('test-user-id')} />);
 
     await waitFor(() => {
       expect(screen.getByText(/Learning Connections/i)).toBeInTheDocument();
@@ -225,7 +231,7 @@ describe('AdminUserDetailPage', () => {
   });
 
   it('displays view mode toggle buttons', async () => {
-    render(<AdminUserDetailPage params={{ userId: 'test-user-id' }} />);
+    render(<AdminUserDetailPage params={createParams('test-user-id')} />);
 
     await waitFor(() => {
       expect(screen.getByText('List')).toBeInTheDocument();
@@ -234,7 +240,7 @@ describe('AdminUserDetailPage', () => {
   });
 
   it('switches to visual mode when Visual button is clicked', async () => {
-    render(<AdminUserDetailPage params={{ userId: 'test-user-id' }} />);
+    render(<AdminUserDetailPage params={createParams('test-user-id')} />);
 
     await waitFor(() => {
       expect(screen.getByText('Visual')).toBeInTheDocument();
@@ -253,7 +259,7 @@ describe('AdminUserDetailPage', () => {
   });
 
   it('navigates back to users list when back button is clicked', async () => {
-    render(<AdminUserDetailPage params={{ userId: 'test-user-id' }} />);
+    render(<AdminUserDetailPage params={createParams('test-user-id')} />);
 
     await waitFor(() => {
       expect(screen.getByRole('button', { name: /Back to Users/ })).toBeInTheDocument();
@@ -274,7 +280,7 @@ describe('AdminUserDetailPage', () => {
       })
     );
 
-    render(<AdminUserDetailPage params={{ userId: 'test-user-id' }} />);
+    render(<AdminUserDetailPage params={createParams('test-user-id')} />);
 
     await waitFor(() => {
       expect(screen.getByText('No messages yet')).toBeInTheDocument();
