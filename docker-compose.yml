@@ -195,7 +195,13 @@ services:
     volumes:
       - .:/app
     command: pytest tests --asyncio-mode=auto
-
+  
+  livekit:
+    image: livekit/livekit-server:latest
+    command: ["--dev"]
+    ports:
+      - "7880:7880"
+      
 volumes:
   postgres_data:
   postgres_test_data:
