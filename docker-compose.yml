@@ -66,11 +66,15 @@ services:
       - DATABASE_URL=postgresql://postgres:postgres@db:5432/postgres
       - PYTHONPATH=/app:/app/packages/python-utils/src
       - GOOGLE_APPLICATION_CREDENTIALS=/app/apps/lv-pyapi/credentials/google-credentials.json
+      - LIVEKIT_URL=http://127.0.0.1:7880
+      - LIVEKIT_API_KEY=devkey
+      - LIVEKIT_API_SECRET=secret
     volumes:
       - ./apps/lv-pyapi:/app/apps/lv-pyapi
       - ./packages/python-utils:/app/packages/python-utils
     depends_on:
       - db
+      - livekit
     restart: always
 
   # lv-pyapi-tests:
@@ -195,13 +199,13 @@ services:
     volumes:
       - .:/app
     command: pytest tests --asyncio-mode=auto
-  
+
   livekit:
     image: livekit/livekit-server:latest
-    command: ["--dev"]
+    command: ['--dev']
     ports:
-      - "7880:7880"
-      
+      - '7880:7880'
+
 volumes:
   postgres_data:
   postgres_test_data:
