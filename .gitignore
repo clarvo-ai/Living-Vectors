@@ -59,6 +59,9 @@ yarn-error.log*
 .env.test.local
 .env.production.local
 
+# credentials
+google-credentials.json
+
 # vercel
 .vercel
 
