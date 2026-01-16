@@ -25,7 +25,7 @@ export default function AdminUserDetailPage({ params }: AdminUserDetailPageProps
   const [userId, setUserId] = useState<string | null>(null);
 
   useEffect(() => {
-    params.then((resolvedParams) => {
+    Promise.resolve(params).then((resolvedParams) => {
       setUserId(resolvedParams.userId);
     });
   }, [params]);
