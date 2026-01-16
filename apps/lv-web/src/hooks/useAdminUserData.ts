@@ -1,10 +1,10 @@
-import { useEffect, useState } from 'react';
 import type {
   AdminUserDetail,
-  AdminUserStats,
   AdminUserMessage,
+  AdminUserStats,
   LearningConnection,
 } from '@/types/admin';
+import { useEffect, useState } from 'react';
 
 export function useAdminUserData(userId: string) {
   const [user, setUser] = useState<AdminUserDetail | null>(null);
@@ -18,6 +18,22 @@ export function useAdminUserData(userId: string) {
   const [learningConnectionsLoading, setLearningConnectionsLoading] = useState(true);
 
   useEffect(() => {
+    if (!userId) {
+      // Reset loading states when userId is missing
+      setLoading(false);
+      setStatsLoading(false);
+      setMessagesLoading(false);
+      setLearningConnectionsLoading(false);
+      return;
+    }
+
+    // Reset loading states when starting a new fetch
+    setLoading(true);
+    setStatsLoading(true);
+    setMessagesLoading(true);
+    setLearningConnectionsLoading(true);
+    setError(null);
+
     // Fetch user details
     fetch(`/api/admin/users/${userId}`)
       .then((res) => {

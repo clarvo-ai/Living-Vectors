@@ -156,12 +156,18 @@ export const authOptions: AuthOptions = {
           return session;
         }
 
+        // Fetch user from database to get role
+        const dbUser = await prisma.user.findUnique({
+          where: { id: user.id },
+          select: { role: true },
+        });
+
         return {
           ...session,
           user: {
             ...session.user,
             id: user.id,
-            role: user.role as UserRole,
+            role: dbUser?.role ?? UserRole.USER,
           },
         };
       } catch (error) {
