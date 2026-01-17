@@ -1,13 +1,10 @@
-import { Chat, useRoomContext, VoiceAssistantControlBar } from '@livekit/components-react';
+import { useRoomContext, VoiceAssistantControlBar } from '@livekit/components-react';
 import '@livekit/components-styles';
-import { Bot, Loader2, Phone } from 'lucide-react';
+import { Bot, Phone } from 'lucide-react';
 import { useEffect, useState } from 'react';
 import { TranscriptionDisplay } from './TranscriptionDisplay';
 
 interface VoiceOnlyModeProps {
-  isAiSpeaking: boolean;
-  isUserRecording: boolean;
-  isProcessing: boolean;
   onStart?: () => void;
   onGoToChat?: () => void;
   messageCount?: number;
@@ -15,9 +12,6 @@ interface VoiceOnlyModeProps {
 }
 
 export function VoiceOnlyMode({
-  isAiSpeaking,
-  isUserRecording,
-  isProcessing,
   onStart,
   onGoToChat,
   messageCount = 0,
@@ -29,15 +23,13 @@ export function VoiceOnlyMode({
 
   // Initialize LiveKit token for voice when component mounts
   useEffect(() => {
-    if (!token) {
-      const testToken = process.env.NEXT_PUBLIC_LIVEKIT_TEST_TOKEN;
-      if (testToken) {
-        setToken(testToken);
-      } else {
-        setError('LiveKit test token not configured');
-      }
+    const testToken = process.env.NEXT_PUBLIC_LIVEKIT_TEST_TOKEN;
+    if (testToken) {
+      setToken(testToken);
+    } else {
+      setError('LiveKit test token not configured');
     }
-  }, [token]);
+  }, []);
 
   // Connect/disconnect room
   useEffect(() => {
@@ -57,7 +49,7 @@ export function VoiceOnlyMode({
     return () => {
       // Room disconnect is handled at page level
     };
-  }, [hasStarted, token, room]);
+  }, [hasStarted, token]);
 
   // If room is active, show LiveKit voice room (audio only)
   if (hasStarted && token && room) {
@@ -86,7 +78,6 @@ export function VoiceOnlyMode({
           <p className="text-xl font-medium text-gray-600">Connected to voice agent</p>
           <div className="mt-8">
             <VoiceAssistantControlBar />
-            <Chat />
           </div>
           <button
             onClick={onGoToChat}
@@ -106,71 +97,33 @@ export function VoiceOnlyMode({
       data-testid="voice-only-mode"
       className="flex-1 w-full flex flex-col items-center justify-center space-y-8"
     >
-      {!isAiSpeaking && !isUserRecording && !isProcessing && !hasStarted && messageCount === 1 && (
+      {!hasStarted && messageCount === 1 && (
         <div className="text-center space-y-2">
           <p className="text-2xl font-semibold text-gray-700">Welcome to the interview!</p>
           <p className="text-sm text-gray-500">Press the button to start</p>
         </div>
       )}
-      {isAiSpeaking ? (
-        <div className="flex items-center justify-center animate-pulse">
+      <div className="flex items-center justify-center">
+        <div
+          className="w-28 h-28 rounded-full flex items-center justify-center flex-shrink-0"
+          style={{
+            backgroundColor: 'var(--border-white)',
+            border: '5px solid var(--border-light-gray)',
+          }}
+        >
           <div
-            className="w-28 h-28 rounded-full flex items-center justify-center flex-shrink-0"
+            className="w-16 h-16 rounded-full flex items-center justify-center flex-shrink-0"
             style={{
-              backgroundColor: 'var(--border-white)',
-              border: '5px solid var(--border-light-gray)',
+              backgroundColor: 'var(--bg-light-purple)',
+              border: '3px solid var(--border-purple)',
             }}
           >
-            <div
-              className="w-16 h-16 rounded-full flex items-center justify-center flex-shrink-0"
-              style={{
-                backgroundColor: 'var(--bg-light-purple)',
-                border: '3px solid var(--border-purple)',
-              }}
-            >
-              <Bot className="h-10 w-10" style={{ color: 'var(--icon-purple)' }} />
-            </div>
+            <Bot className="h-10 w-10" style={{ color: 'var(--icon-purple)' }} />
           </div>
         </div>
-      ) : isProcessing ? (
-        <Loader2 className="h-24 w-24 text-blue-500 animate-spin" />
-      ) : (
-        <div className="flex items-center justify-center">
-          <div
-            className="w-28 h-28 rounded-full flex items-center justify-center flex-shrink-0"
-            style={{
-              backgroundColor: 'var(--border-white)',
-              border: '5px solid var(--border-light-gray)',
-            }}
-          >
-            <div
-              className="w-16 h-16 rounded-full flex items-center justify-center flex-shrink-0"
-              style={{
-                backgroundColor: 'var(--bg-light-purple)',
-                border: '3px solid var(--border-purple)',
-              }}
-            >
-              <Bot className="h-10 w-10" style={{ color: 'var(--icon-purple)' }} />
-            </div>
-          </div>
-        </div>
-      )}
+      </div>
       <div className="text-xl font-medium text-gray-600">
-        {isAiSpeaking ? (
-          <div className="flex flex-col items-center gap-2">
-            <span>AI is speaking...</span>
-            <button
-              onClick={onGoToChat}
-              className="px-4 py-1 text-sm text-gray-500 hover:text-gray-700 transition-colors"
-            >
-              Chat instead
-            </button>
-          </div>
-        ) : isUserRecording ? (
-          'Listening...'
-        ) : isProcessing ? (
-          'Waiting for AI...'
-        ) : !hasStarted && messageCount === 1 ? (
+        {!hasStarted ? (
           <div className="flex flex-col items-center gap-4">
             <button
               onClick={onGoToChat}
