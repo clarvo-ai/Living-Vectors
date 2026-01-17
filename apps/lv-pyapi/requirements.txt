@@ -13,3 +13,4 @@ python-multipart==0.0.21
 pytest==9.0.0
 pytest-cov==4.1.0
 pytest-mock==3.15.1
+livekit-agents[google]~=1.3
