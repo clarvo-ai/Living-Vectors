@@ -1,10 +1,5 @@
-import {
-  RoomAudioRenderer,
-  RoomContext,
-  VoiceAssistantControlBar,
-} from '@livekit/components-react';
+import { Chat, useRoomContext, VoiceAssistantControlBar } from '@livekit/components-react';
 import '@livekit/components-styles';
-import { Room } from 'livekit-client';
 import { Bot, Loader2, Phone } from 'lucide-react';
 import { useEffect, useState } from 'react';
 import { TranscriptionDisplay } from './TranscriptionDisplay';
@@ -28,13 +23,13 @@ export function VoiceOnlyMode({
   messageCount = 0,
   hasStarted,
 }: VoiceOnlyModeProps) {
-  const [token, setToken] = useState<string | null>(null);
+  const room = useRoomContext();
   const [error, setError] = useState<string | null>(null);
-  const [room] = useState(() => new Room({}));
+  const [token, setToken] = useState<string | null>(null);
 
-  // Initialize LiveKit room when component mounts
+  // Initialize LiveKit token for voice when component mounts
   useEffect(() => {
-    if (hasStarted && !token) {
+    if (!token) {
       const testToken = process.env.NEXT_PUBLIC_LIVEKIT_TEST_TOKEN;
       if (testToken) {
         setToken(testToken);
@@ -42,11 +37,11 @@ export function VoiceOnlyMode({
         setError('LiveKit test token not configured');
       }
     }
-  }, [hasStarted, token]);
+  }, [token]);
 
   // Connect/disconnect room
   useEffect(() => {
-    if (!hasStarted || !token) return;
+    if (!hasStarted || !token || !room) return;
 
     const connect = async () => {
       try {
@@ -60,49 +55,47 @@ export function VoiceOnlyMode({
     connect();
 
     return () => {
-      room.disconnect();
+      // Room disconnect is handled at page level
     };
   }, [hasStarted, token, room]);
 
   // If room is active, show LiveKit voice room (audio only)
-  if (hasStarted && token) {
+  if (hasStarted && token && room) {
     return (
       <div className="flex-1 w-full flex flex-col items-center justify-center">
-        <RoomContext.Provider value={room}>
-          <RoomAudioRenderer />
-          <div className="flex flex-col items-center justify-center h-full gap-6">
-            <div className="flex items-center justify-center animate-pulse">
+        <div className="flex flex-col items-center justify-center h-full gap-6">
+          <div className="flex items-center justify-center animate-pulse">
+            <div
+              className="w-28 h-28 rounded-full flex items-center justify-center flex-shrink-0"
+              style={{
+                backgroundColor: 'var(--border-white)',
+                border: '5px solid var(--border-light-gray)',
+              }}
+            >
               <div
-                className="w-28 h-28 rounded-full flex items-center justify-center flex-shrink-0"
+                className="w-16 h-16 rounded-full flex items-center justify-center flex-shrink-0"
                 style={{
-                  backgroundColor: 'var(--border-white)',
-                  border: '5px solid var(--border-light-gray)',
+                  backgroundColor: 'var(--bg-light-purple)',
+                  border: '3px solid var(--border-purple)',
                 }}
               >
-                <div
-                  className="w-16 h-16 rounded-full flex items-center justify-center flex-shrink-0"
-                  style={{
-                    backgroundColor: 'var(--bg-light-purple)',
-                    border: '3px solid var(--border-purple)',
-                  }}
-                >
-                  <Bot className="h-10 w-10" style={{ color: 'var(--icon-purple)' }} />
-                </div>
+                <Bot className="h-10 w-10" style={{ color: 'var(--icon-purple)' }} />
               </div>
             </div>
-            <p className="text-xl font-medium text-gray-600">Connected to voice agent</p>
-            <div className="mt-8">
-              <VoiceAssistantControlBar />
-            </div>
-            <button
-              onClick={onGoToChat}
-              className="px-4 py-1 text-sm text-gray-500 hover:text-gray-700 transition-colors mt-4"
-            >
-              Chat instead
-            </button>
-            <TranscriptionDisplay />
           </div>
-        </RoomContext.Provider>
+          <p className="text-xl font-medium text-gray-600">Connected to voice agent</p>
+          <div className="mt-8">
+            <VoiceAssistantControlBar />
+            <Chat />
+          </div>
+          <button
+            onClick={onGoToChat}
+            className="px-4 py-1 text-sm text-gray-500 hover:text-gray-700 transition-colors mt-4"
+          >
+            Chat instead
+          </button>
+          <TranscriptionDisplay />
+        </div>
       </div>
     );
   }

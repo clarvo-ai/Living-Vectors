@@ -1,6 +1,9 @@
 'use client';
 
 import { getGeminiResponse, startConversation } from '@/lib/services/pyapi';
+import { RoomAudioRenderer, RoomContext } from '@livekit/components-react';
+import '@livekit/components-styles';
+import { Room } from 'livekit-client';
 import { Loader2 } from 'lucide-react';
 import { useSession } from 'next-auth/react';
 import { useRouter } from 'next/navigation';
@@ -16,6 +19,8 @@ import { VoiceRecorder } from './components/VoiceRecorder';
 export default function InterviewPage() {
   const { data: session, status } = useSession();
   const router = useRouter();
+  const [room] = useState(() => new Room({}));
+  const [token, setToken] = useState<string | null>(null);
   const [messages, setMessages] = useState<Message[]>(() => {
     if (typeof window !== 'undefined') {
       const saved = sessionStorage.getItem('interview-messages');
@@ -70,8 +75,9 @@ export default function InterviewPage() {
   useEffect(() => {
     return () => {
       stopAudio();
+      room.disconnect();
     };
-  }, []);
+  }, [room]);
 
   // Upon mount run the start script once (first time chatting)
   useEffect(() => {
@@ -79,6 +85,14 @@ export default function InterviewPage() {
 
     //Do data fetching before this
     firstChat();
+
+    // Initialize LiveKit token for voice features
+    if (!token) {
+      const testToken = process.env.NEXT_PUBLIC_LIVEKIT_TEST_TOKEN;
+      if (testToken) {
+        setToken(testToken);
+      }
+    }
   }, []);
 
   async function firstChat() {
@@ -272,94 +286,97 @@ export default function InterviewPage() {
   }
 
   return (
-    <div className="h-full flex flex-col">
-      {!voiceOnlyMode && (
-        <div
-          className="flex items-center px-6 py-2 border-b"
-          style={{ backgroundColor: 'var(--bg-light)', borderColor: 'var(--border-gray)' }}
-        >
-          <ChatHeader
-            voiceMode={voiceMode}
-            setVoiceMode={setVoiceMode}
-            voiceOnlyMode={voiceOnlyMode}
-            setVoiceOnlyMode={setVoiceOnlyMode}
-          />
-        </div>
-      )}
-      <div
-        className="flex-1 flex flex-col overflow-hidden"
-        style={{ backgroundColor: 'var(--bg-light)' }}
-      >
-        {voiceOnlyMode ? (
-          <div className="flex-1 flex flex-col items-center justify-center px-6 pt-6 relative">
-            <VoiceOnlyMode
-              isAiSpeaking={isAiSpeaking}
-              isUserRecording={isUserRecording}
-              isProcessing={isLoading || isTranscribing}
-              messageCount={messages.length}
-              hasStarted={hasStarted}
-              onStart={() => {
-                setHasStarted(true);
-                // Voice agent will handle initial greeting via LiveKit
-              }}
-              onGoToChat={() => setVoiceOnlyMode(false)}
+    <RoomContext.Provider value={room}>
+      <RoomAudioRenderer />
+      <div className="h-full flex flex-col">
+        {!voiceOnlyMode && (
+          <div
+            className="flex items-center px-6 py-2 border-b"
+            style={{ backgroundColor: 'var(--bg-light)', borderColor: 'var(--border-gray)' }}
+          >
+            <ChatHeader
+              voiceMode={voiceMode}
+              setVoiceMode={setVoiceMode}
+              voiceOnlyMode={voiceOnlyMode}
+              setVoiceOnlyMode={setVoiceOnlyMode}
             />
-            <div className="absolute left-0 right-0 bottom-4 flex justify-center">
-              {isTranscribing ? (
-                <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
-              ) : hasStarted || messages.length > 1 ? (
-                <VoiceRecorder
-                  onRecordingComplete={handleVoiceRecording}
-                  onRecordingStateChange={setIsUserRecording}
-                  disabled={isLoading}
-                  isVoiceOnly={voiceOnlyMode}
-                />
-              ) : null}
-            </div>
           </div>
-        ) : (
-          <>
-            <div className="flex-1 overflow-auto px-6 pt-6">
-              <MessagesList
-                messages={messages}
-                isLoading={isLoading}
-                messagesEndRef={messagesEndRef}
+        )}
+        <div
+          className="flex-1 flex flex-col overflow-hidden"
+          style={{ backgroundColor: 'var(--bg-light)' }}
+        >
+          {voiceOnlyMode ? (
+            <div className="flex-1 flex flex-col items-center justify-center px-6 pt-6 relative">
+              <VoiceOnlyMode
+                isAiSpeaking={isAiSpeaking}
+                isUserRecording={isUserRecording}
+                isProcessing={isLoading || isTranscribing}
+                messageCount={messages.length}
+                hasStarted={hasStarted}
+                onStart={() => {
+                  setHasStarted(true);
+                  // Voice agent will handle initial greeting via LiveKit
+                }}
+                onGoToChat={() => setVoiceOnlyMode(false)}
               />
-            </div>
-            <div
-              className="flex gap-2 items-end pb-4 border-t pt-4 px-6"
-              style={{ borderColor: 'var(--border-gray)' }}
-            >
-              <div className="flex-1">
-                <ChatInput
-                  value={input}
-                  onChange={setInput}
-                  onSend={() => handleSend()}
-                  isLoading={isLoading}
-                  onKeyDown={handleKeyDown}
-                />
-              </div>
-              <div className="flex items-center justify-center">
+              <div className="absolute left-0 right-0 bottom-4 flex justify-center">
                 {isTranscribing ? (
-                  <Loader2 className="h-5 w-5 animate-spin text-muted-foreground" />
-                ) : (
+                  <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
+                ) : hasStarted || messages.length > 1 ? (
                   <VoiceRecorder
                     onRecordingComplete={handleVoiceRecording}
                     onRecordingStateChange={setIsUserRecording}
-                    disabled={isLoading || messages.length === 0}
+                    disabled={isLoading}
+                    isVoiceOnly={voiceOnlyMode}
                   />
-                )}
+                ) : null}
               </div>
             </div>
-          </>
-        )}
-      </div>
+          ) : (
+            <>
+              <div className="flex-1 overflow-auto px-6 pt-6">
+                <MessagesList
+                  messages={messages}
+                  isLoading={isLoading}
+                  messagesEndRef={messagesEndRef}
+                />
+              </div>
+              <div
+                className="flex gap-2 items-end pb-4 border-t pt-4 px-6"
+                style={{ borderColor: 'var(--border-gray)' }}
+              >
+                <div className="flex-1">
+                  <ChatInput
+                    value={input}
+                    onChange={setInput}
+                    onSend={() => handleSend()}
+                    isLoading={isLoading}
+                    onKeyDown={handleKeyDown}
+                  />
+                </div>
+                <div className="flex items-center justify-center">
+                  {isTranscribing ? (
+                    <Loader2 className="h-5 w-5 animate-spin text-muted-foreground" />
+                  ) : (
+                    <VoiceRecorder
+                      onRecordingComplete={handleVoiceRecording}
+                      onRecordingStateChange={setIsUserRecording}
+                      disabled={isLoading || messages.length === 0}
+                    />
+                  )}
+                </div>
+              </div>
+            </>
+          )}
+        </div>
 
-      <EndInterviewDialog
-        open={showEndInterviewDialog}
-        onOpenChange={setShowEndInterviewDialog}
-        onConfirm={handleEndInterview}
-      />
-    </div>
+        <EndInterviewDialog
+          open={showEndInterviewDialog}
+          onOpenChange={setShowEndInterviewDialog}
+          onConfirm={handleEndInterview}
+        />
+      </div>
+    </RoomContext.Provider>
   );
 }
