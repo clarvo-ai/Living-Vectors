@@ -1,4 +1,13 @@
-import { Bot, Loader2, Mic, Phone } from 'lucide-react';
+import {
+  RoomAudioRenderer,
+  RoomContext,
+  VoiceAssistantControlBar,
+} from '@livekit/components-react';
+import '@livekit/components-styles';
+import { Room } from 'livekit-client';
+import { Bot, Loader2, Phone } from 'lucide-react';
+import { useEffect, useState } from 'react';
+import { TranscriptionDisplay } from './TranscriptionDisplay';
 
 interface VoiceOnlyModeProps {
   isAiSpeaking: boolean;
@@ -19,6 +28,86 @@ export function VoiceOnlyMode({
   messageCount = 0,
   hasStarted,
 }: VoiceOnlyModeProps) {
+  const [token, setToken] = useState<string | null>(null);
+  const [error, setError] = useState<string | null>(null);
+  const [room] = useState(() => new Room({}));
+
+  // Initialize LiveKit room when component mounts
+  useEffect(() => {
+    if (hasStarted && !token) {
+      const testToken = process.env.NEXT_PUBLIC_LIVEKIT_TEST_TOKEN;
+      if (testToken) {
+        setToken(testToken);
+      } else {
+        setError('LiveKit test token not configured');
+      }
+    }
+  }, [hasStarted, token]);
+
+  // Connect/disconnect room
+  useEffect(() => {
+    if (!hasStarted || !token) return;
+
+    const connect = async () => {
+      try {
+        await room.connect(process.env.NEXT_PUBLIC_LIVEKIT_URL || '', token);
+      } catch (e) {
+        console.error('Failed to connect to room:', e);
+        setError('Failed to connect to voice agent');
+      }
+    };
+
+    connect();
+
+    return () => {
+      room.disconnect();
+    };
+  }, [hasStarted, token, room]);
+
+  // If room is active, show LiveKit voice room (audio only)
+  if (hasStarted && token) {
+    return (
+      <div className="flex-1 w-full flex flex-col items-center justify-center">
+        <RoomContext.Provider value={room}>
+          <RoomAudioRenderer />
+          <div className="flex flex-col items-center justify-center h-full gap-6">
+            <div className="flex items-center justify-center animate-pulse">
+              <div
+                className="w-28 h-28 rounded-full flex items-center justify-center flex-shrink-0"
+                style={{
+                  backgroundColor: 'var(--border-white)',
+                  border: '5px solid var(--border-light-gray)',
+                }}
+              >
+                <div
+                  className="w-16 h-16 rounded-full flex items-center justify-center flex-shrink-0"
+                  style={{
+                    backgroundColor: 'var(--bg-light-purple)',
+                    border: '3px solid var(--border-purple)',
+                  }}
+                >
+                  <Bot className="h-10 w-10" style={{ color: 'var(--icon-purple)' }} />
+                </div>
+              </div>
+            </div>
+            <p className="text-xl font-medium text-gray-600">Connected to voice agent</p>
+            <div className="mt-8">
+              <VoiceAssistantControlBar />
+            </div>
+            <button
+              onClick={onGoToChat}
+              className="px-4 py-1 text-sm text-gray-500 hover:text-gray-700 transition-colors mt-4"
+            >
+              Chat instead
+            </button>
+            <TranscriptionDisplay />
+          </div>
+        </RoomContext.Provider>
+      </div>
+    );
+  }
+
+  // Original UI when not in room
   return (
     <div
       data-testid="voice-only-mode"
@@ -50,8 +139,6 @@ export function VoiceOnlyMode({
             </div>
           </div>
         </div>
-      ) : isUserRecording ? (
-        <Mic className="h-24 w-24 text-red-500 animate-pulse" />
       ) : isProcessing ? (
         <Loader2 className="h-24 w-24 text-blue-500 animate-spin" />
       ) : (

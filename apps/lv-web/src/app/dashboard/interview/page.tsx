@@ -1,6 +1,6 @@
 'use client';
 
-import { getGeminiResponse, getSTT, getTTS, startConversation } from '@/lib/services/pyapi';
+import { getGeminiResponse, startConversation } from '@/lib/services/pyapi';
 import { Loader2 } from 'lucide-react';
 import { useSession } from 'next-auth/react';
 import { useRouter } from 'next/navigation';
@@ -156,12 +156,7 @@ export default function InterviewPage() {
   useEffect(() => {
     const wasActivatedByUser = sessionStorage.getItem('voiceOnlyActivatedByUser') === 'true';
     if (voiceOnlyMode && messages.length > 1 && wasActivatedByUser) {
-      const lastMessage = messages[messages.length - 1];
-      if (lastMessage?.role === 'ai') {
-        getTTS(lastMessage.content)
-          .then((blob) => playAudio(blob))
-          .catch((e) => console.error('TTS error', e));
-      }
+      // Voice agent will handle TTS via LiveKit
     }
   }, [voiceOnlyMode]); // Only depend on voiceOnlyMode to trigger when switching modes
 
@@ -176,8 +171,8 @@ export default function InterviewPage() {
     //console.log('handleVoiceRecording called with blob size:', blob.size);
     setIsTranscribing(true);
     try {
-      const { transcript } = await getSTT(blob);
-      handleSend(transcript);
+      // Voice agent will handle STT via LiveKit
+      // This function is kept for legacy compatibility but not used in voice-only mode
     } catch (error) {
       console.error('STT error:', error);
     } finally {
@@ -231,9 +226,7 @@ export default function InterviewPage() {
       setIsLoading(false);
 
       if ((voiceMode && !voiceOnlyMode) || voiceOnlyMode) {
-        getTTS(data.message)
-          .then((audioBlob) => playAudio(audioBlob))
-          .catch((e) => console.error('TTS error', e));
+        // Voice agent will handle TTS via LiveKit
       }
     } catch (error) {
       // In case an error occurs
@@ -307,9 +300,7 @@ export default function InterviewPage() {
               hasStarted={hasStarted}
               onStart={() => {
                 setHasStarted(true);
-                getTTS(messages[0]?.content)
-                  .then((blob) => playAudio(blob))
-                  .catch((e) => console.error('TTS error', e));
+                // Voice agent will handle initial greeting via LiveKit
               }}
               onGoToChat={() => setVoiceOnlyMode(false)}
             />

@@ -68,6 +68,10 @@ export function VoiceRecorder({
     }
   }, [disabled, isRecording, stopRecording]);
 
+  if (isVoiceOnly) {
+    return null;
+  }
+
   return (
     <Button
       variant={isRecording ? 'destructive' : 'secondary'}
@@ -75,9 +79,7 @@ export function VoiceRecorder({
       onClick={isRecording ? stopRecording : startRecording}
       disabled={disabled}
       type="button"
-      className={`rounded-full flex-shrink-0 border-2 p-0 self-center ${
-        isVoiceOnly ? 'h-20 w-20' : 'h-12 w-12'
-      }`}
+      className={`rounded-full flex-shrink-0 border-2 p-0 self-center h-12 w-12`}
       style={{
         background: isRecording
           ? `linear-gradient(135deg, var(--color-record-active) 0%, var(--color-record-border) 100%) padding-box, linear-gradient(135deg, var(--color-record-border) 0%, var(--color-record-border) 100%) border-box`
@@ -89,15 +91,9 @@ export function VoiceRecorder({
       }}
     >
       {isRecording ? (
-        <Square
-          className={`${isVoiceOnly ? 'h-6 w-6' : 'h-4 w-4'}`}
-          style={{ color: 'var(--icon-record-active)' }}
-        />
+        <Square className="h-4 w-4" style={{ color: 'var(--icon-record-active)' }} />
       ) : (
-        <Mic
-          className={`${isVoiceOnly ? 'h-6 w-6' : 'h-4 w-4'}`}
-          style={{ color: 'var(--icon-record-inactive)' }}
-        />
+        <Mic className="h-4 w-4" style={{ color: 'var(--icon-record-inactive)' }} />
       )}
     </Button>
   );
