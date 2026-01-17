@@ -60,13 +60,15 @@ services:
     build:
       context: .
       dockerfile: ./apps/lv-pyapi/Dockerfile
+    env_file:
+      - ./apps/lv-pyapi/.env.local
     ports:
       - '8091:8080'
     environment:
       - DATABASE_URL=postgresql://postgres:postgres@db:5432/postgres
       - PYTHONPATH=/app:/app/packages/python-utils/src
       - GOOGLE_APPLICATION_CREDENTIALS=/app/apps/lv-pyapi/credentials/google-credentials.json
-      - LIVEKIT_URL=http://127.0.0.1:7880
+      - LIVEKIT_URL=ws://livekit:7880
       - LIVEKIT_API_KEY=devkey
       - LIVEKIT_API_SECRET=secret
     volumes:
