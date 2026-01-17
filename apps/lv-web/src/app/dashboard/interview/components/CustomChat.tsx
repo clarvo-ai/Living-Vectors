@@ -1,7 +1,7 @@
 'use client';
 
 import { Button } from '@/components/ui/button';
-import { useChat, useRoomContext } from '@livekit/components-react';
+import { useChat, useRoomContext, useTranscriptions } from '@livekit/components-react';
 import { Textarea } from '@repo/ui/components/textarea';
 import { Send } from 'lucide-react';
 import { useEffect, useRef, useState } from 'react';
@@ -16,6 +16,7 @@ interface ChatMessage {
 export function CustomChat() {
   const room = useRoomContext();
   const { chatMessages, send } = useChat();
+  const transcriptions = useTranscriptions();
   const [input, setInput] = useState('');
   const [displayMessages, setDisplayMessages] = useState<ChatMessage[]>([]);
   const messagesEndRef = useRef<HTMLDivElement>(null);
@@ -23,17 +24,45 @@ export function CustomChat() {
 
   // Sync LiveKit chat messages with display
   useEffect(() => {
-    const converted = chatMessages.map((msg) => {
+    const messages: ChatMessage[] = [];
+
+    // Add all chat messages (includes both text chat and transcriptions from LiveKit)
+    chatMessages.forEach((msg) => {
       const role: 'user' | 'ai' = msg.from?.isLocal ? 'user' : 'ai';
-      return {
-        id: msg.id || Date.now().toString(),
+      messages.push({
+        id: msg.id || `chat-${msg.timestamp}`,
         role,
         content: msg.message,
         timestamp: new Date(msg.timestamp || Date.now()),
-      };
+      });
     });
-    setDisplayMessages(converted);
-  }, [chatMessages]);
+
+    // Add transcriptions that aren't already in chat messages
+    // (for real-time partial transcriptions)
+    const chatContent = new Set(chatMessages.map((m) => m.message));
+    transcriptions.forEach((transcription) => {
+      // Skip if already in chat messages
+      if (chatContent.has(transcription.text)) {
+        return;
+      }
+
+      const isAgent = transcription.participantInfo?.identity?.toLowerCase().includes('agent');
+      messages.push({
+        id: `transcription-${transcription.participantInfo?.identity}-${Date.now()}-${Math.random()}`,
+        role: isAgent ? 'ai' : 'user',
+        content: transcription.text,
+        timestamp: new Date(),
+      });
+    });
+
+    // Sort by timestamp, keep insertion order for same timestamp
+    messages.sort((a, b) => {
+      const timeDiff = a.timestamp.getTime() - b.timestamp.getTime();
+      return timeDiff;
+    });
+
+    setDisplayMessages(messages);
+  }, [chatMessages, transcriptions]);
 
   // Auto-scroll to bottom
   useEffect(() => {
