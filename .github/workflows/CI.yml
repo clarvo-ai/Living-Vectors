@@ -44,6 +44,13 @@ jobs:
         run: pip-audit -r apps/lv-pyapi/requirements.txt
         continue-on-error: true
 
+      - name: Install bandit
+        run: pip install bandit
+
+      - name: Run bandit
+        run: bandit -r apps/lv-pyapi -f json -o bandit-report.json
+        continue-on-error: true
+
   lint:
     needs: security-audit
     runs-on: ubuntu-latest
