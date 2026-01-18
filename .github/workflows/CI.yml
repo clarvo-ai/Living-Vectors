@@ -8,6 +8,10 @@ on:
       - reopened
       - synchronize
 
+permissions:
+  contents: read
+  security-events: write
+
 jobs:
   security-audit:
     runs-on: ubuntu-latest
@@ -209,6 +213,12 @@ jobs:
           format: 'sarif'
           output: 'trivy-lv-web-results.sarif'
 
+      - name: Upload Trivy lv-web results to GitHub Security tab
+        uses: github/codeql-action/upload-sarif@v4
+        with:
+          sarif_file: 'trivy-lv-web-results.sarif'
+          category: 'trivy-lv-web'
+
       - name: Run Trivy vulnerability scanner on lv-pyapi
         uses: aquasecurity/trivy-action@master
         with:
@@ -216,8 +226,9 @@ jobs:
           format: 'sarif'
           output: 'trivy-lv-pyapi-results.sarif'
 
-      - name: Upload Trivy results to GitHub Security tab
-        uses: github/codeql-action/upload-sarif@v3
+      - name: Upload Trivy lv-pyapi results to GitHub Security tab
+        uses: github/codeql-action/upload-sarif@v4
         with:
-          sarif_file: '.'
+          sarif_file: 'trivy-lv-pyapi-results.sarif'
+          category: 'trivy-lv-pyapi'
 
