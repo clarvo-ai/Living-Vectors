@@ -162,7 +162,7 @@ jobs:
       - name: Build lv-pyapi image
         uses: docker/build-push-action@v5
         with:
-          context: ./apps/lv-pyapi
+          context: .
           file: ./apps/lv-pyapi/Dockerfile
           push: false
           tags: lv-pyapi:${{ github.sha }}
