@@ -1,8 +1,7 @@
 name: Testing and Linting
 on:
   push:
-    branches:
-      - '**'
+    branches: [dev]
   pull_request:
     types:
       - opened
@@ -87,6 +86,11 @@ jobs:
         env:
           DATABASE_URL: postgresql://postgres:postgres@localhost:5432/postgres
           DIRECT_DATABASE_URL: postgresql://postgres:postgres@localhost:5432/postgres
+
+      - name: Authenticate with GCP
+        uses: google-github-actions/auth@v2
+        with:
+          credentials_json: ${{ secrets.GCP_SA_KEY_TTS_STT }}
 
       - name: Run lv-pyapi tests
         env:

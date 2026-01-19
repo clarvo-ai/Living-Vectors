@@ -4,8 +4,6 @@ Retro Board: https://www.figma.com/board/R6PzwUSjbwYNWdy1eFeJ6n/LVP-Retro?node-i
 
 > 📖 **For project documentation including folder structure and architecture overview, see [DOCUMENTATION.md](./DOCUMENTATION.md)**
 
-
-
 # How to Run the Project Locally
 
 ## 1. Prerequisites
@@ -61,6 +59,7 @@ docker compose --profile tests down -v
 docker compose --profile tests up -d test-postgres
 docker compose --profile tests run --rm test-migrate
 ```
+
 2. Run the tests (root folder)
 
 ```bash
@@ -68,17 +67,21 @@ docker compose --profile tests run --rm test-runner
 ```
 
 ## Unit Testing - Frontend
+
 1. Navigate into the correct directory
+
 ```bash
 cd apps/lv-web
 ```
 
 2. Install dependencies (if not already done)
+
 ```bash
 npm install
 ```
 
 3. Run the tests
+
 ```bash
 npm test
 ```
@@ -93,10 +96,12 @@ npm test
 
 2. Send messages in the chat UI
 
-3. Connect to DB 
+3. Connect to DB
+
 ```bash
 sudo docker exec -it $(docker ps -q --filter name=lv-db) psql -U postgres
 ```
+
 Once connected, you can use:
 
 - `\dt` - list tables
@@ -135,8 +140,20 @@ docker compose --profile lv-web up -d --build
 docker compose --profile lv-web-build up -d --build
 ```
 
+## 3. Local LiveKit (Development)
 
-## Running lv-web Without Docker
+A local LiveKit server is provided via Docker for development.
+
+```bash
+docker compose up -d livekit
+```
+
+- Runs `livekit-server --dev`
+- Available at http://127.0.0.1:7880
+- Dev credentials: `devkey` / `secret`
+- To see the logs: run `docker compose logs livekit`
+
+## 4. Running lv-web Without Docker
 
 For faster frontend development:
 
@@ -149,13 +166,23 @@ DATABASE_URL=postgresql://postgres:postgres@localhost:3772/postgres
 DIRECT_DATABASE_URL=postgresql://postgres:postgres@localhost:3772/postgres
 ```
 
-2. Regenerate Prisma for Mac:
+**Note:** `.env.local` is not required, but Next.js prioritizes it over `.env`. This means if you have the same variable name in both files, Next.js will use the value from `.env.local`. 
+
+The setup uses this prioritization to handle different database URLs:
+- **Docker builds** use `db:5432` (from `.env` or docker-compose environment variables)
+- **npm-run builds** use `localhost:3772` (from `.env.local`)
+
+This allows the same codebase to work in both Docker and local npm-run environments.
+
+2. Regenerate Prisma for your platform:
 
 ```bash
 rm -rf packages/database/prisma/generated
 cd packages/database/prisma && npx prisma generate
 cd ../../..
 ```
+
+**Important:** You must run `npx prisma generate` in `packages/database/prisma` whenever you switch between Docker-run and npm-run environments, as Prisma needs to generate the client for your specific platform.
 
 ### Running
 
@@ -173,37 +200,41 @@ Open http://localhost:3045
 
 **LV-PYAPI (Python API only):**
 
-
 ```bash
 docker compose --profile lv-pyapi up -d --build
 ```
+
 LOGS:
+
 ```bash
 docker compose logs -f $(docker compose ps --services --filter "status=running")
 ```
+
 TIP: use Docker/Containers extension in Cursor to manage containers and see logs
 
-## 3. Initial Setup on a New Laptop
+## 5. Initial Setup on a New Laptop
 
 1. Clone repository or pull latest changes
 
 2. Create .env files (`apps/lv-web/.env` and `apps/lv-pyapi/.env`)
 
-3. Install dependencies:
+3. (May be temporary) Set up Google Cloud Credentials for voice features, see [Voice Interface Setup](#10-voice-interface-setup)
+
+4. Install dependencies:
 
    ```bash
    npm i
    ```
 
-4. Initialize database:
+5. Initialize database:
 
    ```bash
    docker compose run --rm prisma-migrate
    ```
 
-5. Start correct profile (usually LV-WEB)
+6. Start correct profile (usually LV-WEB)
 
-## 4. Troubleshooting: Fixing node_modules on macOS/Windows (Non-Linux Issue)
+## 6. Troubleshooting: Fixing node_modules on macOS/Windows (Non-Linux Issue)
 
 If Docker complains or node_modules mismatch occurs:
 
@@ -213,7 +244,7 @@ docker compose run --rm container-node-modules
 mv ./container_node_modules ./node_modules
 ```
 
-## 5. Test Builds Locally
+## 7. Test Builds Locally
 
 ### LV-WEB
 
@@ -228,31 +259,7 @@ docker exec -it lv-web npm run build
 docker compose --profile lv-web-build build
 ```
 
-## Testing
-
-We use Jest and React Testing Library for unit and component testing.
-
-### Running Tests
-
-To run the test suite, go to `apps/lv-web` and run:
-
-```bash
-npm test
-```
-
-To run tests in watch mode (interactive):
-
-```bash
-npm run test:watch
-```
-
-### Writing Tests
-
-- Place test files in `src/__tests__` or colocated with components (e.g., `component.test.tsx`).
-- Use the `.test.tsx` or `.spec.tsx` extension.
-- We use `jest-environment-jsdom` for component tests.
-
-## 6. Adding a shadcn Component
+## 8. Adding a shadcn Component
 
 Inside the LV-WEB app folder:
 
@@ -260,7 +267,31 @@ Inside the LV-WEB app folder:
 npx shadcn@latest add [COMPONENT]
 ```
 
-## 7. Python Development (VS Code Recommended Settings)
+## Seed Mock Database with Test Data
+
+The project includes a seed script that populates a separate mock database with sample users, conversations, and learnings. This helps with quick project setup, testing, and onboarding.
+
+```bash
+## Set up mock database with test data (runs migrations and seeds data):
+docker compose --profile mock-seed up -d --build
+
+## Connect to mock database:
+sudo docker exec -it lv-mock-db psql -U postgres
+
+## Reseed the mock database (clear and start fresh):
+docker compose --profile mock-seed down -v
+docker compose --profile mock-seed up -d --build
+
+## Run seed script manually against any database:
+cd packages/database
+DATABASE_URL=postgresql://postgres:postgres@localhost:3773/postgres NODE_ENV=development npm run db:seed
+```
+
+The mock database runs on port `3773` (main database uses `3772`).
+
+### Python Development
+
+## 9. Python Development (VS Code Recommended Settings)
 
 Add to `.vscode/settings.json`:
 
@@ -278,7 +309,7 @@ Cursor-specific Python instructions belong in:
 
 `.cursor/rules/python-rules.mdc`
 
-## 8. Git Collaboration Workflow
+## 10. Git Collaboration Workflow
 
 ### Create Issue
 
@@ -319,11 +350,12 @@ git push
 ### Merge Strategy
 
 Merge feature to dev (Squash)
+
 - Create a PR, ask for reviews, and select "Squash and merge"
 
 Deploy to prod
-- Create a PR from dev to main, ask for reviews, and select "Create a merge commit"
 
+- Create a PR from dev to main, ask for reviews, and select "Create a merge commit"
 
 ### Fix Hanging Migrations When Switching Branches
 
@@ -331,7 +363,7 @@ Deploy to prod
 git fetch origin && git update-ref refs/heads/dev origin/dev
 ```
 
-## 9. Docker Cleanup
+## 11. Docker Cleanup
 
 **Make sure important projects are RUNNING before cleanup.**
 
@@ -348,3 +380,16 @@ docker rmi $(docker image ls -q)
 docker volume rm $(docker volume ls -q)
 docker system prune
 ```
+
+## 12. Voice Interface Setup
+
+To enable Google voice interface features, set up Google Cloud credentials. This may not be necessary if we use agentic AI.
+
+1. Go to the project's [Google Cloud Console Secret Manager](https://console.cloud.google.com/security/secret-manager?hl=fi&project=swp-livingvectors)
+2. Access and copy the secret value
+3. Create the credentials file:
+   ```bash
+   # Create the file at this path:
+   ./apps/lv-pyapi/credentials/google-credentials.json
+   ```
+4. Paste the secret value into the file

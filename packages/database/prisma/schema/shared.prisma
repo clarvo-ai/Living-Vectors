@@ -17,6 +17,8 @@ model User {
   phone      String?
   bio        String?
 
+  role UserRole @default(USER)
+
   // OAuth relations
   accounts      Account[]
   sessions      Session[]
@@ -92,8 +94,10 @@ model ConversationMessage {
   userId    String        @db.Uuid
   sender    MessageSender
   content   String
+  questionContext Json?   @db.JsonB
   createdAt DateTime      @default(now())
   user      User          @relation(fields: [userId], references: [id])
+  learnedFrom Boolean     @default(false)
   learnings Learning[]
 
   @@index([userId])
@@ -114,4 +118,9 @@ model Learning {
 enum MessageSender {
   USER
   AI
+}
+
+enum UserRole {
+  USER
+  ADMIN
 }
