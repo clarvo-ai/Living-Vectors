@@ -164,6 +164,7 @@ For faster frontend development:
 ```
 DATABASE_URL=postgresql://postgres:postgres@localhost:3772/postgres
 DIRECT_DATABASE_URL=postgresql://postgres:postgres@localhost:3772/postgres
+NEXT_PUBLIC_PYAPI_URL=http://localhost:8091
 ```
 
 **Note:** `.env.local` is not required, but Next.js prioritizes it over `.env`. This means if you have the same variable name in both files, Next.js will use the value from `.env.local`.
@@ -175,7 +176,13 @@ The setup uses this prioritization to handle different database URLs:
 
 This allows the same codebase to work in both Docker and local npm-run environments.
 
-2. Regenerate Prisma for your platform:
+2. Clean Next.js build cache (if switching from Docker):
+
+```bash
+sudo rm -rf apps/lv-web/.next
+```
+
+3. Regenerate Prisma for your platform:
 
 ```bash
 rm -rf packages/database/prisma/generated
