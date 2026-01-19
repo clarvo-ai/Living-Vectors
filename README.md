@@ -166,9 +166,10 @@ DATABASE_URL=postgresql://postgres:postgres@localhost:3772/postgres
 DIRECT_DATABASE_URL=postgresql://postgres:postgres@localhost:3772/postgres
 ```
 
-**Note:** `.env.local` is not required, but Next.js prioritizes it over `.env`. This means if you have the same variable name in both files, Next.js will use the value from `.env.local`. 
+**Note:** `.env.local` is not required, but Next.js prioritizes it over `.env`. This means if you have the same variable name in both files, Next.js will use the value from `.env.local`.
 
 The setup uses this prioritization to handle different database URLs:
+
 - **Docker builds** use `db:5432` (from `.env` or docker-compose environment variables)
 - **npm-run builds** use `localhost:3772` (from `.env.local`)
 
@@ -258,6 +259,30 @@ docker exec -it lv-web npm run build
 ```bash
 docker compose --profile lv-web-build build
 ```
+
+## Testing
+
+We use Jest and React Testing Library for unit and component testing.
+
+### Running Tests
+
+To run the test suite, go to `apps/lv-web` and run:
+
+```bash
+npm test
+```
+
+To run tests in watch mode (interactive):
+
+```bash
+npm run test:watch
+```
+
+### Writing Tests
+
+- Place test files in `src/__tests__` or colocated with components (e.g., `component.test.tsx`).
+- Use the `.test.tsx` or `.spec.tsx` extension.
+- We use `jest-environment-jsdom` for component tests.
 
 ## 8. Adding a shadcn Component
 
