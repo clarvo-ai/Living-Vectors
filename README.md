@@ -153,6 +153,40 @@ docker compose up -d livekit
 - Dev credentials: `devkey` / `secret`
 - To see the logs: run `docker compose logs livekit`
 
+Test connection and create a token (using the LiveKit CLI):
+
+1. Install the LiveKit CLI (see the official docs):
+
+   https://docs.livekit.io/intro/basics/cli/start/
+
+2. Add the local project to the CLI:
+
+```bash
+lk project add lv \
+```
+
+3. Generate a token that can join a room:
+
+```bash
+lk token create \
+   --api-key devkey --api-secret secret \
+   --join --room test_room --identity test_user \
+   --valid-for 24h
+```
+
+4. Dispatch an agent to the test room:
+
+```bash
+lk dispatch create \
+   --agent-name test-agent \
+   --room test_room \
+   --metadata '{"user_id":"12345"}'
+```
+
+5. Join the room from a browser for quick manual testing:
+   - Open https://agents-playground.livekit.io/ (Manual)
+   - Set the server URL to `http://localhost:7880` and paste the generated token
+
 ## 4. Running Tests
 
 The project uses **Jest** for JavaScript/TypeScript tests and **Pytest** for python tests.
