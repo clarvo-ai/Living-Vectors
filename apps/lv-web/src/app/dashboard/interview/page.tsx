@@ -1,18 +1,21 @@
 'use client';
 
-import { RoomAudioRenderer, RoomContext } from '@livekit/components-react';
+import {
+  RoomAudioRenderer,
+  SessionProvider,
+  StartAudio,
+  useSession as useLiveKitSession,
+} from '@livekit/components-react';
 import '@livekit/components-styles';
-import { Room } from 'livekit-client';
+import { TokenSource } from 'livekit-client';
 import { useSession } from 'next-auth/react';
 import { useRouter } from 'next/navigation';
-import { useEffect, useState } from 'react';
-import { ChatContent } from './components/ChatContent';
+import { useEffect, useMemo, useState } from 'react';
+import { InterviewContent } from './components/InterviewContent';
 
 export default function InterviewPage() {
   const { data: session, status } = useSession();
   const router = useRouter();
-  const [room] = useState(() => new Room({}));
-  const [token, setToken] = useState<string | null>(null);
   const [input, setInput] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const [voiceMode, setVoiceMode] = useState(() => {
@@ -39,21 +42,6 @@ export default function InterviewPage() {
     }
   }, [status, router]);
 
-  // Stop audio when component unmounts (user leaves interview)
-  useEffect(() => {
-    return () => {
-      room.disconnect();
-    };
-  }, [room]);
-
-  // Upon mount initialize LiveKit token for voice features
-  useEffect(() => {
-    const testToken = process.env.NEXT_PUBLIC_LIVEKIT_TEST_TOKEN;
-    if (testToken) {
-      setToken(testToken);
-    }
-  }, []);
-
   const handleEndInterview = () => {
     sessionStorage.removeItem('interview-messages');
     router.push('/dashboard');
@@ -75,10 +63,82 @@ export default function InterviewPage() {
   }
 
   return (
-    <RoomContext.Provider value={room}>
-      <RoomAudioRenderer />
+    <InterviewPageContent
+      input={input}
+      setInput={setInput}
+      isLoading={isLoading}
+      voiceOnlyMode={voiceOnlyMode}
+      setVoiceOnlyMode={setVoiceOnlyMode}
+      voiceMode={voiceMode}
+      setVoiceMode={setVoiceMode}
+      showEndInterviewDialog={showEndInterviewDialog}
+      setShowEndInterviewDialog={setShowEndInterviewDialog}
+      onEndInterview={handleEndInterview}
+      hasStarted={hasStarted}
+      setHasStarted={setHasStarted}
+    />
+  );
+}
+
+function InterviewPageContent({
+  input,
+  setInput,
+  isLoading,
+  voiceOnlyMode,
+  setVoiceOnlyMode,
+  voiceMode,
+  setVoiceMode,
+  showEndInterviewDialog,
+  setShowEndInterviewDialog,
+  onEndInterview,
+  hasStarted,
+  setHasStarted,
+}: any) {
+  // Create token source for LiveKit session
+  // SessionProvider will automatically connect when tokenSource returns a token
+  const tokenSource = useMemo(() => {
+    // Only provide token when hasStarted is true
+    if (!hasStarted) {
+      // Return null token to prevent connection
+      return {
+        fetch: async () => ({
+          accessToken: '',
+          serverUrl: '',
+          participantToken: '',
+        }),
+      } as const;
+    }
+
+    // Check if we have an endpoint or use test token
+    if (process.env.NEXT_PUBLIC_LIVEKIT_CONNECTION_ENDPOINT) {
+      return TokenSource.endpoint(process.env.NEXT_PUBLIC_LIVEKIT_CONNECTION_ENDPOINT);
+    }
+
+    // Use test token
+    return {
+      fetch: async () => ({
+        accessToken: process.env.NEXT_PUBLIC_LIVEKIT_TEST_TOKEN || '',
+        serverUrl: process.env.NEXT_PUBLIC_LIVEKIT_URL || '',
+        participantToken: process.env.NEXT_PUBLIC_LIVEKIT_TEST_TOKEN || '',
+      }),
+    } as const;
+  }, [hasStarted]);
+
+  // Use LiveKit useSession hook with token source
+  const liveKitSession = useLiveKitSession(tokenSource);
+
+  // Connect when hasStarted becomes true
+  useEffect(() => {
+    if (hasStarted && !liveKitSession.isConnected) {
+      console.log('Starting LiveKit session...');
+      liveKitSession.start();
+    }
+  }, [hasStarted, liveKitSession]);
+
+  return (
+    <SessionProvider session={liveKitSession}>
       <div className="h-full flex flex-col">
-        <ChatContent
+        <InterviewContent
           input={input}
           setInput={setInput}
           isLoading={isLoading}
@@ -88,11 +148,13 @@ export default function InterviewPage() {
           setVoiceMode={setVoiceMode}
           showEndInterviewDialog={showEndInterviewDialog}
           setShowEndInterviewDialog={setShowEndInterviewDialog}
-          onEndInterview={handleEndInterview}
+          onEndInterview={onEndInterview}
           hasStarted={hasStarted}
           setHasStarted={setHasStarted}
         />
       </div>
-    </RoomContext.Provider>
+      <StartAudio label="Click to enable audio" />
+      <RoomAudioRenderer />
+    </SessionProvider>
   );
 }

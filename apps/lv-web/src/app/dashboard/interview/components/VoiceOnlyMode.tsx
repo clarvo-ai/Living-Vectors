@@ -1,7 +1,6 @@
-import { useRoomContext, VoiceAssistantControlBar } from '@livekit/components-react';
+import { VoiceAssistantControlBar } from '@livekit/components-react';
 import '@livekit/components-styles';
 import { Bot, Phone } from 'lucide-react';
-import { useEffect, useState } from 'react';
 import { TranscriptionDisplay } from './TranscriptionDisplay';
 
 interface VoiceOnlyModeProps {
@@ -17,42 +16,8 @@ export function VoiceOnlyMode({
   messageCount = 0,
   hasStarted,
 }: VoiceOnlyModeProps) {
-  const room = useRoomContext();
-  const [error, setError] = useState<string | null>(null);
-  const [token, setToken] = useState<string | null>(null);
-
-  // Initialize LiveKit token for voice when component mounts
-  useEffect(() => {
-    const testToken = process.env.NEXT_PUBLIC_LIVEKIT_TEST_TOKEN;
-    if (testToken) {
-      setToken(testToken);
-    } else {
-      setError('LiveKit test token not configured');
-    }
-  }, []);
-
-  // Connect/disconnect room
-  useEffect(() => {
-    if (!hasStarted || !token || !room) return;
-
-    const connect = async () => {
-      try {
-        await room.connect(process.env.NEXT_PUBLIC_LIVEKIT_URL || '', token);
-      } catch (e) {
-        console.error('Failed to connect to room:', e);
-        setError('Failed to connect to voice agent');
-      }
-    };
-
-    connect();
-
-    return () => {
-      // Room disconnect is handled at page level
-    };
-  }, [hasStarted, token]);
-
-  // If room is active, show LiveKit voice room (audio only)
-  if (hasStarted && token && room) {
+  // If session is active, show LiveKit voice interface
+  if (hasStarted) {
     return (
       <div className="flex-1 w-full flex flex-col items-center justify-center">
         <div className="flex flex-col items-center justify-center h-full gap-6">
