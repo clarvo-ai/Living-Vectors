@@ -1,4 +1,6 @@
+import { useRemoteParticipants } from '@livekit/components-react';
 import { Bot, MessageSquare, Phone, Volume2, VolumeX } from 'lucide-react';
+import { useEffect, useState } from 'react';
 
 interface ChatHeaderProps {
   voiceMode: boolean;
@@ -13,6 +15,31 @@ export function ChatHeader({
   voiceOnlyMode,
   setVoiceOnlyMode,
 }: ChatHeaderProps) {
+  const remoteParticipants = useRemoteParticipants();
+  const [isAgentMuted, setIsAgentMuted] = useState(false);
+
+  const toggleAgentVoice = () => {
+    const newMutedState = !isAgentMuted;
+    setIsAgentMuted(newMutedState);
+
+    // Mute/unmute all remote participants' audio by setting track enabled on HTML element
+    remoteParticipants.forEach((participant) => {
+      participant.audioTrackPublications.forEach((publication) => {
+        const audioElement = publication.audioTrack?.attachedElements[0] as HTMLAudioElement;
+        if (audioElement) {
+          audioElement.muted = newMutedState;
+        }
+      });
+    });
+
+    setVoiceMode(!newMutedState);
+  };
+
+  // Sync initial state
+  useEffect(() => {
+    setIsAgentMuted(!voiceMode);
+  }, [voiceMode]);
+
   return (
     <div className="flex items-center w-full justify-between gap-4">
       <div className="flex items-center gap-4">
@@ -35,7 +62,7 @@ export function ChatHeader({
         </div>
         <div className="flex items-center space-x-2 flex-shrink-0">
           <button
-            onClick={() => setVoiceMode(!voiceMode)}
+            onClick={toggleAgentVoice}
             className="p-2 rounded-lg hover:bg-gray-200 transition-colors flex items-center justify-center"
             title={voiceMode ? 'Disable AI Voice' : 'Enable AI Voice'}
           >
@@ -46,7 +73,25 @@ export function ChatHeader({
             )}
           </button>
           <button
-            onClick={() => setVoiceOnlyMode(!voiceOnlyMode)}
+            onClick={() => {
+              const newVoiceOnlyMode = !voiceOnlyMode;
+              setVoiceOnlyMode(newVoiceOnlyMode);
+              // Auto-enable voice when switching to voice-only mode
+              if (newVoiceOnlyMode && !voiceMode) {
+                setVoiceMode(true);
+                setIsAgentMuted(false);
+                // Unmute all remote participants
+                remoteParticipants.forEach((participant) => {
+                  participant.audioTrackPublications.forEach((publication) => {
+                    const audioElement = publication.audioTrack
+                      ?.attachedElements[0] as HTMLAudioElement;
+                    if (audioElement) {
+                      audioElement.muted = false;
+                    }
+                  });
+                });
+              }
+            }}
             className="p-2 rounded-lg hover:bg-gray-200 transition-colors flex items-center justify-center"
             title={voiceOnlyMode ? 'Switch to Chat' : 'Switch to Voice'}
           >

@@ -1,6 +1,12 @@
 'use client';
 
-import { useChat, useSessionContext, useSessionMessages } from '@livekit/components-react';
+import {
+  useChat,
+  useLocalParticipant,
+  useSessionContext,
+  useSessionMessages,
+} from '@livekit/components-react';
+import { Mic, MicOff } from 'lucide-react';
 import { useEffect, useRef } from 'react';
 import { ChatHeader } from './ChatHeader';
 import { ChatInput } from './ChatInput';
@@ -37,6 +43,13 @@ export function InterviewContent({
   const session = useSessionContext();
   const { messages } = useSessionMessages(session);
   const { send } = useChat();
+  const { isMicrophoneEnabled, localParticipant } = useLocalParticipant();
+
+  const toggleMute = async () => {
+    if (localParticipant) {
+      await localParticipant.setMicrophoneEnabled(!isMicrophoneEnabled);
+    }
+  };
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
   // Save messages to sessionStorage whenever they change
@@ -130,6 +143,22 @@ export function InterviewContent({
                   onKeyDown={handleKeyDown}
                 />
               </div>
+              <button
+                onClick={toggleMute}
+                className="w-12 h-12 rounded-full flex items-center justify-center transition-all transform hover:scale-110 mb-0.5"
+                style={{
+                  background: `linear-gradient(white, white) padding-box, var(--gradient-primary) border-box`,
+                  border: '3px solid transparent',
+                  boxShadow: '0px 5px 15px -4px var(--gradient-message-shadow)',
+                }}
+                aria-label={!isMicrophoneEnabled ? 'Unmute' : 'Mute'}
+              >
+                {!isMicrophoneEnabled ? (
+                  <MicOff className="w-5 h-5 text-gray-600" />
+                ) : (
+                  <Mic className="w-5 h-5 text-gray-600" />
+                )}
+              </button>
             </div>
           </>
         )}
