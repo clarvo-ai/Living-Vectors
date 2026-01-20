@@ -104,7 +104,6 @@ export function InterviewContent({
         {voiceOnlyMode ? (
           <div className="flex-1 flex flex-col items-center justify-center px-6 pt-6 relative">
             <VoiceOnlyMode
-              messageCount={messages?.length ?? 0}
               hasStarted={hasStarted}
               onStart={() => {
                 setHasStarted(true);

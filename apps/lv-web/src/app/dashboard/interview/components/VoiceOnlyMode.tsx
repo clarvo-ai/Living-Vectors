@@ -1,22 +1,34 @@
-import { useLocalParticipant } from '@livekit/components-react';
+import {
+  BarVisualizer,
+  useLocalParticipant,
+  useRemoteParticipants,
+  useTracks,
+  useVoiceAssistant,
+} from '@livekit/components-react';
 import '@livekit/components-styles';
+import { Track } from 'livekit-client';
 import { Bot, MessageSquare, Mic, MicOff, Phone } from 'lucide-react';
-import { TranscriptionDisplay } from './TranscriptionDisplay';
+
+function cn(...classes: (string | undefined | false)[]): string {
+  return classes.filter(Boolean).join(' ');
+}
 
 interface VoiceOnlyModeProps {
   onStart?: () => void;
   onGoToChat?: () => void;
-  messageCount?: number;
   hasStarted: boolean;
 }
 
-export function VoiceOnlyMode({
-  onStart,
-  onGoToChat,
-  messageCount = 0,
-  hasStarted,
-}: VoiceOnlyModeProps) {
+export function VoiceOnlyMode({ onStart, onGoToChat, hasStarted }: VoiceOnlyModeProps) {
   const { isMicrophoneEnabled, localParticipant } = useLocalParticipant();
+  const remoteParticipants = useRemoteParticipants();
+  const { state: agentState } = useVoiceAssistant();
+
+  // Get agent audio track
+  const agentAudioTrack = useTracks([{ source: Track.Source.Microphone, withPlaceholder: false }], {
+    onlySubscribed: true,
+    updateOnlyOn: [],
+  }).find((track) => track.participant.identity !== localParticipant?.identity);
 
   const toggleMute = async () => {
     if (localParticipant) {
@@ -48,7 +60,28 @@ export function VoiceOnlyMode({
               </div>
             </div>
           </div>
-          <p className="text-xl font-medium text-gray-600">Connected to a room</p>
+          <BarVisualizer
+            barCount={5}
+            state={agentState}
+            options={{ minHeight: 6, maxHeight: 60 }}
+            track={agentAudioTrack}
+            className={cn('flex h-16 items-center justify-center gap-1')}
+          >
+            <span
+              className={cn(
+                'min-h-1 w-1.5 rounded-full transition-all duration-250 ease-linear',
+                'data-[lk-muted=true]:bg-gray-300 data-[lk-muted=true]:opacity-30',
+                'data-[lk-highlighted=true]:opacity-100 opacity-20'
+              )}
+              style={{
+                background: 'var(--gradient-primary)',
+              }}
+            />
+          </BarVisualizer>
+          <p className="text-xl font-medium text-gray-600">
+            Connected to a room with{' '}
+            {remoteParticipants[0] ? remoteParticipants[0]?.identity : 'no agent'}
+          </p>
           <div className="mt-8 flex gap-4">
             <button
               onClick={toggleMute}
@@ -79,7 +112,6 @@ export function VoiceOnlyMode({
               <MessageSquare className="w-8 h-8 text-gray-600" />
             </button>
           </div>
-          <TranscriptionDisplay />
         </div>
       </div>
     );
