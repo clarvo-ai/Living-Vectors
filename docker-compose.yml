@@ -75,8 +75,10 @@ services:
       - ./apps/lv-pyapi:/app/apps/lv-pyapi
       - ./packages/python-utils:/app/packages/python-utils
     depends_on:
-      - db
-      - livekit
+      db:
+        condition: service_started
+      livekit:
+        condition: service_started
     restart: always
 
   # lv-pyapi-tests:
@@ -204,7 +206,7 @@ services:
 
   livekit:
     image: livekit/livekit-server:latest
-    command: ['--dev']
+    command: --dev --bind 0.0.0.0
     ports:
       - '7880:7880'
 
