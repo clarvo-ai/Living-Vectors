@@ -153,57 +153,56 @@ docker compose up -d livekit
 - Dev credentials: `devkey` / `secret`
 - To see the logs: run `docker compose logs livekit`
 
-## 4. Running Tests
+## 4. Running lv-web Without Docker
 
-The project uses **Jest** for JavaScript/TypeScript tests and **Pytest** for python tests.
+For faster frontend development:
 
-### Quick Commands
+### One-time Setup
 
-```bash
-# Run ALL tests (Jest + Pytest)
-npm run test
+1. Create `apps/lv-web/.env.local` with:
 
-# Run ALL tests with coverage reports
-npm run test:all:coverage
+```
+DATABASE_URL=postgresql://postgres:postgres@localhost:3772/postgres
+DIRECT_DATABASE_URL=postgresql://postgres:postgres@localhost:3772/postgres
+NEXT_PUBLIC_PYAPI_URL=http://localhost:8091
 ```
 
-### Jest (JavaScript/TypeScript)
+**Note:** `.env.local` is not required, but Next.js prioritizes it over `.env`. This means if you have the same variable name in both files, Next.js will use the value from `.env.local`.
+
+The setup uses this prioritization to handle different database URLs:
+
+- **Docker builds** use `db:5432` (from `.env` or docker-compose environment variables)
+- **npm-run builds** use `localhost:3772` (from `.env.local`)
+
+This allows the same codebase to work in both Docker and local npm-run environments.
+
+2. Clean Next.js build cache (if switching from Docker):
 
 ```bash
-# Run Jest tests only
-npm run test:jest
-
-# Run Jest tests with coverage
-npm run test:jest:coverage
-
-# View coverage report (Mac/Linux)
-open apps/lv-web/coverage/lcov-report/index.html
-
-# View coverage report (Windows/WSL)
-powershell.exe -c start apps/lv-web/coverage/lcov-report/index.html
+sudo rm -rf apps/lv-web/.next
 ```
 
-### Pytest (Python)
+3. Regenerate Prisma for your platform:
 
 ```bash
-# Run Pytest tests only (requires Docker)
-npm run test:pytest
-
-# Run Pytest test with coverage
-npm run test:pytest:coverage
-
-# View coverage report (Mac/Linux)
-open apps/lv-pyapi/htmlcov/index.html
-
-# View coverage report (Windows/WSL)
-powershell.exe -c start apps/lv-pyapi/htmlcov/index.html
+rm -rf packages/database/prisma/generated
+cd packages/database/prisma && npx prisma generate
+cd ../../..
 ```
 
-### Coverage Reports
+**Important:** You must run `npx prisma generate` in `packages/database/prisma` whenever you switch between Docker-run and npm-run environments, as Prisma needs to generate the client for your specific platform.
 
-- **Jest:** 'apps/lv-web/coverage/lcov-report/index.html'
-- **Pytest:** 'apps/lv-pyapi/htmlcov/index.html'
-- **CI:** Coverage reports are uploaded as artifacts in GitHub Actions
+### Running
+
+```bash
+# Start database (run from project root)
+docker compose --profile lv-web up db -d
+
+# Start app
+npm run dev:lv-web -- --port=3045
+```
+
+Open http://localhost:3045
 
 ## Test Builds Locally
 
@@ -267,6 +266,30 @@ docker exec -it lv-web npm run build
 ```bash
 docker compose --profile lv-web-build build
 ```
+
+## Testing
+
+We use Jest and React Testing Library for unit and component testing.
+
+### Running Tests
+
+To run the test suite, go to `apps/lv-web` and run:
+
+```bash
+npm test
+```
+
+To run tests in watch mode (interactive):
+
+```bash
+npm run test:watch
+```
+
+### Writing Tests
+
+- Place test files in `src/__tests__` or colocated with components (e.g., `component.test.tsx`).
+- Use the `.test.tsx` or `.spec.tsx` extension.
+- We use `jest-environment-jsdom` for component tests.
 
 ## 8. Adding a shadcn Component
 

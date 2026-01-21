@@ -5,7 +5,7 @@
   "scripts": {
     "build": "turbo run build",
     "dev": "turbo run dev",
-    "dev:lv-web": "NEXT_PUBLIC_APP_SOURCE_NAME=lv-web turbo run dev --filter=lv-web",
+    "dev:lv-web": "NEXT_PUBLIC_APP_SOURCE_NAME=lv-web turbo run dev --filter=lv-web --",
     "dev:caleuche": "NEXT_PUBLIC_APP_SOURCE_NAME=caleuche turbo run dev --filter=caleuche",
     "dev:bagan": "NEXT_PUBLIC_APP_SOURCE_NAME=bagan turbo run dev --filter=bagan",
     "dev:proximab": "NEXT_PUBLIC_APP_SOURCE_NAME=proximab turbo run dev --filter=proximab",
