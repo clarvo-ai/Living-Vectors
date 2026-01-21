@@ -1,5 +1,5 @@
 from sqlalchemy import String, DateTime, Boolean, Integer, BigInteger, ForeignKey, ForeignKeyConstraint, Table, ARRAY, Text, Float, Enum, text, func, event
-from sqlalchemy.dialects.postgresql import UUID as PostgresUUID, TIMESTAMP, DOUBLE_PRECISION, ENUM
+from sqlalchemy.dialects.postgresql import UUID as PostgresUUID, TIMESTAMP
 from sqlalchemy.orm import DeclarativeBase, relationship, Mapped, mapped_column, Mapper
 from sqlalchemy.types import TypeDecorator
 from uuid import UUID
@@ -19,7 +19,7 @@ class Base(DeclarativeBase):
     pass
 
 def trim_strings(mapper: Mapper, connection, target):
-    """Trim whitespace from all string attributes before insert/update"""
+    """Trim whitespace from all string attriutes before insert/update"""
     for key, value in vars(target).items():
         # Skip SQLAlchemy internal attributes and non-string values
         if not key.startswith('_') and isinstance(value, str):
