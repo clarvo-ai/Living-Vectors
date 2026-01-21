@@ -4,7 +4,7 @@ import sys
 import multiprocessing
 from dotenv import load_dotenv
 
-from livekit import agents, api
+from livekit import agents
 from livekit.agents import AgentServer, AgentSession, Agent, room_io
 from livekit.plugins import google
 
