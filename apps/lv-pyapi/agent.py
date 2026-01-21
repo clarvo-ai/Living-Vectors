@@ -25,7 +25,7 @@ class Assistant(Agent):
 
 server = AgentServer()
 
-@server.rtc_session()
+@server.rtc_session(agent_name=AGENT_NAME)
 async def my_agent(ctx: agents.JobContext):
     logger.info(f"Agent received job for room: {ctx.room.name}")
     logger.info(f"Connected to room {ctx.room.name}, participants: {len(ctx.room.remote_participants)}")
