@@ -155,14 +155,22 @@ docker compose up -d livekit
 
 Test connection and create a token (using the LiveKit CLI):
 
-1. Install the LiveKit CLI (see the official docs):
+1. Install the LiveKit CLI (see the official docs if the command doesn't work):
 
    https://docs.livekit.io/intro/basics/cli/start/
 
-2. Add the local project to the CLI:
+```bash
+curl -sSL https://get.livekit.io/cli | bash
+```
+
+2. Add the local project to the CLI (not necessary to put default):
 
 ```bash
 lk project add lv \
+  --url http://localhost:7880 \
+  --api-key devkey \
+  --api-secret secret \
+  --default
 ```
 
 3. Generate a token that can join a room:
