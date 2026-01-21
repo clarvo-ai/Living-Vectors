@@ -186,7 +186,7 @@ lk token create \
 
 ```bash
 lk dispatch create \
-   --agent-name test-agent \
+   --agent-name lv-voice-agent \
    --room test_room \
    --metadata '{"user_id":"12345"}'
 ```
