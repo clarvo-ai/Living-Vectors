@@ -20,11 +20,12 @@ model User {
   role UserRole @default(USER)
 
   // OAuth relations
-  accounts      Account[]
-  sessions      Session[]
-  Authenticator Authenticator[]
-  messages      ConversationMessage[]
-  learnings     Learning[]
+  accounts          Account[]
+  sessions          Session[]
+  Authenticator     Authenticator[]
+  messages          ConversationMessage[]
+  learnings         Learning[]
+  generalLearnings  GeneralLearning[]
 
   @@index([id])
   @@index([email])
@@ -111,6 +112,17 @@ model Learning {
   updatedAt DateTime              @updatedAt
   user      User                  @relation(fields: [userId], references: [id])
   messages  ConversationMessage[]
+
+  @@index([userId])
+}
+
+model GeneralLearning {
+  id        String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  userId    String   @db.Uuid
+  summary   String
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  user      User     @relation(fields: [userId], references: [id])
 
   @@index([userId])
 }
