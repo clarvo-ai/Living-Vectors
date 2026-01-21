@@ -264,7 +264,6 @@ async def _startup_livekit_agent():
         start_agent()
     except Exception as e:
         logging.exception("Unhandled error during LiveKit agent startup")
-        return JSONResponse(status_code=500, content={"message": "LiveKit agent startup failed", "status": 500})
 
 if __name__ == "__main__":
     uvicorn.run(app, host="0.0.0.0", port=8080)
