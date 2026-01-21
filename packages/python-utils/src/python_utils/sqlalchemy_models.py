@@ -1,5 +1,5 @@
 from sqlalchemy import String, DateTime, Boolean, Integer, BigInteger, ForeignKey, ForeignKeyConstraint, Table, ARRAY, Text, Float, Enum, text, func, event
-from sqlalchemy.dialects.postgresql import UUID as PostgresUUID, TIMESTAMP
+from sqlalchemy.dialects.postgresql import UUID as PostgresUUID, TIMESTAMP, DOUBLE_PRECISION, ENUM, JSONB
 from sqlalchemy.orm import DeclarativeBase, relationship, Mapped, mapped_column, Mapper
 from sqlalchemy.types import TypeDecorator
 from uuid import UUID
@@ -19,7 +19,7 @@ class Base(DeclarativeBase):
     pass
 
 def trim_strings(mapper: Mapper, connection, target):
-    """Trim whitespace from all string attriutes before insert/update"""
+    """Trim whitespace from all string attributes before insert/update"""
     for key, value in vars(target).items():
         # Skip SQLAlchemy internal attributes and non-string values
         if not key.startswith('_') and isinstance(value, str):
@@ -86,7 +86,9 @@ class ConversationMessage(Base):
     sender: Mapped[MessageSender] = mapped_column(Enum(MessageSender), nullable=False)
     content: Mapped[str] = mapped_column(Text, nullable=False)
     createdAt: Mapped[datetime] = mapped_column(TIMESTAMP, nullable=False, server_default=func.now())
+    learnedFrom: Mapped[bool] = mapped_column(Boolean, nullable=False, server_default=text('false'))
 
+    questionContext: Mapped[Optional[dict]] = mapped_column(JSONB, nullable=True)
     # Relationships
     _ConversationMessageToLearning: Mapped[List["_ConversationMessageToLearning"]] = relationship("_ConversationMessageToLearning", back_populates="conversationMessage")
     user: Mapped["User"] = relationship("User", back_populates="conversationMessage", uselist=False)
@@ -154,11 +156,11 @@ class User(Base):
     bio: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
 
     # Relationships
-    learning: Mapped[List["Learning"]] = relationship("Learning", back_populates="user")
+    conversationMessage: Mapped[List["ConversationMessage"]] = relationship("ConversationMessage", back_populates="user")
     account: Mapped[List["Account"]] = relationship("Account", back_populates="user")
     session: Mapped[List["Session"]] = relationship("Session", back_populates="user")
     authenticator: Mapped[List["Authenticator"]] = relationship("Authenticator", back_populates="user")
-    conversationMessage: Mapped[List["ConversationMessage"]] = relationship("ConversationMessage", back_populates="user")
+    learning: Mapped[List["Learning"]] = relationship("Learning", back_populates="user")
     generalLearning: Mapped[List["GeneralLearning"]] = relationship("GeneralLearning", back_populates="user")
 
 
