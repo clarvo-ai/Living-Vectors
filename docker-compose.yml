@@ -75,10 +75,8 @@ services:
       - ./apps/lv-pyapi:/app/apps/lv-pyapi
       - ./packages/python-utils:/app/packages/python-utils
     depends_on:
-      db:
-        condition: service_started
-      livekit:
-        condition: service_started
+      - db
+      - livekit
     restart: always
 
   # lv-pyapi-tests:
@@ -209,7 +207,6 @@ services:
     command: --dev --bind 0.0.0.0
     ports:
       - '7880:7880'
-
 volumes:
   postgres_data:
   postgres_test_data:
