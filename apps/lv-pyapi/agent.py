@@ -32,7 +32,12 @@ async def my_agent(ctx: agents.JobContext):
 
     session = AgentSession(
         llm=google.realtime.RealtimeModel(
-            model="gemini-2.0-flash-exp",
+            # Models:
+            # https://docs.livekit.io/reference/agents-js/types/plugins_agents_plugin_google.beta.realtime.LiveAPIModels.html
+            # All models does not seem to work, alternative working models:
+            # gemini-2.5-flash-native-audio-preview-12-2025
+            # gemini-2.0-flash-exp
+            model="gemini-2.5-flash-native-audio-preview-09-2025",
             voice="Puck",
             temperature=0.8,
             instructions="You are a helpful assistant",
