@@ -1,5 +1,5 @@
 from sqlalchemy import String, DateTime, Boolean, Integer, BigInteger, ForeignKey, ForeignKeyConstraint, Table, ARRAY, Text, Float, Enum, text, func, event
-from sqlalchemy.dialects.postgresql import UUID as PostgresUUID, TIMESTAMP, DOUBLE_PRECISION, ENUM, JSONB
+from sqlalchemy.dialects.postgresql import UUID as PostgresUUID, TIMESTAMP, DOUBLE_PRECISION, ENUM
 from sqlalchemy.orm import DeclarativeBase, relationship, Mapped, mapped_column, Mapper
 from sqlalchemy.types import TypeDecorator
 from uuid import UUID
@@ -12,6 +12,12 @@ class MessageSender(enum.Enum):
     """Enum type for MessageSender"""
     USER = 'USER'
     AI = 'AI'
+
+
+class UserRole(enum.Enum):
+    """Enum type for UserRole"""
+    USER = 'USER'
+    ADMIN = 'ADMIN'
 
 
 
@@ -87,12 +93,26 @@ class ConversationMessage(Base):
     sender: Mapped[MessageSender] = mapped_column(Enum(MessageSender), nullable=False)
     content: Mapped[str] = mapped_column(Text, nullable=False)
     createdAt: Mapped[datetime] = mapped_column(TIMESTAMP, nullable=False, server_default=func.now())
-    learnedFrom: Mapped[bool] = mapped_column(Boolean, nullable=False, server_default=text('false'))
+    learnedFrom: Mapped[bool] = mapped_column(Boolean, nullable=False)
+    questionContext: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
 
-    questionContext: Mapped[Optional[dict]] = mapped_column(JSONB, nullable=True)
     # Relationships
     _ConversationMessageToLearning: Mapped[List["_ConversationMessageToLearning"]] = relationship("_ConversationMessageToLearning", back_populates="conversationMessage")
     user: Mapped["User"] = relationship("User", back_populates="conversationMessage", uselist=False)
+
+
+class GeneralLearning(Base):
+    __tablename__ = "GeneralLearning"
+    __table_args__ = {'schema': 'public'}
+
+    id: Mapped[UUID] = mapped_column(PostgresUUID(as_uuid=True), primary_key=True, nullable=False, server_default=text("gen_random_uuid()"))
+    userId: Mapped[UUID] = mapped_column(PostgresUUID(as_uuid=True), ForeignKey("public.User.id"), nullable=False)
+    summary: Mapped[str] = mapped_column(Text, nullable=False)
+    createdAt: Mapped[datetime] = mapped_column(TIMESTAMP, nullable=False, server_default=func.now())
+    updatedAt: Mapped[datetime] = mapped_column(TIMESTAMP, nullable=False, server_default=func.now(), onupdate=func.now())
+
+    # Relationships
+    user: Mapped["User"] = relationship("User", back_populates="generalLearning", uselist=False)
 
 
 class Learning(Base):
@@ -141,13 +161,15 @@ class User(Base):
     image: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
     phone: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
     bio: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
+    role: Mapped[UserRole] = mapped_column(Enum(UserRole), nullable=False, default=UserRole.USER)
 
     # Relationships
-    conversationMessage: Mapped[List["ConversationMessage"]] = relationship("ConversationMessage", back_populates="user")
+    learning: Mapped[List["Learning"]] = relationship("Learning", back_populates="user")
     account: Mapped[List["Account"]] = relationship("Account", back_populates="user")
     session: Mapped[List["Session"]] = relationship("Session", back_populates="user")
     authenticator: Mapped[List["Authenticator"]] = relationship("Authenticator", back_populates="user")
-    learning: Mapped[List["Learning"]] = relationship("Learning", back_populates="user")
+    conversationMessage: Mapped[List["ConversationMessage"]] = relationship("ConversationMessage", back_populates="user")
+    generalLearning: Mapped[List["GeneralLearning"]] = relationship("GeneralLearning", back_populates="user")
 
 
 class Vector(TypeDecorator):
@@ -201,4 +223,3 @@ class _prisma_migrations(Base):
     rolled_back_at: Mapped[Optional[datetime]] = mapped_column(TIMESTAMP, nullable=True)
     started_at: Mapped[datetime] = mapped_column(TIMESTAMP, nullable=False)
     applied_steps_count: Mapped[int] = mapped_column(Integer, nullable=False)
-
