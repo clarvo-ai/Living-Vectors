@@ -58,7 +58,8 @@ def _run_worker_process():
     """
     Runs the LiveKit Worker in a separate process.
     """
-    sys.argv = ["agent.py", "start"]
+    sys.argv = ["agent.py", "dev"]
+    # sys.argv = ["agent.py", "start"] # production
     logger.info(f"Starting Voice Agent Worker '{AGENT_NAME}' connecting to {LIVEKIT_URL}...")
     
     agents.cli.run_app(server)
