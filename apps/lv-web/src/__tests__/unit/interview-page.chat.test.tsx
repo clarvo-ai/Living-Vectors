@@ -1,7 +1,7 @@
 import '@testing-library/jest-dom';
 import { fireEvent, render, screen, waitFor } from '@testing-library/react';
 import { useSession } from 'next-auth/react';
-import InterviewPage from '../../app/interview/page';
+import InterviewPage from '../../app/dashboard/interview/page';
 import { getGeminiResponse, startConversation } from '../../lib/services/pyapi';
 
 // Mock next-auth/react
@@ -34,13 +34,14 @@ describe('InterviewPage - Chat Interaction', () => {
   beforeEach(() => {
     jest.clearAllMocks();
     (fetch as jest.Mock).mockClear();
+    sessionStorage.clear();
     // Mock scrollIntoView
     Element.prototype.scrollIntoView = jest.fn();
-    
+
     // Mock startConversation to return initial message
     (startConversation as jest.Mock).mockResolvedValue({
       message: "Hello! I'm here to figure you out. First, are you dedicated?",
-      goalCategory: "Career Goals",
+      goalCategory: 'Career Goals',
       questionId: { goalIndex: 0, questionIndex: 0 },
     });
   });
@@ -58,13 +59,18 @@ describe('InterviewPage - Chat Interaction', () => {
     });
     render(<InterviewPage />);
 
-    // Wait for the initial AI message to appear
+    // Switch to chat mode (voice-only is default)
     await waitFor(() => {
-      expect(screen.getByText(/Hello!/)).toBeInTheDocument();
+      expect(screen.getByText('Chat instead')).toBeInTheDocument();
     });
 
-    // Check that the send button is disabled initially
-    expect(screen.getByTestId('sendButton')).toBeDisabled();
+    const chatButton = screen.getByText(/Chat instead/i);
+    fireEvent.click(chatButton);
+
+    // Wait for chat UI to appear
+    await waitFor(() => {
+      expect(screen.getByPlaceholderText(/Type your response.../i)).toBeInTheDocument();
+    });
 
     // User types a message
     const textarea = screen.getByPlaceholderText(/Type your response.../i);
@@ -79,8 +85,8 @@ describe('InterviewPage - Chat Interaction', () => {
       status: 200,
     });
 
-    // User clicks the "Send" button
-    const sendButton = screen.getByRole('button', { name: /Send/i });
+    // User clicks the "Send" button using testId
+    const sendButton = screen.getByTestId('sendButton');
     fireEvent.click(sendButton);
 
     // Assert that the user's message appears on the screen and the send button is disabled after
@@ -110,9 +116,17 @@ describe('InterviewPage - Chat Interaction', () => {
     });
     render(<InterviewPage />);
 
-    // Wait for initial message to load
+    // Switch to chat mode
     await waitFor(() => {
-      expect(screen.getByText(/Hello!/)).toBeInTheDocument();
+      expect(screen.getByText('Chat instead')).toBeInTheDocument();
+    });
+
+    const chatButton = screen.getByText(/Chat instead/i);
+    fireEvent.click(chatButton);
+
+    // Wait for chat UI to appear
+    await waitFor(() => {
+      expect(screen.getByPlaceholderText(/Type your response.../i)).toBeInTheDocument();
     });
 
     const textarea = screen.getByPlaceholderText(/Type your response.../i);

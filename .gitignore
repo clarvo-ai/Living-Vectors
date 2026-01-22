@@ -20,6 +20,8 @@ packages/database/prisma/generated
 # testing
 /coverage
 **/coverage
+.coverage
+**/.coverage
 /.nyc_output
 
 # next.js
@@ -58,6 +60,9 @@ yarn-error.log*
 .env.development.local
 .env.test.local
 .env.production.local
+
+# credentials
+google-credentials.json
 
 # vercel
 .vercel

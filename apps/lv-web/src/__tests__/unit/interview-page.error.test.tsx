@@ -1,7 +1,7 @@
 import '@testing-library/jest-dom';
 import { fireEvent, render, screen, waitFor } from '@testing-library/react';
 import { useSession } from 'next-auth/react';
-import InterviewPage from '../../app/interview/page';
+import InterviewPage from '../../app/dashboard/interview/page';
 import { getGeminiResponse, startConversation } from '../../lib/services/pyapi';
 
 // Mock next-auth/react
@@ -36,11 +36,11 @@ describe('InterviewPage - Error Handling', () => {
     (fetch as jest.Mock).mockClear();
     // Mock scrollIntoView
     Element.prototype.scrollIntoView = jest.fn();
-    
+
     // Mock successful startConversation by default
     (startConversation as jest.Mock).mockResolvedValue({
       message: "Hello! I'm here to figure you out.",
-      goalCategory: "Career Goals",
+      goalCategory: 'Career Goals',
       questionId: { goalIndex: 0, questionIndex: 0 },
     });
   });
@@ -61,9 +61,17 @@ describe('InterviewPage - Error Handling', () => {
     });
     render(<InterviewPage />);
 
-    // Wait for initial message
+    // Switch to chat mode
     await waitFor(() => {
-      expect(screen.getByText(/Hello!/)).toBeInTheDocument();
+      expect(screen.getByText('Chat instead')).toBeInTheDocument();
+    });
+
+    const chatButton = screen.getByText(/Chat instead/i);
+    fireEvent.click(chatButton);
+
+    // Wait for chat UI to appear
+    await waitFor(() => {
+      expect(screen.getByPlaceholderText(/Type your response.../i)).toBeInTheDocument();
     });
 
     const textarea = screen.getByPlaceholderText(/Type your response.../i);
@@ -72,7 +80,7 @@ describe('InterviewPage - Error Handling', () => {
     // Make getGeminiResponse reject to simulate error
     (getGeminiResponse as jest.Mock).mockRejectedValueOnce(new Error('Error'));
 
-    const sendButton = screen.getByRole('button', { name: /Send/i });
+    const sendButton = screen.getByTestId('sendButton');
     fireEvent.click(sendButton);
 
     // Wait for the error AI message to appear

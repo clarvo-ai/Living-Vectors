@@ -1,0 +1,47 @@
+import { prisma } from '@repo/db';
+import { requireAdminAuth } from '@repo/lib';
+import { NextRequest, NextResponse } from 'next/server';
+
+interface RouteParams {
+  params: Promise<{
+    userId: string;
+  }>;
+}
+
+export async function GET(request: NextRequest, { params }: RouteParams) {
+  const authError = await requireAdminAuth();
+  if (authError) {
+    return authError;
+  }
+
+  try {
+    const { userId } = await params;
+
+    // Verify user exists
+    const user = await prisma.user.findUnique({
+      where: { id: userId },
+      select: { id: true },
+    });
+
+    if (!user) {
+      return NextResponse.json({ error: 'User not found' }, { status: 404 });
+    }
+
+    // Fetch messages in chronological order
+    const messages = await prisma.conversationMessage.findMany({
+      where: { userId },
+      select: {
+        messageId: true,
+        sender: true,
+        content: true,
+        createdAt: true,
+      },
+      orderBy: { createdAt: 'asc' },
+    });
+
+    return NextResponse.json(messages);
+  } catch (error) {
+    console.error('Error fetching user messages:', error);
+    return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
+  }
+}
