@@ -23,12 +23,12 @@ def get_repo_history(repo_name, github_token):
         commit = branch.commit
         if commit.commit.author.date > last_day:
             active_branches.append(branch.name)
-            message += f"Branch: {branch.name}\nAuthor: {commit.commit.author.name}\nMessage: {commit.commit.message}\n\n"
-            messages.append(message)
+            message += f"Branch: {branch.name}\nAuthor: {commit.commit.author.name}\nMessage: {commit.commit.message}\n\n----------\n"
 
-    return messages, active_branches
+    return message, active_branches
 
 # prompt engineer the below ;)
+# TO DO LATER
 def format_branch_history(messages):
     """Generate learnings from history using Gemini API"""
     try:
@@ -67,7 +67,7 @@ async def send_telegram_message(token, chat_id, message):
 
 async def main():
     messages, active_branches = get_repo_history(repo_name, github_token)
-    formatted_message = f"Daily Update for Repository: {repo_name}\n\nActive Branches in the last 24 hours:\n\n" + "\n".join(active_branches) + "\n\nDetails:\n" + "\n".join(messages)
+    formatted_message = f"Daily Update for Repository: {repo_name}\n\nStatus for active branches in the last 24 hours:\n" + "\n\nDetails:\n" + messages
 
     await send_telegram_message(telegram_bot_token, telegram_chat_id, formatted_message)
     print("Message sent successfully.")
