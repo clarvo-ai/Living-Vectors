@@ -13,10 +13,11 @@ export async function POST(request: NextRequest) {
     const apiSecret = process.env.LIVEKIT_API_SECRET;
     const liveKitUrl = process.env.NEXT_PUBLIC_LIVEKIT_URL;
 
-    if (!apiKey || !apiSecret) {
+    if (!apiKey || !apiSecret || !liveKitUrl) {
       return NextResponse.json({ error: 'Missing LiveKit credentials' }, { status: 500 });
     }
 
+    // Generate access token for the participant
     const token = new AccessToken(apiKey, apiSecret);
     token.identity = participantName;
 
@@ -29,7 +30,6 @@ export async function POST(request: NextRequest) {
     };
 
     token.addGrant(videoGrant);
-
     const jwt = await token.toJwt();
 
     return NextResponse.json({

@@ -72,7 +72,7 @@ export function ActiveInterview({
     if (liveKitSession && liveKitSession.connectionState !== 'connected') {
       liveKitSession.start();
     }
-  }, [liveKitSession]);
+  }, []);
 
   // Cleanup on unmount only
   useEffect(() => {

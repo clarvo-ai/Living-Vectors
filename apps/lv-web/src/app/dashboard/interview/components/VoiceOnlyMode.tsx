@@ -2,7 +2,6 @@ import {
   BarVisualizer,
   useLocalParticipant,
   useRemoteParticipants,
-  useRoomInfo,
   useTracks,
   useVoiceAssistant,
 } from '@livekit/components-react';
@@ -24,7 +23,6 @@ export function VoiceOnlyMode({ onStart, onGoToChat, hasStarted }: VoiceOnlyMode
   const { isMicrophoneEnabled, localParticipant } = useLocalParticipant();
   const remoteParticipants = useRemoteParticipants();
   const { state: agentState } = useVoiceAssistant();
-  const roomInfo = useRoomInfo();
 
   // Get agent audio track
   const agentAudioTrack = useTracks([{ source: Track.Source.Microphone, withPlaceholder: false }], {
@@ -63,11 +61,11 @@ export function VoiceOnlyMode({ onStart, onGoToChat, hasStarted }: VoiceOnlyMode
             </div>
           </div>
           <BarVisualizer
-            barCount={5}
+            barCount={7}
             state={agentState}
-            options={{ minHeight: 6, maxHeight: 60 }}
+            options={{ minHeight: 10, maxHeight: 150 }}
             track={agentAudioTrack}
-            className={cn('flex h-16 items-center justify-center gap-1')}
+            className={cn('flex h-16 items-center justify-center gap-0.5')}
           >
             <span
               className={cn(
@@ -80,11 +78,7 @@ export function VoiceOnlyMode({ onStart, onGoToChat, hasStarted }: VoiceOnlyMode
               }}
             />
           </BarVisualizer>
-          <p className="text-xl font-medium text-gray-600">
-            Connected to a room with{' '}
-            {remoteParticipants[0] ? remoteParticipants[0]?.identity : 'no agent'}
-          </p>
-          <div className="mt-8 flex gap-4">
+          <div className="flex gap-4">
             <button
               onClick={toggleMute}
               className="w-16 h-16 rounded-full flex items-center justify-center transition-all transform hover:scale-110"
@@ -113,7 +107,6 @@ export function VoiceOnlyMode({ onStart, onGoToChat, hasStarted }: VoiceOnlyMode
             >
               <MessageSquare className="w-8 h-8 text-gray-600" />
             </button>
-            <p>{roomInfo.name}</p>
           </div>
         </div>
       </div>
