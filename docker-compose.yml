@@ -60,17 +60,23 @@ services:
     build:
       context: .
       dockerfile: ./apps/lv-pyapi/Dockerfile
+    env_file:
+      - ./apps/lv-pyapi/.env.local
     ports:
       - '8091:8080'
     environment:
       - DATABASE_URL=postgresql://postgres:postgres@db:5432/postgres
       - PYTHONPATH=/app:/app/packages/python-utils/src
       - GOOGLE_APPLICATION_CREDENTIALS=/app/apps/lv-pyapi/credentials/google-credentials.json
+      - LIVEKIT_URL=ws://livekit:7880
+      - LIVEKIT_API_KEY=devkey
+      - LIVEKIT_API_SECRET=secret
     volumes:
       - ./apps/lv-pyapi:/app/apps/lv-pyapi
       - ./packages/python-utils:/app/packages/python-utils
     depends_on:
       - db
+      - livekit
     restart: always
 
   # lv-pyapi-tests:
@@ -88,6 +94,41 @@ services:
     depends_on:
       - db
     command: sh -c  "./scripts/wait-db.sh && cd packages/database && npx prisma migrate dev"
+    volumes:
+      - .:/app
+      - /app/node_modules
+
+  mock-migrate:
+    profiles: ['mock-seed']
+    container_name: living-vectors-mock-db-migrate
+    build:
+      context: .
+      dockerfile: ./packages/database/Dockerfile.web
+    environment:
+      - DATABASE_URL=postgresql://postgres:postgres@mock-db:5432/postgres
+      - DIRECT_DATABASE_URL=postgresql://postgres:postgres@mock-db:5432/postgres
+      - NODE_ENV=development
+      - APP_SOURCE_NAME=${APP_SOURCE_NAME:-unknown}
+    depends_on:
+      - mock-db
+    command: sh -c "until pg_isready -h mock-db -U postgres; do sleep 1; done && cd packages/database && npx prisma migrate deploy && npm run db:generate"
+    volumes:
+      - .:/app
+      - /app/node_modules
+
+  mock-seed:
+    profiles: ['mock-seed']
+    container_name: living-vectors-mock-seed
+    build:
+      context: .
+      dockerfile: ./packages/database/Dockerfile.web
+    environment:
+      - DATABASE_URL=postgresql://postgres:postgres@mock-db:5432/postgres
+      - DIRECT_DATABASE_URL=postgresql://postgres:postgres@mock-db:5432/postgres
+      - NODE_ENV=development
+    depends_on:
+      - mock-migrate
+    command: sh -c "cd packages/database && npm run db:seed"
     volumes:
       - .:/app
       - /app/node_modules
@@ -139,6 +180,23 @@ services:
     volumes:
       - postgres_data:/var/lib/postgresql/data
       # - we can add create_db.sql
+
+  mock-db:
+    profiles: ['mock-db', 'mock-seed']
+    container_name: lv-mock-db
+    image: lv-db
+    restart: always
+    build:
+      context: ./packages/database/prisma
+      dockerfile: Dockerfile
+    ports:
+      - '3773:5432'
+    environment:
+      - POSTGRES_USER=postgres
+      - POSTGRES_PASSWORD=postgres
+      - POSTGRES_DB=postgres
+    volumes:
+      - postgres_mock_data:/var/lib/postgresql/data
 
   test-postgres:
     profiles: ['tests']
@@ -195,13 +253,13 @@ services:
     volumes:
       - .:/app
     command: pytest tests --asyncio-mode=auto
-  
+
   livekit:
     image: livekit/livekit-server:latest
-    command: ["--dev"]
+    command: --dev --bind 0.0.0.0
     ports:
-      - "7880:7880"
-      
+      - '7880:7880'
 volumes:
   postgres_data:
   postgres_test_data:
+  postgres_mock_data:

@@ -153,57 +153,98 @@ docker compose up -d livekit
 - Dev credentials: `devkey` / `secret`
 - To see the logs: run `docker compose logs livekit`
 
-## 4. Running Tests
+Test connection and create a token (using the LiveKit CLI):
 
-The project uses **Jest** for JavaScript/TypeScript tests and **Pytest** for python tests.
+1. Install the LiveKit CLI (see the official docs if the command doesn't work):
 
-### Quick Commands
-
-```bash
-# Run ALL tests (Jest + Pytest)
-npm run test
-
-# Run ALL tests with coverage reports
-npm run test:all:coverage
-```
-
-### Jest (JavaScript/TypeScript)
+   https://docs.livekit.io/intro/basics/cli/start/
 
 ```bash
-# Run Jest tests only
-npm run test:jest
-
-# Run Jest tests with coverage
-npm run test:jest:coverage
-
-# View coverage report (Mac/Linux)
-open apps/lv-web/coverage/lcov-report/index.html
-
-# View coverage report (Windows/WSL)
-powershell.exe -c start apps/lv-web/coverage/lcov-report/index.html
+curl -sSL https://get.livekit.io/cli | bash
 ```
 
-### Pytest (Python)
+2. Add the local project to the CLI (not necessary to put default):
 
 ```bash
-# Run Pytest tests only (requires Docker)
-npm run test:pytest
-
-# Run Pytest test with coverage
-npm run test:pytest:coverage
-
-# View coverage report (Mac/Linux)
-open apps/lv-pyapi/htmlcov/index.html
-
-# View coverage report (Windows/WSL)
-powershell.exe -c start apps/lv-pyapi/htmlcov/index.html
+lk project add lv \
+  --url http://localhost:7880 \
+  --api-key devkey \
+  --api-secret secret \
+  --default
 ```
 
-### Coverage Reports
+3. Generate a token that can join a room:
 
-- **Jest:** 'apps/lv-web/coverage/lcov-report/index.html'
-- **Pytest:** 'apps/lv-pyapi/htmlcov/index.html'
-- **CI:** Coverage reports are uploaded as artifacts in GitHub Actions
+```bash
+lk token create \
+   --api-key devkey --api-secret secret \
+   --join --room test_room --identity test_user \
+   --valid-for 24h
+```
+
+4. Dispatch an agent to the test room:
+
+```bash
+lk dispatch create \
+   --agent-name lv-voice-agent \
+   --room test_room \
+   --metadata '{"user_id":"12345"}'
+```
+
+5. Join the room from a browser for quick manual testing:
+   - Open https://agents-playground.livekit.io/ (Manual)
+   - Set the server URL to `http://localhost:7880` and paste the generated token
+
+## 4. Running lv-web Without Docker
+
+For faster frontend development:
+
+### One-time Setup
+
+1. Create `apps/lv-web/.env.local` with:
+
+```
+DATABASE_URL=postgresql://postgres:postgres@localhost:3772/postgres
+DIRECT_DATABASE_URL=postgresql://postgres:postgres@localhost:3772/postgres
+NEXT_PUBLIC_PYAPI_URL=http://localhost:8091
+```
+
+**Note:** `.env.local` is not required, but Next.js prioritizes it over `.env`. This means if you have the same variable name in both files, Next.js will use the value from `.env.local`.
+
+The setup uses this prioritization to handle different database URLs:
+
+- **Docker builds** use `db:5432` (from `.env` or docker-compose environment variables)
+- **npm-run builds** use `localhost:3772` (from `.env.local`)
+
+This allows the same codebase to work in both Docker and local npm-run environments.
+
+2. Clean Next.js build cache (if switching from Docker):
+
+```bash
+sudo rm -rf apps/lv-web/.next
+```
+
+3. Regenerate Prisma for your platform:
+
+```bash
+rm -rf packages/database/prisma/generated
+cd packages/database/prisma && npx prisma generate
+cd ../../..
+```
+
+**Important:** You must run `npx prisma generate` in `packages/database/prisma` whenever you switch between Docker-run and npm-run environments, as Prisma needs to generate the client for your specific platform.
+
+### Running
+
+```bash
+# Start database (run from project root)
+docker compose --profile lv-web up db -d
+
+# Start app
+npm run dev:lv-web -- --port=3045
+```
+
+Open http://localhost:3045
 
 ## Test Builds Locally
 
@@ -268,6 +309,30 @@ docker exec -it lv-web npm run build
 docker compose --profile lv-web-build build
 ```
 
+## Testing
+
+We use Jest and React Testing Library for unit and component testing.
+
+### Running Tests
+
+To run the test suite, go to `apps/lv-web` and run:
+
+```bash
+npm test
+```
+
+To run tests in watch mode (interactive):
+
+```bash
+npm run test:watch
+```
+
+### Writing Tests
+
+- Place test files in `src/__tests__` or colocated with components (e.g., `component.test.tsx`).
+- Use the `.test.tsx` or `.spec.tsx` extension.
+- We use `jest-environment-jsdom` for component tests.
+
 ## 8. Adding a shadcn Component
 
 Inside the LV-WEB app folder:
@@ -275,6 +340,30 @@ Inside the LV-WEB app folder:
 ```bash
 npx shadcn@latest add [COMPONENT]
 ```
+
+## Seed Mock Database with Test Data
+
+The project includes a seed script that populates a separate mock database with sample users, conversations, and learnings. This helps with quick project setup, testing, and onboarding.
+
+```bash
+## Set up mock database with test data (runs migrations and seeds data):
+docker compose --profile mock-seed up -d --build
+
+## Connect to mock database:
+sudo docker exec -it lv-mock-db psql -U postgres
+
+## Reseed the mock database (clear and start fresh):
+docker compose --profile mock-seed down -v
+docker compose --profile mock-seed up -d --build
+
+## Run seed script manually against any database:
+cd packages/database
+DATABASE_URL=postgresql://postgres:postgres@localhost:3773/postgres NODE_ENV=development npm run db:seed
+```
+
+The mock database runs on port `3773` (main database uses `3772`).
+
+### Python Development
 
 ## 9. Python Development (VS Code Recommended Settings)
 
