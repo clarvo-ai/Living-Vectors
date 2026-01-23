@@ -153,6 +153,48 @@ docker compose up -d livekit
 - Dev credentials: `devkey` / `secret`
 - To see the logs: run `docker compose logs livekit`
 
+Test connection and create a token (using the LiveKit CLI):
+
+1. Install the LiveKit CLI (see the official docs if the command doesn't work):
+
+   https://docs.livekit.io/intro/basics/cli/start/
+
+```bash
+curl -sSL https://get.livekit.io/cli | bash
+```
+
+2. Add the local project to the CLI (not necessary to put default):
+
+```bash
+lk project add lv \
+  --url http://localhost:7880 \
+  --api-key devkey \
+  --api-secret secret \
+  --default
+```
+
+3. Generate a token that can join a room:
+
+```bash
+lk token create \
+   --api-key devkey --api-secret secret \
+   --join --room test_room --identity test_user \
+   --valid-for 24h
+```
+
+4. Dispatch an agent to the test room:
+
+```bash
+lk dispatch create \
+   --agent-name lv-voice-agent \
+   --room test_room \
+   --metadata '{"user_id":"12345"}'
+```
+
+5. Join the room from a browser for quick manual testing:
+   - Open https://agents-playground.livekit.io/ (Manual)
+   - Set the server URL to `http://localhost:7880` and paste the generated token
+
 ## 4. Running lv-web Without Docker
 
 For faster frontend development:
