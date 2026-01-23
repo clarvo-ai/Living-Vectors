@@ -120,11 +120,13 @@ model GeneralLearning {
   id        String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
   userId    String   @db.Uuid
   summary   String
+  sessionId String?  
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
   user      User     @relation(fields: [userId], references: [id])
 
   @@index([userId])
+  @@index([userId, sessionId]) // For deduplication queries
 }
 
 enum MessageSender {
