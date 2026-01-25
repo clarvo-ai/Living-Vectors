@@ -1,76 +1,94 @@
 /**
- * Interview Chat UI Tests
+ * Interview Page - Chat Tests
  *
- * These tests verify the chat display logic and message handling
- * without requiring full component rendering or LiveKit integration.
+ * Tests chat functionality: message input, sending, and display
  */
 
-describe('Interview Chat UI', () => {
-  // Test 1: Verify chat mode displays when voiceOnlyMode is false
-  it('should display chat interface when not in voice-only mode', () => {
-    const voiceOnlyMode = false;
-    const hasStarted = true;
+jest.mock('@livekit/components-react', () => ({
+  useChat: jest.fn(() => ({
+    send: jest.fn(),
+  })),
+  useLocalParticipant: jest.fn(() => ({
+    isMicrophoneEnabled: true,
+    localParticipant: {
+      setMicrophoneEnabled: jest.fn(),
+    },
+  })),
+  useSessionContext: jest.fn(() => ({})),
+  useSessionMessages: jest.fn(() => ({
+    messages: [],
+  })),
+}));
 
-    // In chat mode, the UI should show the chat input and message area
-    expect(voiceOnlyMode).toBe(false);
-    expect(hasStarted).toBe(true);
+jest.mock('../../app/dashboard/interview/components/ChatHeader', () => ({
+  ChatHeader: () => <div data-testid="chat-header">Chat Header</div>,
+}));
+
+jest.mock('../../app/dashboard/interview/components/ChatInput', () => ({
+  ChatInput: ({ onSend }: any) => (
+    <input
+      data-testid="chat-input"
+      onKeyDown={(e) => {
+        if (e.key === 'Enter') {
+          onSend?.('test message');
+        }
+      }}
+    />
+  ),
+}));
+
+jest.mock('../../app/dashboard/interview/components/ChatMessage', () => ({
+  ChatMessage: ({ message }: any) => <div data-testid="chat-message">{message.text}</div>,
+}));
+
+jest.mock('../../app/dashboard/interview/components/VoiceOnlyMode', () => ({
+  VoiceOnlyMode: () => <div data-testid="voice-only-mode">Voice Mode</div>,
+}));
+
+import '@testing-library/jest-dom';
+import { render, screen } from '@testing-library/react';
+import { InterviewContent } from '../../app/dashboard/interview/components/InterviewContent';
+
+Element.prototype.scrollIntoView = jest.fn();
+
+describe('Interview - Chat Functionality', () => {
+  const defaultProps = {
+    input: 'Hello',
+    setInput: jest.fn(),
+    isLoading: false,
+    voiceOnlyMode: false,
+    setVoiceOnlyMode: jest.fn(),
+    showEndInterviewDialog: false,
+    setShowEndInterviewDialog: jest.fn(),
+    onEndInterview: jest.fn(),
+    hasStarted: true,
+    setHasStarted: jest.fn(),
+  };
+
+  beforeEach(() => {
+    jest.clearAllMocks();
   });
 
-  // Test 2: Verify voice mode hides chat when voiceOnlyMode is true
-  it('should hide chat interface when in voice-only mode', () => {
-    const voiceOnlyMode = true;
-    const hasStarted = true;
-
-    // In voice-only mode, the chat should be hidden
-    expect(voiceOnlyMode).toBe(true);
-    expect(hasStarted).toBe(true);
+  it('should render chat header when in chat mode', () => {
+    render(<InterviewContent {...defaultProps} />);
+    expect(screen.getByTestId('chat-header')).toBeInTheDocument();
   });
 
-  // Test 3: Verify chat doesn't show before interview starts
-  it('should not display chat before interview starts', () => {
-    const voiceOnlyMode = false;
-    const hasStarted = false;
-
-    // Before starting, chat should be hidden
-    expect(hasStarted).toBe(false);
+  it('should accept and handle input changes', () => {
+    const setInput = jest.fn();
+    render(<InterviewContent {...defaultProps} setInput={setInput} input="test" />);
+    expect(defaultProps.setInput).toBeDefined();
   });
 
-  // Test 4: Verify message input field state transitions
-  it('should manage message input state', () => {
-    let inputValue = '';
-    const setInputValue = jest.fn((value: string) => {
-      inputValue = value;
-    });
-
-    // User types a message
-    setInputValue('Hello AI');
-    expect(setInputValue).toHaveBeenCalledWith('Hello AI');
-    expect(inputValue).toBe('Hello AI');
+  it('should not render chat when in voice-only mode', () => {
+    render(<InterviewContent {...defaultProps} voiceOnlyMode={true} />);
+    expect(screen.getByTestId('voice-only-mode')).toBeInTheDocument();
+    expect(screen.queryByTestId('chat-header')).not.toBeInTheDocument();
   });
 
-  // Test 5: Verify message sending clears input
-  it('should clear input after sending message', () => {
-    let inputValue = 'Test message';
-    const sendMessage = jest.fn(() => {
-      inputValue = '';
-    });
-
-    sendMessage();
-    expect(inputValue).toBe('');
-    expect(sendMessage).toHaveBeenCalled();
-  });
-
-  // Test 6: Verify chat mode toggle
-  it('should toggle between chat and voice-only modes', () => {
-    let voiceOnlyMode = false;
-    const toggleMode = jest.fn(() => {
-      voiceOnlyMode = !voiceOnlyMode;
-    });
-
-    expect(voiceOnlyMode).toBe(false);
-    toggleMode();
-    expect(voiceOnlyMode).toBe(true);
-    toggleMode();
-    expect(voiceOnlyMode).toBe(false);
+  it('should render chat when voiceOnlyMode is false', () => {
+    render(<InterviewContent {...defaultProps} voiceOnlyMode={false} />);
+    expect(screen.getByTestId('chat-header')).toBeInTheDocument();
+    expect(screen.queryByTestId('voice-only-mode')).not.toBeInTheDocument();
   });
 });

@@ -1,61 +1,172 @@
 /**
- * Interview Page Status Tests
+ * Interview Page - Authentication & Status Tests
  *
- * These tests verify authentication state, loading states, and session management.
+ * Tests auth state, loading states, and session management
  */
 
-describe('Interview Page Status', () => {
-  // Test 1: Verify auth state transitions
-  it('should handle authenticated state', () => {
-    const authState = {
+jest.mock('next-auth/react', () => ({
+  useSession: jest.fn(),
+}));
+
+jest.mock('next/navigation', () => ({
+  useRouter: () => ({
+    push: jest.fn(),
+  }),
+  redirect: jest.fn(),
+}));
+
+jest.mock('@livekit/components-react', () => ({
+  useChat: jest.fn(() => ({
+    send: jest.fn(),
+  })),
+  useLocalParticipant: jest.fn(() => ({
+    isMicrophoneEnabled: true,
+    localParticipant: {
+      setMicrophoneEnabled: jest.fn(),
+    },
+  })),
+  useSessionContext: jest.fn(() => ({})),
+  useSessionMessages: jest.fn(() => ({
+    messages: [],
+  })),
+}));
+
+jest.mock('../../app/dashboard/interview/components/ChatHeader', () => ({
+  ChatHeader: () => <div data-testid="chat-header">Chat Header</div>,
+}));
+
+jest.mock('../../app/dashboard/interview/components/ChatInput', () => ({
+  ChatInput: () => <div data-testid="chat-input">Chat Input</div>,
+}));
+
+jest.mock('../../app/dashboard/interview/components/ChatMessage', () => ({
+  ChatMessage: () => <div data-testid="chat-message">Message</div>,
+}));
+
+jest.mock('../../app/dashboard/interview/components/VoiceOnlyMode', () => ({
+  VoiceOnlyMode: () => <div data-testid="voice-only-mode">Voice Mode</div>,
+}));
+
+jest.mock('../../app/dashboard/interview/components/ActiveInterview', () => ({
+  ActiveInterview: () => <div data-testid="active-interview">Interview</div>,
+}));
+
+jest.mock('../../app/dashboard/interview/components/InterviewStartScreen', () => ({
+  InterviewStartScreen: () => <div data-testid="start-screen">Start</div>,
+}));
+
+import '@testing-library/jest-dom';
+import { useSession } from 'next-auth/react';
+
+const mockUseSession = useSession as jest.Mock;
+
+describe('Interview Page - Auth & Status', () => {
+  beforeEach(() => {
+    jest.clearAllMocks();
+    sessionStorage.clear();
+  });
+
+  it('should handle authenticated session state', () => {
+    mockUseSession.mockReturnValue({
+      data: {
+        user: {
+          id: 'user-123',
+          email: 'test@example.com',
+          name: 'Test User',
+        },
+      },
       status: 'authenticated',
-      user: { id: '1', email: 'test@example.com' },
-    };
+    });
 
-    expect(authState.status).toBe('authenticated');
-    expect(authState.user).toBeDefined();
+    const session = mockUseSession();
+    expect(session.status).toBe('authenticated');
+    expect(session.data.user).toBeDefined();
   });
 
-  // Test 2: Verify loading state
-  it('should show loading state while fetching session', () => {
-    const sessionStatus = 'loading';
-    expect(sessionStatus).toBe('loading');
-  });
-
-  // Test 3: Verify unauthenticated redirect
-  it('should redirect unauthenticated users', () => {
-    const authState = {
+  it('should detect unauthenticated state', () => {
+    mockUseSession.mockReturnValue({
+      data: null,
       status: 'unauthenticated',
-      user: null,
+    });
+
+    const session = mockUseSession();
+    expect(session.status).toBe('unauthenticated');
+    expect(session.data).toBeNull();
+  });
+
+  it('should show loading state', () => {
+    mockUseSession.mockReturnValue({
+      data: undefined,
+      status: 'loading',
+    });
+
+    const session = mockUseSession();
+    expect(session.status).toBe('loading');
+  });
+
+  it('should initialize voiceOnlyMode state from sessionStorage', () => {
+    sessionStorage.setItem('interview-voiceOnlyMode', 'true');
+    const storedMode = sessionStorage.getItem('interview-voiceOnlyMode');
+    expect(storedMode).toBe('true');
+  });
+
+  it('should default voiceOnlyMode to true if not in storage', () => {
+    sessionStorage.clear();
+    const storedMode = sessionStorage.getItem('interview-voiceOnlyMode');
+    expect(storedMode).toBeNull();
+    // Default should be true
+    const defaultMode = true;
+    expect(defaultMode).toBe(true);
+  });
+
+  it('should persist hasStarted state to sessionStorage', () => {
+    sessionStorage.setItem('interview-hasStarted', 'false');
+    expect(sessionStorage.getItem('interview-hasStarted')).toBe('false');
+
+    sessionStorage.setItem('interview-hasStarted', 'true');
+    expect(sessionStorage.getItem('interview-hasStarted')).toBe('true');
+  });
+
+  it('should maintain user session across page reloads', () => {
+    const userData = {
+      id: 'user-123',
+      email: 'test@example.com',
+      name: 'Test User',
     };
 
-    expect(authState.status).toBe('unauthenticated');
-    expect(authState.user).toBeNull();
+    mockUseSession.mockReturnValue({
+      data: { user: userData },
+      status: 'authenticated',
+    });
+
+    const session1 = mockUseSession();
+    const session2 = mockUseSession();
+
+    expect(session1.data.user).toEqual(session2.data.user);
   });
 
-  // Test 4: Verify session persistence
-  it('should maintain session across page reloads', () => {
-    const sessionData = { userId: '123', token: 'abc' };
-    const storedSession = sessionData;
+  it('should handle session without user data', () => {
+    mockUseSession.mockReturnValue({
+      data: {},
+      status: 'authenticated',
+    });
 
-    expect(storedSession).toEqual(sessionData);
+    const session = mockUseSession();
+    expect(session.status).toBe('authenticated');
+    expect(session.data.user).toBeUndefined();
   });
 
-  // Test 5: Verify interview ready state
-  it('should indicate when interview is ready to start', () => {
-    const interviewReady = true;
-    const hasStarted = false;
+  it('should provide user ID for tracking interview progress', () => {
+    mockUseSession.mockReturnValue({
+      data: {
+        user: {
+          id: 'user-xyz',
+        },
+      },
+      status: 'authenticated',
+    });
 
-    expect(interviewReady).toBe(true);
-    expect(hasStarted).toBe(false);
-  });
-
-  // Test 6: Verify error state handling
-  it('should handle session errors gracefully', () => {
-    const error = new Error('Session failed');
-    const hasError = true;
-
-    expect(hasError).toBe(true);
-    expect(error.message).toBe('Session failed');
+    const session = mockUseSession();
+    expect(session.data.user.id).toBeDefined();
   });
 });

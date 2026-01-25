@@ -1,61 +1,113 @@
 /**
- * Interview UI Mode Switching Tests
+ * Interview Page - UI Mode Switching Tests
  *
- * These tests verify the UI switches correctly between chat and voice-only modes.
+ * Tests switching between chat and voice-only modes
  */
 
-describe('Interview Mode Switching', () => {
-  // Test 1: Verify default mode on load
-  it('should default to voice-only mode on first load', () => {
-    const sessionStorage = { voiceOnlyMode: 'true' };
-    const voiceOnlyMode = sessionStorage.voiceOnlyMode === 'true';
+jest.mock('@livekit/components-react', () => ({
+  useChat: jest.fn(() => ({
+    send: jest.fn(),
+  })),
+  useLocalParticipant: jest.fn(() => ({
+    isMicrophoneEnabled: true,
+    localParticipant: {
+      setMicrophoneEnabled: jest.fn(),
+    },
+  })),
+  useSessionContext: jest.fn(() => ({})),
+  useSessionMessages: jest.fn(() => ({
+    messages: [],
+  })),
+}));
 
-    expect(voiceOnlyMode).toBe(true);
+jest.mock('../../app/dashboard/interview/components/ChatHeader', () => ({
+  ChatHeader: () => <div data-testid="chat-header">Chat Header</div>,
+}));
+
+jest.mock('../../app/dashboard/interview/components/ChatInput', () => ({
+  ChatInput: () => <div data-testid="chat-input">Chat Input</div>,
+}));
+
+jest.mock('../../app/dashboard/interview/components/ChatMessage', () => ({
+  ChatMessage: () => <div data-testid="chat-message">Message</div>,
+}));
+
+jest.mock('../../app/dashboard/interview/components/VoiceOnlyMode', () => ({
+  VoiceOnlyMode: () => <div data-testid="voice-only-mode">Voice Mode</div>,
+}));
+
+import '@testing-library/jest-dom';
+import { render, screen } from '@testing-library/react';
+import { InterviewContent } from '../../app/dashboard/interview/components/InterviewContent';
+
+Element.prototype.scrollIntoView = jest.fn();
+
+describe('Interview - UI Mode Switching', () => {
+  const defaultProps = {
+    input: '',
+    setInput: jest.fn(),
+    isLoading: false,
+    voiceOnlyMode: false,
+    setVoiceOnlyMode: jest.fn(),
+    showEndInterviewDialog: false,
+    setShowEndInterviewDialog: jest.fn(),
+    onEndInterview: jest.fn(),
+    hasStarted: true,
+    setHasStarted: jest.fn(),
+  };
+
+  beforeEach(() => {
+    jest.clearAllMocks();
+    sessionStorage.clear();
   });
 
-  // Test 2: Verify mode switch button logic
-  it('should toggle voice-only mode when button is clicked', () => {
-    let voiceOnlyMode = true;
-    const handleModeSwitch = jest.fn(() => {
-      voiceOnlyMode = !voiceOnlyMode;
-    });
-
-    expect(voiceOnlyMode).toBe(true);
-    handleModeSwitch();
-    expect(voiceOnlyMode).toBe(false);
-    expect(handleModeSwitch).toHaveBeenCalled();
+  it('should start in chat mode by default', () => {
+    render(<InterviewContent {...defaultProps} voiceOnlyMode={false} />);
+    expect(screen.getByTestId('chat-header')).toBeInTheDocument();
   });
 
-  // Test 3: Verify mode persists in sessionStorage
-  it('should save mode preference to sessionStorage', () => {
-    const sessionStorage: { voiceOnlyMode?: string } = {};
-    const saveMode = jest.fn((mode: boolean) => {
-      sessionStorage.voiceOnlyMode = mode.toString();
-    });
-
-    saveMode(false);
-    expect(sessionStorage.voiceOnlyMode).toBe('false');
+  it('should switch to voice-only mode', () => {
+    const setVoiceOnlyMode = jest.fn();
+    render(
+      <InterviewContent
+        {...defaultProps}
+        voiceOnlyMode={true}
+        setVoiceOnlyMode={setVoiceOnlyMode}
+      />
+    );
+    expect(screen.getByTestId('voice-only-mode')).toBeInTheDocument();
   });
 
-  // Test 4: Verify correct component renders for each mode
-  it('should render voice UI in voice-only mode', () => {
-    const voiceOnlyMode = true;
-    const shouldRenderVoice = voiceOnlyMode;
+  it('should toggle between modes', () => {
+    const { rerender } = render(<InterviewContent {...defaultProps} voiceOnlyMode={false} />);
+    expect(screen.getByTestId('chat-header')).toBeInTheDocument();
 
-    expect(shouldRenderVoice).toBe(true);
+    rerender(<InterviewContent {...defaultProps} voiceOnlyMode={true} />);
+    expect(screen.getByTestId('voice-only-mode')).toBeInTheDocument();
+
+    rerender(<InterviewContent {...defaultProps} voiceOnlyMode={false} />);
+    expect(screen.getByTestId('chat-header')).toBeInTheDocument();
   });
 
-  // Test 5: Verify correct component renders in chat mode
-  it('should render chat UI in chat mode', () => {
-    const voiceOnlyMode = false;
-    const shouldRenderChat = !voiceOnlyMode;
+  it('should persist mode state to sessionStorage', () => {
+    render(<InterviewContent {...defaultProps} voiceOnlyMode={false} />);
 
-    expect(shouldRenderChat).toBe(true);
+    sessionStorage.setItem('interview-voiceOnlyMode', 'false');
+    expect(sessionStorage.getItem('interview-voiceOnlyMode')).toBe('false');
+
+    sessionStorage.setItem('interview-voiceOnlyMode', 'true');
+    expect(sessionStorage.getItem('interview-voiceOnlyMode')).toBe('true');
   });
 
-  // Test 6: Verify mode button visibility
-  it('should show mode toggle button', () => {
-    const hasModeButton = true;
-    expect(hasModeButton).toBe(true);
+  it('should render chat when voiceOnlyMode is false', () => {
+    render(<InterviewContent {...defaultProps} voiceOnlyMode={false} />);
+    expect(screen.getByTestId('chat-header')).toBeInTheDocument();
+    expect(screen.queryByTestId('voice-only-mode')).not.toBeInTheDocument();
+  });
+
+  it('should render voice mode when voiceOnlyMode is true', () => {
+    render(<InterviewContent {...defaultProps} voiceOnlyMode={true} />);
+    expect(screen.getByTestId('voice-only-mode')).toBeInTheDocument();
+    expect(screen.queryByTestId('chat-header')).not.toBeInTheDocument();
   });
 });

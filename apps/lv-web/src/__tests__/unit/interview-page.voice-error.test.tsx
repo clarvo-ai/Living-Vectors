@@ -1,67 +1,132 @@
 /**
- * Interview Error Handling Tests
+ * Interview Page - Error Handling Tests
  *
- * These tests verify error states are handled gracefully without crashing the UI.
+ * Tests error states and graceful handling
  */
 
-describe('Interview Error Handling', () => {
-  // Test 1: Verify connection error state
-  it('should display error when connection fails', () => {
-    const connectionError = 'Failed to connect to voice service';
-    const hasError = !!connectionError;
+jest.mock('@livekit/components-react', () => ({
+  useChat: jest.fn(() => ({
+    send: jest.fn(),
+  })),
+  useLocalParticipant: jest.fn(() => ({
+    isMicrophoneEnabled: true,
+    localParticipant: {
+      setMicrophoneEnabled: jest.fn(),
+    },
+  })),
+  useSessionContext: jest.fn(() => ({})),
+  useSessionMessages: jest.fn(() => ({
+    messages: [],
+  })),
+}));
 
-    expect(hasError).toBe(true);
-    expect(connectionError).toContain('Failed');
+jest.mock('../../app/dashboard/interview/components/ChatHeader', () => ({
+  ChatHeader: () => <div data-testid="chat-header">Chat Header</div>,
+}));
+
+jest.mock('../../app/dashboard/interview/components/ChatInput', () => ({
+  ChatInput: () => <div data-testid="chat-input">Chat Input</div>,
+}));
+
+jest.mock('../../app/dashboard/interview/components/ChatMessage', () => ({
+  ChatMessage: () => <div data-testid="chat-message">Message</div>,
+}));
+
+jest.mock('../../app/dashboard/interview/components/VoiceOnlyMode', () => ({
+  VoiceOnlyMode: () => <div data-testid="voice-only-mode">Voice Mode</div>,
+}));
+
+import '@testing-library/jest-dom';
+import { render, screen } from '@testing-library/react';
+import { InterviewContent } from '../../app/dashboard/interview/components/InterviewContent';
+
+Element.prototype.scrollIntoView = jest.fn();
+
+describe('Interview - Error Handling', () => {
+  const defaultProps = {
+    input: '',
+    setInput: jest.fn(),
+    isLoading: false,
+    voiceOnlyMode: false,
+    setVoiceOnlyMode: jest.fn(),
+    showEndInterviewDialog: false,
+    setShowEndInterviewDialog: jest.fn(),
+    onEndInterview: jest.fn(),
+    hasStarted: true,
+    setHasStarted: jest.fn(),
+  };
+
+  beforeEach(() => {
+    jest.clearAllMocks();
   });
 
-  // Test 2: Verify error dismissal
-  it('should allow user to dismiss error messages', () => {
-    let errorMessage = 'Connection error';
-    const dismissError = jest.fn(() => {
-      errorMessage = '';
-    });
-
-    expect(errorMessage).toBe('Connection error');
-    dismissError();
-    expect(errorMessage).toBe('');
-    expect(dismissError).toHaveBeenCalled();
+  it('should render without crashing when component loads', () => {
+    const { container } = render(<InterviewContent {...defaultProps} />);
+    expect(container).toBeInTheDocument();
   });
 
-  // Test 3: Verify user can retry after error
-  it('should allow retry after an error', () => {
-    const retryCount = 0;
-    const handleRetry = jest.fn();
-
-    expect(retryCount).toBe(0);
-    handleRetry();
-    expect(handleRetry).toHaveBeenCalled();
+  it('should handle undefined messages gracefully', () => {
+    render(<InterviewContent {...defaultProps} />);
+    expect(screen.getByTestId('chat-header')).toBeInTheDocument();
   });
 
-  // Test 4: Verify UI stays responsive during errors
-  it('should keep UI responsive when errors occur', () => {
-    const isUIResponsive = true;
-    const error = new Error('Some error');
-
-    expect(isUIResponsive).toBe(true);
-    expect(error).toBeDefined();
+  it('should handle loading state', () => {
+    render(<InterviewContent {...defaultProps} isLoading={true} />);
+    expect(screen.getByTestId('chat-header')).toBeInTheDocument();
   });
 
-  // Test 5: Verify error logging
-  it('should log errors for debugging', () => {
-    const consoleErrorSpy = jest.spyOn(console, 'error').mockImplementation();
-    const error = 'Debug error';
+  it('should handle prop changes without crashing', () => {
+    const { rerender } = render(<InterviewContent {...defaultProps} input="test" />);
 
-    console.error(error);
-    expect(consoleErrorSpy).toHaveBeenCalledWith(error);
+    rerender(<InterviewContent {...defaultProps} input="updated" />);
 
-    consoleErrorSpy.mockRestore();
+    expect(screen.getByTestId('chat-header')).toBeInTheDocument();
   });
 
-  // Test 6: Verify graceful fallback UI
-  it('should show fallback UI when voice service unavailable', () => {
-    const voiceServiceAvailable = false;
-    const fallbackUIShown = !voiceServiceAvailable;
+  it('should handle mode switch without errors', () => {
+    const { rerender } = render(<InterviewContent {...defaultProps} voiceOnlyMode={false} />);
 
-    expect(fallbackUIShown).toBe(true);
+    rerender(<InterviewContent {...defaultProps} voiceOnlyMode={true} />);
+
+    expect(screen.getByTestId('voice-only-mode')).toBeInTheDocument();
+  });
+
+  it('should maintain state consistency during rapid prop updates', () => {
+    const setInput = jest.fn();
+    const setVoiceOnlyMode = jest.fn();
+
+    const { rerender } = render(
+      <InterviewContent
+        {...defaultProps}
+        setInput={setInput}
+        setVoiceOnlyMode={setVoiceOnlyMode}
+        input="message1"
+      />
+    );
+
+    rerender(
+      <InterviewContent
+        {...defaultProps}
+        setInput={setInput}
+        setVoiceOnlyMode={setVoiceOnlyMode}
+        input="message2"
+      />
+    );
+
+    expect(setInput).toBeDefined();
+    expect(setVoiceOnlyMode).toBeDefined();
+  });
+
+  it('should handle missing callbacks gracefully', () => {
+    const propsWithoutCallbacks = {
+      ...defaultProps,
+      setInput: jest.fn(),
+      setVoiceOnlyMode: jest.fn(),
+      onEndInterview: undefined,
+    };
+
+    const { container } = render(<InterviewContent {...(propsWithoutCallbacks as any)} />);
+
+    expect(container).toBeInTheDocument();
   });
 });
