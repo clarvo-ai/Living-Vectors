@@ -8,6 +8,7 @@ import {
 import '@livekit/components-styles';
 import { Track } from 'livekit-client';
 import { Bot, MessageSquare, Mic, MicOff } from 'lucide-react';
+import { useEffect } from 'react';
 
 function cn(...classes: (string | undefined | false)[]): string {
   return classes.filter(Boolean).join(' ');
@@ -38,6 +39,17 @@ export function VoiceOnlyMode({ onStart, onGoToChat, hasStarted }: VoiceOnlyMode
 
   // If session is active, show LiveKit voice interface
   if (hasStarted) {
+    // Ensure AI is never muted in voice-only mode
+    useEffect(() => {
+      remoteParticipants.forEach((participant) => {
+        participant.audioTrackPublications.forEach((publication) => {
+          const audioElement = publication.audioTrack?.attachedElements[0] as HTMLAudioElement;
+          if (audioElement && audioElement.muted) {
+            audioElement.muted = false;
+          }
+        });
+      });
+    }, [remoteParticipants]);
     return (
       <div className="flex-1 w-full flex flex-col items-center justify-center">
         <div className="flex flex-col items-center justify-center h-full gap-6">

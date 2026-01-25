@@ -9,18 +9,37 @@ interface ChatHeaderProps {
   setVoiceOnlyMode: (value: boolean) => void;
 }
 
-export function ChatHeader({
-  voiceMode,
-  setVoiceMode,
-  voiceOnlyMode,
-  setVoiceOnlyMode,
-}: ChatHeaderProps) {
+export function ChatHeader({ voiceOnlyMode, setVoiceOnlyMode }: ChatHeaderProps) {
   const remoteParticipants = useRemoteParticipants();
   const [isAgentMuted, setIsAgentMuted] = useState(false);
+
+  // Load muted state from sessionStorage on mount
+  useEffect(() => {
+    const savedMutedState = sessionStorage.getItem('isAgentMuted');
+    if (savedMutedState !== null) {
+      const muted = JSON.parse(savedMutedState);
+      setIsAgentMuted(muted);
+    }
+  }, []);
+
+  // Apply muted state to audio elements when remote participants load
+  useEffect(() => {
+    remoteParticipants.forEach((participant) => {
+      participant.audioTrackPublications.forEach((publication) => {
+        const audioElement = publication.audioTrack?.attachedElements[0] as HTMLAudioElement;
+        if (audioElement) {
+          audioElement.muted = isAgentMuted;
+        }
+      });
+    });
+  }, [remoteParticipants, isAgentMuted]);
 
   const toggleAgentVoice = () => {
     const newMutedState = !isAgentMuted;
     setIsAgentMuted(newMutedState);
+
+    // Save to sessionStorage
+    sessionStorage.setItem('isAgentMuted', JSON.stringify(newMutedState));
 
     // Mute/unmute all remote participants' audio by setting track enabled on HTML element
     remoteParticipants.forEach((participant) => {
@@ -31,14 +50,7 @@ export function ChatHeader({
         }
       });
     });
-
-    setVoiceMode(!newMutedState);
   };
-
-  // Sync initial state
-  useEffect(() => {
-    setIsAgentMuted(!voiceMode);
-  }, [voiceMode]);
 
   return (
     <div className="flex items-center w-full justify-between gap-4">
@@ -64,9 +76,9 @@ export function ChatHeader({
           <button
             onClick={toggleAgentVoice}
             className="p-2 rounded-lg hover:bg-gray-200 transition-colors flex items-center justify-center"
-            title={voiceMode ? 'Disable AI Voice' : 'Enable AI Voice'}
+            title={!isAgentMuted ? 'Disable AI Voice' : 'Enable AI Voice'}
           >
-            {voiceMode ? (
+            {!isAgentMuted ? (
               <Volume2 className="h-4 w-4 text-gray-700" />
             ) : (
               <VolumeX className="h-4 w-4 text-gray-700" />
@@ -74,23 +86,7 @@ export function ChatHeader({
           </button>
           <button
             onClick={() => {
-              const newVoiceOnlyMode = !voiceOnlyMode;
-              setVoiceOnlyMode(newVoiceOnlyMode);
-              // Auto-enable voice when switching to voice-only mode
-              if (newVoiceOnlyMode && !voiceMode) {
-                setVoiceMode(true);
-                setIsAgentMuted(false);
-                // Unmute all remote participants
-                remoteParticipants.forEach((participant) => {
-                  participant.audioTrackPublications.forEach((publication) => {
-                    const audioElement = publication.audioTrack
-                      ?.attachedElements[0] as HTMLAudioElement;
-                    if (audioElement) {
-                      audioElement.muted = false;
-                    }
-                  });
-                });
-              }
+              setVoiceOnlyMode(!voiceOnlyMode);
             }}
             className="p-2 rounded-lg hover:bg-gray-200 transition-colors flex items-center justify-center"
             title={voiceOnlyMode ? 'Switch to Chat' : 'Switch to Voice'}

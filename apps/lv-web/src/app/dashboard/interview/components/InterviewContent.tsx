@@ -52,8 +52,6 @@ export function InterviewContent({
   };
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
-  // Save messages to sessionStorage whenever they change
-
   // Scroll to bottom
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
