@@ -90,34 +90,39 @@ export function VoiceOnlyMode({ onStart, onGoToChat, hasStarted }: VoiceOnlyMode
               }}
             />
           </BarVisualizer>
-          <div className="flex gap-4">
+          <div
+            className="flex gap-2 p-3 rounded-lg bg-white bg-opacity-80 shadow-md border border-gray-200"
+            style={{
+              backdropFilter: 'blur(10px)',
+            }}
+          >
             <button
               onClick={toggleMute}
-              className="w-16 h-16 rounded-full flex items-center justify-center transition-all transform hover:scale-110"
+              className="w-10 h-10 rounded-full flex items-center justify-center transition-all transform hover:scale-110"
               style={{
                 background: `linear-gradient(white, white) padding-box, var(--gradient-primary) border-box`,
-                border: '3px solid transparent',
-                boxShadow: '0px 5px 15px -4px var(--gradient-message-shadow)',
+                border: '2px solid transparent',
+                boxShadow: '0px 2px 8px -2px var(--gradient-message-shadow)',
               }}
               aria-label={!isMicrophoneEnabled ? 'Unmute' : 'Mute'}
             >
               {!isMicrophoneEnabled ? (
-                <MicOff className="w-8 h-8 text-gray-600" />
+                <MicOff className="w-5 h-5 text-gray-600" />
               ) : (
-                <Mic className="w-8 h-8 text-gray-600" />
+                <Mic className="w-5 h-5 text-gray-600" />
               )}
             </button>
             <button
               onClick={onGoToChat}
-              className="w-16 h-16 rounded-full flex items-center justify-center transition-all transform hover:scale-110"
+              className="w-10 h-10 rounded-full flex items-center justify-center transition-all transform hover:scale-110"
               style={{
                 background: `linear-gradient(white, white) padding-box, var(--gradient-primary) border-box`,
-                border: '3px solid transparent',
-                boxShadow: '0px 5px 15px -4px var(--gradient-message-shadow)',
+                border: '2px solid transparent',
+                boxShadow: '0px 2px 8px -2px var(--gradient-message-shadow)',
               }}
               aria-label="Switch to chat"
             >
-              <MessageSquare className="w-8 h-8 text-gray-600" />
+              <MessageSquare className="w-5 h-5 text-gray-600" />
             </button>
           </div>
         </div>

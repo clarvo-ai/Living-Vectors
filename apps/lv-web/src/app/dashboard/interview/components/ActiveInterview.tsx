@@ -16,8 +16,6 @@ interface ActiveInterviewProps {
   isLoading: boolean;
   voiceOnlyMode: boolean;
   setVoiceOnlyMode: (mode: boolean) => void;
-  voiceMode: boolean;
-  setVoiceMode: (mode: boolean) => void;
   showEndInterviewDialog: boolean;
   setShowEndInterviewDialog: (show: boolean) => void;
   onEndInterview: () => void;
@@ -32,8 +30,6 @@ export function ActiveInterview({
   isLoading,
   voiceOnlyMode,
   setVoiceOnlyMode,
-  voiceMode,
-  setVoiceMode,
   showEndInterviewDialog,
   setShowEndInterviewDialog,
   onEndInterview,
@@ -92,8 +88,6 @@ export function ActiveInterview({
           isLoading={isLoading}
           voiceOnlyMode={voiceOnlyMode}
           setVoiceOnlyMode={setVoiceOnlyMode}
-          voiceMode={voiceMode}
-          setVoiceMode={setVoiceMode}
           showEndInterviewDialog={showEndInterviewDialog}
           setShowEndInterviewDialog={setShowEndInterviewDialog}
           onEndInterview={onEndInterview}

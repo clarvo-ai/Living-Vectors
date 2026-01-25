@@ -12,13 +12,6 @@ export default function InterviewPage() {
   const router = useRouter();
   const [input, setInput] = useState('');
   const [isLoading, setIsLoading] = useState(false);
-  const [voiceMode, setVoiceMode] = useState(() => {
-    if (typeof window !== 'undefined') {
-      const saved = sessionStorage.getItem('interview-voiceMode');
-      return saved ? JSON.parse(saved) : false;
-    }
-    return false;
-  });
   const [voiceOnlyMode, setVoiceOnlyMode] = useState(() => {
     if (typeof window !== 'undefined') {
       const saved = sessionStorage.getItem('interview-voiceOnlyMode');
@@ -64,8 +57,6 @@ export default function InterviewPage() {
       isLoading={isLoading}
       voiceOnlyMode={voiceOnlyMode}
       setVoiceOnlyMode={setVoiceOnlyMode}
-      voiceMode={voiceMode}
-      setVoiceMode={setVoiceMode}
       showEndInterviewDialog={showEndInterviewDialog}
       setShowEndInterviewDialog={setShowEndInterviewDialog}
       onEndInterview={handleEndInterview}

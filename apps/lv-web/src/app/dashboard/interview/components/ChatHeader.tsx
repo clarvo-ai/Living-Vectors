@@ -3,8 +3,6 @@ import { Bot, MessageSquare, Phone, Volume2, VolumeX } from 'lucide-react';
 import { useEffect, useState } from 'react';
 
 interface ChatHeaderProps {
-  voiceMode: boolean;
-  setVoiceMode: (value: boolean) => void;
   voiceOnlyMode: boolean;
   setVoiceOnlyMode: (value: boolean) => void;
 }

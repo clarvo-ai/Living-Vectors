@@ -19,8 +19,6 @@ interface InterviewContentProps {
   isLoading: boolean;
   voiceOnlyMode: boolean;
   setVoiceOnlyMode: (value: boolean) => void;
-  voiceMode: boolean;
-  setVoiceMode: (value: boolean) => void;
   showEndInterviewDialog: boolean;
   setShowEndInterviewDialog: (value: boolean) => void;
   onEndInterview: () => void;
@@ -34,8 +32,6 @@ export function InterviewContent({
   isLoading,
   voiceOnlyMode,
   setVoiceOnlyMode,
-  voiceMode,
-  setVoiceMode,
   hasStarted,
   setHasStarted,
 }: InterviewContentProps) {
@@ -56,6 +52,13 @@ export function InterviewContent({
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, [messages]);
+
+  // Scroll to latest message when returning from voice-only mode
+  useEffect(() => {
+    if (!voiceOnlyMode) {
+      messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+    }
+  }, [voiceOnlyMode]);
 
   const handleSendWithLiveKit = async () => {
     if (!input.trim()) return;
@@ -87,12 +90,7 @@ export function InterviewContent({
           className="flex items-center px-6 py-2 border-b"
           style={{ backgroundColor: 'var(--bg-light)', borderColor: 'var(--border-gray)' }}
         >
-          <ChatHeader
-            voiceMode={voiceMode}
-            setVoiceMode={setVoiceMode}
-            voiceOnlyMode={voiceOnlyMode}
-            setVoiceOnlyMode={setVoiceOnlyMode}
-          />
+          <ChatHeader voiceOnlyMode={voiceOnlyMode} setVoiceOnlyMode={setVoiceOnlyMode} />
         </div>
       )}
       <div
