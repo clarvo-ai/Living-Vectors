@@ -21,7 +21,6 @@ interface ActiveInterviewProps {
   setShowEndInterviewDialog: (show: boolean) => void;
   onEndInterview: () => void;
   hasStarted: boolean;
-  setHasStarted: (started: boolean) => void;
 }
 
 export function ActiveInterview({
@@ -35,7 +34,6 @@ export function ActiveInterview({
   setShowEndInterviewDialog,
   onEndInterview,
   hasStarted,
-  setHasStarted,
 }: ActiveInterviewProps) {
   const tokenSource = useMemo(() => {
     return {
@@ -93,7 +91,6 @@ export function ActiveInterview({
           setShowEndInterviewDialog={setShowEndInterviewDialog}
           onEndInterview={onEndInterview}
           hasStarted={hasStarted}
-          setHasStarted={setHasStarted}
         />
       </div>
       <StartAudio label="Click to enable audio" />

@@ -15,12 +15,11 @@ function cn(...classes: (string | undefined | false)[]): string {
 }
 
 interface VoiceOnlyModeProps {
-  onStart?: () => void;
   onGoToChat?: () => void;
   hasStarted: boolean;
 }
 
-export function VoiceOnlyMode({ onStart, onGoToChat, hasStarted }: VoiceOnlyModeProps) {
+export function VoiceOnlyMode({ onGoToChat, hasStarted }: VoiceOnlyModeProps) {
   const { isMicrophoneEnabled, localParticipant } = useLocalParticipant();
   const remoteParticipants = useRemoteParticipants();
   const { state: agentState } = useVoiceAssistant();

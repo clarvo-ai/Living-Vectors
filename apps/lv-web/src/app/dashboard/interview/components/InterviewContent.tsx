@@ -23,7 +23,6 @@ interface InterviewContentProps {
   setShowEndInterviewDialog: (value: boolean) => void;
   onEndInterview: () => void;
   hasStarted: boolean;
-  setHasStarted: (value: boolean) => void;
 }
 
 export function InterviewContent({
@@ -33,7 +32,6 @@ export function InterviewContent({
   voiceOnlyMode,
   setVoiceOnlyMode,
   hasStarted,
-  setHasStarted,
 }: InterviewContentProps) {
   // LiveKit session hooks
   const session = useSessionContext();
@@ -99,13 +97,7 @@ export function InterviewContent({
       >
         {voiceOnlyMode ? (
           <div className="flex-1 flex flex-col items-center justify-center px-6 pt-6 relative">
-            <VoiceOnlyMode
-              hasStarted={hasStarted}
-              onStart={() => {
-                setHasStarted(true);
-              }}
-              onGoToChat={() => setVoiceOnlyMode(false)}
-            />
+            <VoiceOnlyMode hasStarted={hasStarted} onGoToChat={() => setVoiceOnlyMode(false)} />
           </div>
         ) : (
           <>

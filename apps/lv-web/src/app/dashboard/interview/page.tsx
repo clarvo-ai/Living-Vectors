@@ -11,7 +11,7 @@ export default function InterviewPage() {
   const { data: session, status } = useSession();
   const router = useRouter();
   const [input, setInput] = useState('');
-  const [isLoading, setIsLoading] = useState(false);
+  const [isLoading] = useState(false);
   const [voiceOnlyMode, setVoiceOnlyMode] = useState(() => {
     if (typeof window !== 'undefined') {
       const saved = sessionStorage.getItem('interview-voiceOnlyMode');
@@ -61,7 +61,6 @@ export default function InterviewPage() {
       setShowEndInterviewDialog={setShowEndInterviewDialog}
       onEndInterview={handleEndInterview}
       hasStarted={hasStarted}
-      setHasStarted={setHasStarted}
     />
   ) : (
     <div className="h-full flex flex-col">
