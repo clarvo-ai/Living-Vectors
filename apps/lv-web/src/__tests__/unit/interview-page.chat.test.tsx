@@ -25,7 +25,7 @@ jest.mock('../../app/dashboard/interview/components/ChatHeader', () => ({
 }));
 
 jest.mock('../../app/dashboard/interview/components/ChatInput', () => ({
-  ChatInput: ({ onSend }: any) => (
+  ChatInput: ({ onSend }: { onSend?: (message: string) => void }) => (
     <input
       data-testid="chat-input"
       onKeyDown={(e) => {
@@ -38,7 +38,9 @@ jest.mock('../../app/dashboard/interview/components/ChatInput', () => ({
 }));
 
 jest.mock('../../app/dashboard/interview/components/ChatMessage', () => ({
-  ChatMessage: ({ message }: any) => <div data-testid="chat-message">{message.text}</div>,
+  ChatMessage: ({ message }: { message: { text: string } }) => (
+    <div data-testid="chat-message">{message.text}</div>
+  ),
 }));
 
 jest.mock('../../app/dashboard/interview/components/VoiceOnlyMode', () => ({

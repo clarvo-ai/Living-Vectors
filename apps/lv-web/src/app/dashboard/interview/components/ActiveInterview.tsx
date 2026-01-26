@@ -6,11 +6,12 @@ import {
   StartAudio,
   useSession as useLiveKitSession,
 } from '@livekit/components-react';
+import { Session } from 'next-auth';
 import { useEffect, useMemo } from 'react';
 import { InterviewContent } from './InterviewContent';
 
 interface ActiveInterviewProps {
-  session: any;
+  session: Session | null;
   input: string;
   setInput: (input: string) => void;
   isLoading: boolean;

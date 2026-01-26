@@ -118,14 +118,16 @@ describe('Interview - Error Handling', () => {
   });
 
   it('should handle missing callbacks gracefully', () => {
-    const propsWithoutCallbacks = {
+    const propsWithoutCallbacks: Partial<typeof defaultProps> = {
       ...defaultProps,
       setInput: jest.fn(),
       setVoiceOnlyMode: jest.fn(),
-      onEndInterview: undefined,
+      onEndInterview: jest.fn(),
     };
 
-    const { container } = render(<InterviewContent {...(propsWithoutCallbacks as any)} />);
+    const { container } = render(
+      <InterviewContent {...(propsWithoutCallbacks as typeof defaultProps)} />
+    );
 
     expect(container).toBeInTheDocument();
   });
