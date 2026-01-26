@@ -55,8 +55,7 @@ describe('VoiceOnlyMode Component', () => {
   });
 
   it('should call onStart when starting interview', () => {
-    const onStart = jest.fn();
-    render(<VoiceOnlyMode {...defaultProps} onStart={onStart} hasStarted={false} />);
+    render(<VoiceOnlyMode {...defaultProps} hasStarted={false} />);
     expect(defaultProps.hasStarted !== undefined).toBe(true);
   });
 
