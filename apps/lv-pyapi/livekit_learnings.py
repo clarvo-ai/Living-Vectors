@@ -200,33 +200,6 @@ def save_livekit_messages_to_db(
         raise
 
 
-def get_general_learnings_by_session(
-    db: Session,
-    user_id: str,
-    session_id: Optional[str] = None
-) -> List[GeneralLearning]:
-    """Retrieve GeneralLearning records for a user, optionally filtered by sessionId."""
-    try:
-        if session_id:
-            stmt = select(GeneralLearning).where(
-                GeneralLearning.userId == user_id,
-                GeneralLearning.sessionId == session_id
-            )
-        else:
-            stmt = select(GeneralLearning).where(
-                GeneralLearning.userId == user_id
-            )
-        
-        learnings = db.execute(stmt).scalars().all()
-        logger.debug(f"Retrieved {len(learnings)} general learnings for user {user_id}" + 
-                    (f", session {session_id}" if session_id else ""))
-        return list(learnings)
-        
-    except Exception as e:
-        logger.error(f"Error retrieving general learnings from DB: {str(e)}")
-        raise
-
-
 def save_general_learnings_to_db(
     db: Session,
     user_id: str,
