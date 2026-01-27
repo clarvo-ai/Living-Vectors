@@ -222,10 +222,13 @@ class TestSaveGeneralLearningsToDb:
         user = create_test_user(db_session)
         
         # Save first learning
+        now = datetime.now()
         gl1 = GeneralLearning(
             userId=user.id,
             summary="I like coding",
-            sessionId="session-1"
+            sessionId="session-1",
+            createdAt=now,
+            updatedAt=now
         )
         db_session.add(gl1)
         db_session.commit()
@@ -244,10 +247,13 @@ class TestSaveGeneralLearningsToDb:
         user = create_test_user(db_session)
         
         # Save first learning
+        now = datetime.now()
         gl1 = GeneralLearning(
             userId=user.id,
             summary="I like coding in Python",
-            sessionId="session-1"
+            sessionId="session-1",
+            createdAt=now,
+            updatedAt=now
         )
         db_session.add(gl1)
         db_session.commit()

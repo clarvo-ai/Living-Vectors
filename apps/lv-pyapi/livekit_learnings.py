@@ -1,6 +1,7 @@
 """Extract and store career-related learnings from LiveKit agent discussions."""
 import json
 import logging
+from datetime import datetime
 from typing import List, Optional, Dict, Any, cast
 from sqlalchemy.orm import Session
 from sqlalchemy import select
@@ -225,10 +226,13 @@ def save_general_learnings_to_db(
                 logger.info(f"Skipping similar learning (above {SIMILARITY_THRESHOLD*100:.0f}% similarity): {learning_text[:50]}...")
                 continue
             
+            now = datetime.now()
             gl = GeneralLearning(
                 userId=user_id,
                 summary=learning_text,
-                sessionId=session_id
+                sessionId=session_id,
+                createdAt=now,
+                updatedAt=now
             )
             db.add(gl)
             saved_learnings.append(gl)
