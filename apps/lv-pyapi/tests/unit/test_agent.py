@@ -140,10 +140,11 @@ class TestMyAgent:
         mock_session_class.return_value = mock_livekit_session
         
         # Mock history with duplicate messages
-        mock_msg1 = Mock()
+        # Use spec to limit attributes so text_content doesn't exist
+        mock_msg1 = Mock(spec=['role', 'content'])
         mock_msg1.role = "user"
         mock_msg1.content = "Hello"
-        mock_msg2 = Mock()
+        mock_msg2 = Mock(spec=['role', 'content'])
         mock_msg2.role = "assistant"
         mock_msg2.content = "Hi there"
         
