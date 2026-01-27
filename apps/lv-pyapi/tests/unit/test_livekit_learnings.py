@@ -195,12 +195,15 @@ class TestSaveLivekitMessagesToDb:
         # Use invalid user_id to cause error
         messages = [("USER", "Hello")]
         
+        # Count messages before the error
+        initial_count = db_session.query(ConversationMessage).count()
+        
         with pytest.raises(Exception):
             save_livekit_messages_to_db(db_session, "invalid-uuid", messages, "session-1")
         
-        # Verify no messages were saved
-        stored = db_session.query(ConversationMessage).all()
-        assert len(stored) == 0
+        # Verify no new messages were saved (rollback worked)
+        final_count = db_session.query(ConversationMessage).count()
+        assert final_count == initial_count, f"Expected {initial_count} messages, but found {final_count} (rollback failed)"
 
 
 class TestSaveGeneralLearningsToDb:

@@ -19,6 +19,24 @@ sys.modules['livekit.plugins.google'] = mock_google
 from agent import my_agent, start_agent
 
 
+@pytest.fixture
+def mock_livekit_session():
+    """Fixture that creates a properly configured mock LiveKit session"""
+    session = AsyncMock()
+    
+    # Mock session.on to work as a decorator (returns the function unchanged)
+    def on_decorator(event_name):
+        def decorator(func):
+            return func
+        return decorator
+    session.on = Mock(side_effect=on_decorator)
+    
+    session.start = AsyncMock()
+    session.generate_reply = AsyncMock()
+    
+    return session
+
+
 class TestMyAgent:
     """Tests for my_agent function"""
     
@@ -27,7 +45,7 @@ class TestMyAgent:
     @patch('agent.AgentSession')
     @patch('agent.google.realtime.RealtimeModel')
     @patch('agent.GOOGLE_API_KEY', 'test-api-key')
-    async def test_extracts_user_id_from_metadata(self, mock_realtime_model, mock_session_class, mock_process):
+    async def test_extracts_user_id_from_metadata(self, mock_realtime_model, mock_session_class, mock_process, mock_livekit_session):
         """Test that user_id is extracted from job metadata"""
         mock_ctx = Mock()
         mock_ctx.room = Mock()
@@ -36,17 +54,14 @@ class TestMyAgent:
         mock_ctx.job = Mock()
         mock_ctx.job.metadata = json.dumps({"user_id": "test-user-123"})
         
-        mock_session = AsyncMock()
-        mock_session_class.return_value = mock_session
+        mock_session_class.return_value = mock_livekit_session
         
         # Mock history with messages so process_livekit_session_learnings is called
         mock_msg = Mock()
         mock_msg.role = "user"
         mock_msg.content = "Hello"
-        mock_session.history = Mock()
-        mock_session.history.messages = [mock_msg]
-        mock_session.start = AsyncMock()
-        mock_session.generate_reply = AsyncMock()
+        mock_livekit_session.history = Mock()
+        mock_livekit_session.history.messages = [mock_msg]
         
         await my_agent(mock_ctx)
         
@@ -61,7 +76,7 @@ class TestMyAgent:
     @patch('agent.AgentSession')
     @patch('agent.google.realtime.RealtimeModel')
     @patch('agent.GOOGLE_API_KEY', 'test-api-key')
-    async def test_handles_userId_in_metadata(self, mock_realtime_model, mock_session_class, mock_process):
+    async def test_handles_userId_in_metadata(self, mock_realtime_model, mock_session_class, mock_process, mock_livekit_session):
         """Test that userId (camelCase) is also extracted from metadata"""
         mock_ctx = Mock()
         mock_ctx.room = Mock()
@@ -70,17 +85,14 @@ class TestMyAgent:
         mock_ctx.job = Mock()
         mock_ctx.job.metadata = json.dumps({"userId": "test-user-456"})
         
-        mock_session = AsyncMock()
-        mock_session_class.return_value = mock_session
+        mock_session_class.return_value = mock_livekit_session
         
         # Mock history with messages so process_livekit_session_learnings is called
         mock_msg = Mock()
         mock_msg.role = "user"
         mock_msg.content = "Hello"
-        mock_session.history = Mock()
-        mock_session.history.messages = [mock_msg]
-        mock_session.start = AsyncMock()
-        mock_session.generate_reply = AsyncMock()
+        mock_livekit_session.history = Mock()
+        mock_livekit_session.history.messages = [mock_msg]
         
         await my_agent(mock_ctx)
         
@@ -94,7 +106,7 @@ class TestMyAgent:
     @patch('agent.AgentSession')
     @patch('agent.google.realtime.RealtimeModel')
     @patch('agent.GOOGLE_API_KEY', 'test-api-key')
-    async def test_no_user_id_skips_processing(self, mock_realtime_model, mock_session_class, mock_process):
+    async def test_no_user_id_skips_processing(self, mock_realtime_model, mock_session_class, mock_process, mock_livekit_session):
         """Test that missing user_id skips learnings processing"""
         mock_ctx = Mock()
         mock_ctx.room = Mock()
@@ -103,11 +115,8 @@ class TestMyAgent:
         mock_ctx.job = Mock()
         mock_ctx.job.metadata = json.dumps({})
         
-        mock_session = AsyncMock()
-        mock_session_class.return_value = mock_session
-        mock_session.history = None
-        mock_session.start = AsyncMock()
-        mock_session.generate_reply = AsyncMock()
+        mock_session_class.return_value = mock_livekit_session
+        mock_livekit_session.history = None
         
         await my_agent(mock_ctx)
         
@@ -119,7 +128,7 @@ class TestMyAgent:
     @patch('agent.AgentSession')
     @patch('agent.google.realtime.RealtimeModel')
     @patch('agent.GOOGLE_API_KEY', 'test-api-key')
-    async def test_deduplicates_messages_from_history(self, mock_realtime_model, mock_session_class, mock_process):
+    async def test_deduplicates_messages_from_history(self, mock_realtime_model, mock_session_class, mock_process, mock_livekit_session):
         """Test that messages from history are deduplicated"""
         mock_ctx = Mock()
         mock_ctx.room = Mock()
@@ -128,8 +137,7 @@ class TestMyAgent:
         mock_ctx.job = Mock()
         mock_ctx.job.metadata = json.dumps({"user_id": "test-user"})
         
-        mock_session = AsyncMock()
-        mock_session_class.return_value = mock_session
+        mock_session_class.return_value = mock_livekit_session
         
         # Mock history with duplicate messages
         mock_msg1 = Mock()
@@ -139,10 +147,8 @@ class TestMyAgent:
         mock_msg2.role = "assistant"
         mock_msg2.content = "Hi there"
         
-        mock_session.history = Mock()
-        mock_session.history.messages = [mock_msg1, mock_msg2]
-        mock_session.start = AsyncMock()
-        mock_session.generate_reply = AsyncMock()
+        mock_livekit_session.history = Mock()
+        mock_livekit_session.history.messages = [mock_msg1, mock_msg2]
         
         await my_agent(mock_ctx)
         
