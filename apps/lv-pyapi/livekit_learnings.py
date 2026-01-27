@@ -1,8 +1,7 @@
 """Extract and store career-related learnings from LiveKit agent discussions."""
-import json
 import logging
 from datetime import datetime
-from typing import List, Optional, Dict, Any, cast
+from typing import List, Dict, Any, cast
 from sqlalchemy.orm import Session
 from sqlalchemy import select
 from difflib import SequenceMatcher
@@ -259,7 +258,7 @@ def process_livekit_session_learnings(
     
     db = SessionLocal()
     try:
-        message_ids = save_livekit_messages_to_db(db, user_id, conversation_messages, session_id)
+        save_livekit_messages_to_db(db, user_id, conversation_messages, session_id)
         
         message_texts = [content for _, content in conversation_messages]
         learnings = extract_career_learnings_from_conversation(message_texts)

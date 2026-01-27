@@ -2,8 +2,7 @@ import os
 import pytest
 import uuid
 from datetime import datetime
-from typing import Dict, Any, cast
-from unittest.mock import Mock, patch, MagicMock
+from unittest.mock import Mock, patch
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker, Session
 
@@ -15,7 +14,6 @@ from livekit_learnings import (
     save_livekit_messages_to_db,
     save_general_learnings_to_db,
     process_livekit_session_learnings,
-    SIMILARITY_THRESHOLD,
 )
 from python_utils.sqlalchemy_models import User, ConversationMessage, GeneralLearning, MessageSender
 
@@ -191,7 +189,6 @@ class TestSaveLivekitMessagesToDb:
     
     def test_error_rolls_back_transaction(self, db_session: Session):
         """Test that errors roll back the transaction"""
-        user = create_test_user(db_session)
         # Use invalid user_id to cause error
         messages = [("USER", "Hello")]
         
