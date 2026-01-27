@@ -113,7 +113,7 @@ class GeneralLearning(Base):
     sessionId: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
 
     # Relationships
-    user: Mapped["User"] = relationship("User", back_populates="generalLearning", uselist=False)
+    user: Mapped["User"] = relationship("User", back_populates="generalLearning")
 
 
 class Learning(Base):
