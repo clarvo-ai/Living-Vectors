@@ -167,8 +167,13 @@ async def my_agent(ctx: agents.JobContext):
         logger.info(f"No conversation messages to process for session {session_id}")
 
 def _run_worker_process():
-    """Runs the LiveKit Worker in a separate process."""
-    sys.argv = ["agent.py", "dev"]
+    """
+    Runs the LiveKit Worker in a separate process.
+    """
+    # Use "start" in Google Cloud Run, "dev" in local development
+    is_cloud_run = os.environ.get("K_SERVICE") is not None
+    command = "start" if is_cloud_run else "dev"
+    sys.argv = ["agent.py", command]
     logger.info(f"Starting Voice Agent Worker '{AGENT_NAME}' connecting to {LIVEKIT_URL}...")
     
     agents.cli.run_app(server)
