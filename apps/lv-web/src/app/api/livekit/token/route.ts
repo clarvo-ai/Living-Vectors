@@ -17,6 +17,17 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Missing LiveKit credentials' }, { status: 500 });
     }
 
+    // Debug logging (remove after fixing)
+    console.log('Token generation attempt:', {
+      roomName,
+      participantName,
+      apiKeyPrefix: apiKey.substring(0, 10),
+      apiKeyLength: apiKey.length,
+      secretLength: apiSecret.length,
+      url: liveKitUrl,
+      timestamp: new Date().toISOString()
+    });
+
     // Generate access token for the participant
     const token = new AccessToken(apiKey, apiSecret);
     token.identity = participantName;
@@ -31,6 +42,11 @@ export async function POST(request: NextRequest) {
 
     token.addGrant(videoGrant);
     const jwt = await token.toJwt();
+
+    console.log('Token generated successfully:', {
+      tokenLength: jwt.length,
+      tokenPrefix: jwt.substring(0, 20)
+    });
 
     return NextResponse.json({
       token: jwt,
