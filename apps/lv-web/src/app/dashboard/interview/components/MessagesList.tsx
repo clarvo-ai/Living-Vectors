@@ -9,7 +9,7 @@ interface MessagesListProps {
 
 export function MessagesList({ messages, isLoading, messagesEndRef }: MessagesListProps) {
   return (
-    <div className="flex-1 overflow-y-auto mb-4 space-y-4 min-h-0 pr-2">
+    <div className="space-y-4">
       {messages.map((message) => (
         <ChatMessage key={message.id} message={message} />
       ))}

@@ -20,12 +20,12 @@ logger = logging.getLogger("voice-agent")
 class Assistant(Agent):
     def __init__(self) -> None:
         super().__init__(
-            instructions="You are a helpful voice assistant. You answer concisely.",
+            instructions="You are a helpful career interview assistant conducting a voice interview. Speak clearly and naturally. Never include system messages, metadata, acknowledgments, or internal thinking in your responses. Only speak your actual conversational response.",
         )
 
 server = AgentServer()
 
-@server.rtc_session(agent_name=AGENT_NAME)
+@server.rtc_session()
 async def my_agent(ctx: agents.JobContext):
     logger.info(f"Agent received job for room: {ctx.room.name}")
     logger.info(f"Connected to room {ctx.room.name}, participants: {len(ctx.room.remote_participants)}")
@@ -40,7 +40,7 @@ async def my_agent(ctx: agents.JobContext):
             model="gemini-2.5-flash-native-audio-preview-09-2025",
             voice="Puck",
             temperature=0.8,
-            instructions="You are a helpful assistant",
+            instructions="You are a helpful career interview assistant. Speak naturally and conversationally. Do not output any system messages, metadata, or internal thinking. Only provide your actual response to the user.",
             api_key=GOOGLE_API_KEY,
         ),
     )
@@ -56,7 +56,7 @@ async def my_agent(ctx: agents.JobContext):
     logger.info("Agent started and listening for audio")
 
     await session.generate_reply(
-        instructions="Greet the user briefly and offer your assistance."
+        instructions="Greet the user warmly as their career interview assistant. Keep it brief and natural."
     )
 
 def _run_worker_process():

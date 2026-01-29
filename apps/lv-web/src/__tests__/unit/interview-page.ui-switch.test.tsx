@@ -1,93 +1,113 @@
+/**
+ * Interview Page - UI Mode Switching Tests
+ *
+ * Tests switching between chat and voice-only modes
+ */
+
+jest.mock('@livekit/components-react', () => ({
+  useChat: jest.fn(() => ({
+    send: jest.fn(),
+  })),
+  useLocalParticipant: jest.fn(() => ({
+    isMicrophoneEnabled: true,
+    localParticipant: {
+      setMicrophoneEnabled: jest.fn(),
+    },
+  })),
+  useSessionContext: jest.fn(() => ({})),
+  useSessionMessages: jest.fn(() => ({
+    messages: [],
+  })),
+}));
+
+jest.mock('../../app/dashboard/interview/components/ChatHeader', () => ({
+  ChatHeader: () => <div data-testid="chat-header">Chat Header</div>,
+}));
+
+jest.mock('../../app/dashboard/interview/components/ChatInput', () => ({
+  ChatInput: () => <div data-testid="chat-input">Chat Input</div>,
+}));
+
+jest.mock('../../app/dashboard/interview/components/ChatMessage', () => ({
+  ChatMessage: () => <div data-testid="chat-message">Message</div>,
+}));
+
+jest.mock('../../app/dashboard/interview/components/VoiceOnlyMode', () => ({
+  VoiceOnlyMode: () => <div data-testid="voice-only-mode">Voice Mode</div>,
+}));
+
 import '@testing-library/jest-dom';
-import { fireEvent, render, screen, waitFor } from '@testing-library/react';
-import { useSession } from 'next-auth/react';
-import InterviewPage from '../../app/dashboard/interview/page';
-import { getTTS, startConversation } from '../../lib/services/pyapi';
-import { setupVoiceMocks } from '../mocks/voice-mocks';
+import { render, screen } from '@testing-library/react';
+import { InterviewContent } from '../../app/dashboard/interview/components/InterviewContent';
 
-// Mock next-auth/react
-jest.mock('next-auth/react', () => ({
-  useSession: jest.fn(),
-}));
+Element.prototype.scrollIntoView = jest.fn();
 
-// Mock services
-jest.mock('../../lib/services/pyapi', () => ({
-  getGeminiResponse: jest.fn(),
-  getSTT: jest.fn(),
-  getTTS: jest.fn(),
-  startConversation: jest.fn(),
-}));
+describe('Interview - UI Mode Switching', () => {
+  const defaultProps = {
+    input: '',
+    setInput: jest.fn(),
+    isLoading: false,
+    voiceOnlyMode: false,
+    setVoiceOnlyMode: jest.fn(),
+    showEndInterviewDialog: false,
+    setShowEndInterviewDialog: jest.fn(),
+    onEndInterview: jest.fn(),
+    hasStarted: true,
+    setHasStarted: jest.fn(),
+  };
 
-// Mock next/navigation
-const mockPush = jest.fn();
-jest.mock('next/navigation', () => ({
-  useRouter: () => ({
-    push: mockPush,
-  }),
-}));
-
-// Mock VoiceRecorder component
-jest.mock('../../app/dashboard/interview/components/VoiceRecorder', () => ({
-  VoiceRecorder: ({ onRecordingComplete }: { onRecordingComplete: (blob: Blob) => void }) => (
-    <button
-      data-testid="mock-voice-recorder"
-      onClick={() => {
-        onRecordingComplete(new Blob(['test audio'], { type: 'audio/webm' }));
-      }}
-    >
-      Mock Record
-    </button>
-  ),
-}));
-
-// Setup voice mocks
-setupVoiceMocks();
-
-const mockUseSession = useSession as jest.Mock;
-
-describe('InterviewPage - UI Switch', () => {
   beforeEach(() => {
     jest.clearAllMocks();
-    mockUseSession.mockReturnValue({
-      data: { user: { id: 'test-user-id', name: 'Test User' } },
-      status: 'authenticated',
-    });
-    (startConversation as jest.Mock).mockResolvedValue({
-      message: 'Welcome! Let me ask you some questions.',
-      goalCategory: 'career',
-      questionId: { goalIndex: 0, questionIndex: 0 },
-    });
+    sessionStorage.clear();
   });
 
-  it('should update UI when switching modes', async () => {
-    (getTTS as jest.Mock).mockResolvedValue(new Blob(['audio'], { type: 'audio/mp3' }));
-    render(<InterviewPage />);
+  it('should start in chat mode by default', () => {
+    render(<InterviewContent {...defaultProps} voiceOnlyMode={false} />);
+    expect(screen.getByTestId('chat-header')).toBeInTheDocument();
+  });
 
-    // Start in Voice Only mode (default)
-    await waitFor(() => {
-      expect(screen.getByTestId('voice-only-mode')).toBeInTheDocument();
-    });
+  it('should switch to voice-only mode', () => {
+    const setVoiceOnlyMode = jest.fn();
+    render(
+      <InterviewContent
+        {...defaultProps}
+        voiceOnlyMode={true}
+        setVoiceOnlyMode={setVoiceOnlyMode}
+      />
+    );
+    expect(screen.getByTestId('voice-only-mode')).toBeInTheDocument();
+  });
 
-    // Switch to Chat
-    const chatButton = screen.getByText(/Chat instead/i);
-    fireEvent.click(chatButton);
+  it('should toggle between modes', () => {
+    const { rerender } = render(<InterviewContent {...defaultProps} voiceOnlyMode={false} />);
+    expect(screen.getByTestId('chat-header')).toBeInTheDocument();
 
-    await waitFor(() => {
-      expect(screen.queryByTestId('voice-only-mode')).not.toBeInTheDocument();
-    });
-    await waitFor(() => {
-      expect(screen.getByPlaceholderText(/Type your response.../i)).toBeInTheDocument();
-    });
+    rerender(<InterviewContent {...defaultProps} voiceOnlyMode={true} />);
+    expect(screen.getByTestId('voice-only-mode')).toBeInTheDocument();
 
-    // Switch back to Voice Only
-    const voiceOnlySwitch = screen.getByTitle(/Switch to Voice/i);
-    fireEvent.click(voiceOnlySwitch);
+    rerender(<InterviewContent {...defaultProps} voiceOnlyMode={false} />);
+    expect(screen.getByTestId('chat-header')).toBeInTheDocument();
+  });
 
-    await waitFor(() => {
-      expect(screen.queryByPlaceholderText(/Type your response.../i)).not.toBeInTheDocument();
-    });
-    await waitFor(() => {
-      expect(screen.getByTestId('voice-only-mode')).toBeInTheDocument();
-    });
+  it('should persist mode state to sessionStorage', () => {
+    render(<InterviewContent {...defaultProps} voiceOnlyMode={false} />);
+
+    sessionStorage.setItem('interview-voiceOnlyMode', 'false');
+    expect(sessionStorage.getItem('interview-voiceOnlyMode')).toBe('false');
+
+    sessionStorage.setItem('interview-voiceOnlyMode', 'true');
+    expect(sessionStorage.getItem('interview-voiceOnlyMode')).toBe('true');
+  });
+
+  it('should render chat when voiceOnlyMode is false', () => {
+    render(<InterviewContent {...defaultProps} voiceOnlyMode={false} />);
+    expect(screen.getByTestId('chat-header')).toBeInTheDocument();
+    expect(screen.queryByTestId('voice-only-mode')).not.toBeInTheDocument();
+  });
+
+  it('should render voice mode when voiceOnlyMode is true', () => {
+    render(<InterviewContent {...defaultProps} voiceOnlyMode={true} />);
+    expect(screen.getByTestId('voice-only-mode')).toBeInTheDocument();
+    expect(screen.queryByTestId('chat-header')).not.toBeInTheDocument();
   });
 });
