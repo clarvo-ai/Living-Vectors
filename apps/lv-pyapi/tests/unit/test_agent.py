@@ -3,14 +3,20 @@ import pytest
 import json
 from unittest.mock import Mock, patch, MagicMock, AsyncMock
 
-# Mock LiveKit modules before importing agent
+# Mock LiveKit modules before importing agent (full chain for voice.room_io)
 mock_livekit = MagicMock()
 mock_agents = MagicMock()
 mock_plugins = MagicMock()
 mock_google = MagicMock()
+mock_voice = MagicMock()
+mock_room_io = MagicMock()
+mock_room_io.RoomOptions = MagicMock()
+mock_room_io.AudioInputOptions = MagicMock()
 
 sys.modules['livekit'] = mock_livekit
 sys.modules['livekit.agents'] = mock_agents
+sys.modules['livekit.agents.voice'] = mock_voice
+sys.modules['livekit.agents.voice.room_io'] = mock_room_io
 sys.modules['livekit.plugins'] = mock_plugins
 sys.modules['livekit.plugins.google'] = mock_google
 
