@@ -3,11 +3,14 @@ import os
 import sys
 import multiprocessing
 import json
+import threading
+from concurrent.futures import ThreadPoolExecutor
 from typing import List, Tuple, Optional
 from dotenv import load_dotenv
 
 from livekit import agents
-from livekit.agents import AgentServer, AgentSession, Agent, room_io
+from livekit.agents import AgentServer, AgentSession, Agent
+from livekit.agents.voice.room_io import RoomOptions, AudioInputOptions
 from livekit.plugins import google
 
 from livekit_learnings import process_livekit_session_learnings
@@ -18,13 +21,20 @@ GOOGLE_API_KEY = os.environ.get("GEMINI_API_KEY")
 AGENT_NAME = os.environ.get("LIVEKIT_AGENT_NAME", "lv-voice-agent")
 LIVEKIT_URL = os.environ.get("LIVEKIT_URL", "ws://127.0.0.1:7880")
 
+# Extract learnings every N new messages during the interview (not only at end)
+LEARNING_TRIGGER_INTERVAL = int(os.environ.get("LIVEKIT_LEARNING_TRIGGER_INTERVAL", "3"))
+# Needed to process learnings in the background
+_learnings_executor = ThreadPoolExecutor(max_workers=2, thread_name_prefix="livekit-learnings")
+# Needed so that multiple processes don't try to process learnings at the same time
+_learnings_lock = threading.Lock()
+
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger("voice-agent")
 
 class Assistant(Agent):
     def __init__(self) -> None:
         super().__init__(
-            instructions="You are a helpful career interview assistant conducting a voice interview. Speak clearly and naturally. Never include system messages, metadata, acknowledgments, or internal thinking in your responses. Only speak your actual conversational response.",
+            instructions="You are a helpful voice assistant. You answer concisely.",
         )
 
 server = AgentServer()
@@ -44,8 +54,16 @@ async def my_agent(ctx: agents.JobContext):
             logger.info(f"Extracted user_id from metadata: {user_id}")
     except Exception as e:
         logger.warning(f"Could not extract user_id from metadata: {str(e)}")
-    
+
+    # Fallback: derive user_id from room name when agent is auto-dispatched (e.g. interview-<userId>)
+    if not user_id and ctx.room.name.startswith("interview-"):
+        user_id = ctx.room.name[len("interview-"):].strip()
+        if user_id:
+            logger.info(f"Using user_id from room name: {user_id}")
+
     conversation_messages: List[Tuple[str, str]] = []
+    # Track how many messages we've already passed to learnings processing
+    last_processed_count: List[int] = [0]
 
     if not GOOGLE_API_KEY:
         raise ValueError("GEMINI_API_KEY environment variable is required")
@@ -61,9 +79,22 @@ async def my_agent(ctx: agents.JobContext):
         ),
     )
 
+    def _run_learnings_in_background(
+        uid: str,
+        sid: str,
+        messages_copy: List[Tuple[str, str]],
+        start_index: int,
+        new_count_after: int,
+    ) -> None:
+        try:
+            process_livekit_session_learnings(uid, sid, messages_copy, new_messages_start_index=start_index)
+        finally:
+            last_processed_count[0] = new_count_after
+            _learnings_lock.release()
+
     @session.on("conversation_item_added")
     def on_conversation_item_added(event):
-        """Capture conversation messages as they are added"""
+        """Capture conversation messages as they are added; trigger learnings every N messages during the interview."""
         try:
             item = event.item
             if item.role == "user":
@@ -81,14 +112,33 @@ async def my_agent(ctx: agents.JobContext):
             if content and content.strip():
                 conversation_messages.append((role, str(content)))
                 logger.debug(f"Captured message: {role}: {str(content)[:50]}...")
+
+                # Trigger learnings during the interview every LEARNING_TRIGGER_INTERVAL new messages
+                if user_id and (len(conversation_messages) - last_processed_count[0]) >= LEARNING_TRIGGER_INTERVAL:
+                    if _learnings_lock.acquire(blocking=False):
+                        messages_copy = list(conversation_messages)
+                        start_index = last_processed_count[0]
+                        current_len = len(messages_copy)
+                        _learnings_executor.submit(
+                            _run_learnings_in_background,
+                            user_id,
+                            session_id,
+                            messages_copy,
+                            start_index,
+                            current_len,
+                        )
+                        logger.info(
+                            f"Scheduled learnings extraction during interview for session {session_id} "
+                            f"({current_len} messages, new from index {start_index})"
+                        )
         except Exception as e:
             logger.error(f"Error capturing conversation item: {str(e)}")
 
     await session.start(
         room=ctx.room,
         agent=Assistant(),
-        room_options=room_io.RoomOptions(
-            audio_input=room_io.AudioInputOptions(),
+        room_options=RoomOptions(
+            audio_input=AudioInputOptions(),
             close_on_disconnect=False,
         ),
     )
@@ -155,12 +205,22 @@ async def my_agent(ctx: agents.JobContext):
     except Exception as e:
         logger.warning(f"Could not extract from session history: {str(e)}")
     
+    # Process any remaining messages at end of interview (e.g. last few that didn't reach the next interval)
     if user_id and conversation_messages:
-        logger.info(f"Processing learnings for session {session_id} with {len(conversation_messages)} messages")
-        try:
-            process_livekit_session_learnings(user_id, session_id, conversation_messages)
-        except Exception as e:
-            logger.error(f"Error processing learnings for session {session_id}: {str(e)}")
+        start_index = last_processed_count[0]
+        if start_index < len(conversation_messages):
+            logger.info(
+                f"Processing remaining learnings for session {session_id} "
+                f"({len(conversation_messages)} messages, from index {start_index})"
+            )
+            try:
+                process_livekit_session_learnings(
+                    user_id, session_id, conversation_messages, new_messages_start_index=start_index
+                )
+            except Exception as e:
+                logger.error(f"Error processing learnings for session {session_id}: {str(e)}")
+        else:
+            logger.info(f"No remaining messages to process for session {session_id}")
     elif not user_id:
         logger.warning(f"Cannot process learnings: user_id not available for session {session_id}")
     elif not conversation_messages:

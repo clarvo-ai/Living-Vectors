@@ -249,25 +249,41 @@ def save_general_learnings_to_db(
 def process_livekit_session_learnings(
     user_id: str,
     session_id: str,
-    conversation_messages: List[tuple[str, str]]
+    conversation_messages: List[tuple[str, str]],
+    new_messages_start_index: int = 0,
 ):
-    """Process a LiveKit session: save messages, extract learnings, and store them."""
+    """Process a LiveKit session: save messages, extract learnings from full conversation, and store them.
+    
+    When new_messages_start_index > 0, only messages from that index onward are saved to the DB
+    (to support incremental saving during the interview). Learnings are always extracted from the
+    full conversation_messages list.
+    """
     if not conversation_messages:
         logger.info(f"No messages to process for session {session_id}")
         return
-    
+
+    messages_to_save = (
+        conversation_messages[new_messages_start_index:]
+        if new_messages_start_index > 0
+        else conversation_messages
+    )
+    if not messages_to_save and new_messages_start_index > 0:
+        logger.debug(f"No new messages to save for session {session_id} (start_index={new_messages_start_index})")
+        return
+
     db = SessionLocal()
     try:
-        save_livekit_messages_to_db(db, user_id, conversation_messages, session_id)
-        
+        if messages_to_save:
+            save_livekit_messages_to_db(db, user_id, messages_to_save, session_id)
+
         message_texts = [content for _, content in conversation_messages]
         learnings = extract_career_learnings_from_conversation(message_texts)
-        
+
         if learnings:
             save_general_learnings_to_db(db, user_id, learnings, session_id)
         else:
             logger.info(f"No learnings extracted from session {session_id}")
-            
+
     except Exception as e:
         logger.error(f"Error processing LiveKit session learnings: {str(e)}")
         db.rollback()
