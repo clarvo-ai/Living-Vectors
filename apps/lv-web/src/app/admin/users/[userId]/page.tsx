@@ -2,6 +2,7 @@
 
 import { ChatHistoryList } from '@/components/admin/user-detail/ChatHistoryList';
 import { LearningConnectionsList } from '@/components/admin/user-detail/LearningConnectionsList';
+import { LearningEvaluationsSection } from '@/components/admin/user-detail/LearningEvaluationsSection';
 import { QuickStatsSection } from '@/components/admin/user-detail/QuickStatsSection';
 import { UserDetailsCard } from '@/components/admin/user-detail/UserDetailsCard';
 import { ViewModeToggle } from '@/components/admin/user-detail/ViewModeToggle';
@@ -125,6 +126,11 @@ export default function AdminUserDetailPage({ params }: AdminUserDetailPageProps
             expandedLearningMessages={expandedLearningMessages}
             onToggleLearning={toggleLearning}
             onToggleLearningMessage={toggleLearningMessage}
+          />
+
+          <LearningEvaluationsSection
+            learningConnections={learningConnections}
+            learningConnectionsLoading={learningConnectionsLoading}
           />
         </>
       )}

@@ -42,6 +42,18 @@ export interface LearningConnectionMessage {
 }
 
 /**
+ * LLM Judge evaluation scores for a learning
+ */
+export interface LearningEvaluation {
+  accuracy: number | null;
+  relevance: number | null;
+  coherence: number | null;
+  overallScore: number | null;
+  feedback: string | null;
+  evaluatedAt: string | null;
+}
+
+/**
  * Learning connection data returned by /api/admin/users/[userId]/learning-connections
  */
 export interface LearningConnection {
@@ -49,4 +61,5 @@ export interface LearningConnection {
   summary: string;
   createdAt: string;
   messages: LearningConnectionMessage[];
+  evaluation?: LearningEvaluation;
 }
