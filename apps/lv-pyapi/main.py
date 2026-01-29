@@ -18,6 +18,7 @@ from voice import text_to_speech, speech_to_text
 from learnings import check_and_trigger_learnings
 from gemini_client import client
 from agent import start_agent
+from store_jobs import process_file
 
 import json
 from pathlib import Path
@@ -118,12 +119,6 @@ Make it conversational and encouraging. Blend the introduction and first questio
             }
         }
         
-    
-
-
-
-
-
 
 @app.post("/api/chat/answer")
 async def get_gemini_response(
@@ -255,6 +250,17 @@ async def stt(file: UploadFile = File(...)):
         return {"transcript": transcript}
     except Exception as e:
         logging.exception("Unhandled error in /api/stt")
+        return JSONResponse(status_code=500, content={"message": "Internal server error", "status": 500})
+
+@app.post("/api/upload-jobs")
+async def upload_jobs(url: str):
+    """Endpoint to upload job listings"""
+    try:
+        content = process_file(url)
+        # Here you would process and store the job listings as needed
+        return {"message": "Job listings uploaded successfully", "status": 200}
+    except Exception as e:
+        logging.exception("Unhandled error in /api/upload-jobs")
         return JSONResponse(status_code=500, content={"message": "Internal server error", "status": 500})
 
 @app.on_event("startup")
