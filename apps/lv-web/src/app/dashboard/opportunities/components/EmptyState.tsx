@@ -34,8 +34,8 @@ export function EmptyState({ onRetry, isLoading }: EmptyStateProps) {
       </h2>
 
       <p className="text-gray-600 text-center max-w-md mb-8 leading-relaxed">
-        We don't have any job recommendations for you at the moment. Complete your profile or have a
-        conversation with our AI to help us understand your preferences better.
+        We don&apos;t have any job recommendations for you at the moment. Complete your profile or
+        have a conversation with our AI to help us understand your preferences better.
       </p>
 
       <div className="flex flex-col sm:flex-row gap-3 w-full max-w-md">
