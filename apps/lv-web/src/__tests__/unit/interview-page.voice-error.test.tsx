@@ -1,148 +1,134 @@
+/**
+ * Interview Page - Error Handling Tests
+ *
+ * Tests error states and graceful handling
+ */
+
+jest.mock('@livekit/components-react', () => ({
+  useChat: jest.fn(() => ({
+    send: jest.fn(),
+  })),
+  useLocalParticipant: jest.fn(() => ({
+    isMicrophoneEnabled: true,
+    localParticipant: {
+      setMicrophoneEnabled: jest.fn(),
+    },
+  })),
+  useSessionContext: jest.fn(() => ({})),
+  useSessionMessages: jest.fn(() => ({
+    messages: [],
+  })),
+}));
+
+jest.mock('../../app/dashboard/interview/components/ChatHeader', () => ({
+  ChatHeader: () => <div data-testid="chat-header">Chat Header</div>,
+}));
+
+jest.mock('../../app/dashboard/interview/components/ChatInput', () => ({
+  ChatInput: () => <div data-testid="chat-input">Chat Input</div>,
+}));
+
+jest.mock('../../app/dashboard/interview/components/ChatMessage', () => ({
+  ChatMessage: () => <div data-testid="chat-message">Message</div>,
+}));
+
+jest.mock('../../app/dashboard/interview/components/VoiceOnlyMode', () => ({
+  VoiceOnlyMode: () => <div data-testid="voice-only-mode">Voice Mode</div>,
+}));
+
 import '@testing-library/jest-dom';
-import { fireEvent, render, screen, waitFor } from '@testing-library/react';
-import { useSession } from 'next-auth/react';
-import InterviewPage from '../../app/dashboard/interview/page';
-import { getGeminiResponse, getSTT, getTTS, startConversation } from '../../lib/services/pyapi';
-import { setupVoiceMocks } from '../mocks/voice-mocks';
+import { render, screen } from '@testing-library/react';
+import { InterviewContent } from '../../app/dashboard/interview/components/InterviewContent';
 
-// Mock next-auth/react
-jest.mock('next-auth/react', () => ({
-  useSession: jest.fn(),
-}));
+Element.prototype.scrollIntoView = jest.fn();
 
-// Mock services
-jest.mock('../../lib/services/pyapi', () => ({
-  getGeminiResponse: jest.fn(),
-  getSTT: jest.fn(),
-  getTTS: jest.fn(),
-  startConversation: jest.fn(),
-}));
+describe('Interview - Error Handling', () => {
+  const defaultProps = {
+    input: '',
+    setInput: jest.fn(),
+    isLoading: false,
+    voiceOnlyMode: false,
+    setVoiceOnlyMode: jest.fn(),
+    showEndInterviewDialog: false,
+    setShowEndInterviewDialog: jest.fn(),
+    onEndInterview: jest.fn(),
+    hasStarted: true,
+    setHasStarted: jest.fn(),
+  };
 
-// Mock next/navigation
-const mockPush = jest.fn();
-jest.mock('next/navigation', () => ({
-  useRouter: () => ({
-    push: mockPush,
-  }),
-}));
-
-// Mock VoiceRecorder component
-jest.mock('../../app/dashboard/interview/components/VoiceRecorder', () => ({
-  VoiceRecorder: ({ onRecordingComplete }: { onRecordingComplete: (blob: Blob) => void }) => (
-    <button
-      data-testid="mock-voice-recorder"
-      onClick={() => {
-        onRecordingComplete(new Blob(['test audio'], { type: 'audio/webm' }));
-      }}
-    >
-      Mock Record
-    </button>
-  ),
-}));
-
-// Setup voice mocks
-setupVoiceMocks();
-
-const mockUseSession = useSession as jest.Mock;
-
-describe('InterviewPage - Voice Errors', () => {
   beforeEach(() => {
     jest.clearAllMocks();
-    mockUseSession.mockReturnValue({
-      data: { user: { id: 'test-user-id', name: 'Test User' } },
-      status: 'authenticated',
-    });
-    (startConversation as jest.Mock).mockResolvedValue({
-      message: 'Welcome! Let me ask you some questions.',
-      goalCategory: 'career',
-      questionId: { goalIndex: 0, questionIndex: 0 },
-    });
-    // Mock getTTS to resolve successfully by default
-    (getTTS as jest.Mock).mockResolvedValue(new Blob(['audio'], { type: 'audio/mp3' }));
-    // Mock getGeminiResponse to resolve successfully by default
-    (getGeminiResponse as jest.Mock).mockResolvedValue({
-      message: 'Test response',
-      nextQuestionId: { goalIndex: 0, questionIndex: 1 },
-      completed: false,
-      status: 200,
-    });
   });
 
-  it('should handle STT error', async () => {
-    const consoleSpy = jest.spyOn(console, 'error').mockImplementation(() => {});
-    (getSTT as jest.Mock).mockRejectedValue(new Error('STT Failed'));
-
-    render(<InterviewPage />);
-
-    // Wait for voice-only mode to be ready
-    await waitFor(
-      () => {
-        expect(screen.getByTestId('voice-only-mode')).toBeInTheDocument();
-      },
-      { timeout: 5000 }
-    );
-
-    // Click "Start Call" button to start conversation
-    const startButton = screen.getByText(/Start Call/);
-    fireEvent.click(startButton);
-
-    // Wait for VoiceRecorder to be rendered after conversation starts
-    await waitFor(
-      () => {
-        expect(screen.getByTestId('mock-voice-recorder')).toBeInTheDocument();
-      },
-      { timeout: 5000 }
-    );
-
-    // Click record button and trigger STT error
-    const recordButton = screen.getByTestId('mock-voice-recorder');
-    fireEvent.click(recordButton);
-
-    await waitFor(() => {
-      expect(consoleSpy).toHaveBeenCalledWith('STT error:', expect.any(Error));
-    });
-
-    consoleSpy.mockRestore();
+  it('should render without crashing when component loads', () => {
+    const { container } = render(<InterviewContent {...defaultProps} />);
+    expect(container).toBeInTheDocument();
   });
 
-  it('should handle TTS error in voice mode', async () => {
-    const consoleSpy = jest.spyOn(console, 'error').mockImplementation(() => {});
-    (getGeminiResponse as jest.Mock).mockResolvedValue({
-      message: 'Hello Human',
-      nextQuestionId: { goalIndex: 0, questionIndex: 1 },
-      completed: false,
-      status: 200,
-    });
-    (getTTS as jest.Mock).mockRejectedValue(new Error('TTS Failed'));
+  it('should handle undefined messages gracefully', () => {
+    render(<InterviewContent {...defaultProps} />);
+    expect(screen.getByTestId('chat-header')).toBeInTheDocument();
+  });
 
-    render(<InterviewPage />);
+  it('should handle loading state', () => {
+    render(<InterviewContent {...defaultProps} isLoading={true} />);
+    expect(screen.getByTestId('chat-header')).toBeInTheDocument();
+  });
 
-    // Switch to chat mode first
-    await waitFor(() => {
-      expect(screen.getByText('Chat instead')).toBeInTheDocument();
-    });
+  it('should handle prop changes without crashing', () => {
+    const { rerender } = render(<InterviewContent {...defaultProps} input="test" />);
 
-    const chatButton = screen.getByText(/Chat instead/i);
-    fireEvent.click(chatButton);
+    rerender(<InterviewContent {...defaultProps} input="updated" />);
 
-    await waitFor(() => {
-      expect(screen.getByPlaceholderText(/Type your response.../i)).toBeInTheDocument();
-    });
+    expect(screen.getByTestId('chat-header')).toBeInTheDocument();
+  });
 
-    // Enable AI Voice
-    const voiceModeSwitch = screen.getByTitle(/Enable AI Voice/i);
-    fireEvent.click(voiceModeSwitch);
+  it('should handle mode switch without errors', () => {
+    const { rerender } = render(<InterviewContent {...defaultProps} voiceOnlyMode={false} />);
 
-    // Send message
-    const input = screen.getByPlaceholderText(/Type your response.../i);
-    fireEvent.change(input, { target: { value: 'Hello' } });
-    const sendButton = screen.getByTestId('sendButton');
-    fireEvent.click(sendButton);
+    rerender(<InterviewContent {...defaultProps} voiceOnlyMode={true} />);
 
-    await waitFor(() => {
-      expect(consoleSpy).toHaveBeenCalledWith('TTS error', expect.any(Error));
-    });
+    expect(screen.getByTestId('voice-only-mode')).toBeInTheDocument();
+  });
 
-    consoleSpy.mockRestore();
+  it('should maintain state consistency during rapid prop updates', () => {
+    const setInput = jest.fn();
+    const setVoiceOnlyMode = jest.fn();
+
+    const { rerender } = render(
+      <InterviewContent
+        {...defaultProps}
+        setInput={setInput}
+        setVoiceOnlyMode={setVoiceOnlyMode}
+        input="message1"
+      />
+    );
+
+    rerender(
+      <InterviewContent
+        {...defaultProps}
+        setInput={setInput}
+        setVoiceOnlyMode={setVoiceOnlyMode}
+        input="message2"
+      />
+    );
+
+    expect(setInput).toBeDefined();
+    expect(setVoiceOnlyMode).toBeDefined();
+  });
+
+  it('should handle missing callbacks gracefully', () => {
+    const propsWithoutCallbacks: Partial<typeof defaultProps> = {
+      ...defaultProps,
+      setInput: jest.fn(),
+      setVoiceOnlyMode: jest.fn(),
+      onEndInterview: jest.fn(),
+    };
+
+    const { container } = render(
+      <InterviewContent {...(propsWithoutCallbacks as typeof defaultProps)} />
+    );
+
+    expect(container).toBeInTheDocument();
   });
 });

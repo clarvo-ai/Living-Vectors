@@ -1,18 +1,55 @@
+import { useRemoteParticipants } from '@livekit/components-react';
 import { Bot, MessageSquare, Phone, Volume2, VolumeX } from 'lucide-react';
+import { useEffect, useState } from 'react';
 
 interface ChatHeaderProps {
-  voiceMode: boolean;
-  setVoiceMode: (value: boolean) => void;
   voiceOnlyMode: boolean;
   setVoiceOnlyMode: (value: boolean) => void;
 }
 
-export function ChatHeader({
-  voiceMode,
-  setVoiceMode,
-  voiceOnlyMode,
-  setVoiceOnlyMode,
-}: ChatHeaderProps) {
+export function ChatHeader({ voiceOnlyMode, setVoiceOnlyMode }: ChatHeaderProps) {
+  const remoteParticipants = useRemoteParticipants();
+  const [isAgentMuted, setIsAgentMuted] = useState(false);
+
+  // Load muted state from sessionStorage on mount
+  useEffect(() => {
+    const savedMutedState = sessionStorage.getItem('isAgentMuted');
+    if (savedMutedState !== null) {
+      const muted = JSON.parse(savedMutedState);
+      setIsAgentMuted(muted);
+    }
+  }, []);
+
+  // Apply muted state to audio elements when remote participants load
+  useEffect(() => {
+    remoteParticipants.forEach((participant) => {
+      participant.audioTrackPublications.forEach((publication) => {
+        const audioElement = publication.audioTrack?.attachedElements[0] as HTMLAudioElement;
+        if (audioElement) {
+          audioElement.muted = isAgentMuted;
+        }
+      });
+    });
+  }, [remoteParticipants, isAgentMuted]);
+
+  const toggleAgentVoice = () => {
+    const newMutedState = !isAgentMuted;
+    setIsAgentMuted(newMutedState);
+
+    // Save to sessionStorage
+    sessionStorage.setItem('isAgentMuted', JSON.stringify(newMutedState));
+
+    // Mute/unmute all remote participants' audio by setting track enabled on HTML element
+    remoteParticipants.forEach((participant) => {
+      participant.audioTrackPublications.forEach((publication) => {
+        const audioElement = publication.audioTrack?.attachedElements[0] as HTMLAudioElement;
+        if (audioElement) {
+          audioElement.muted = newMutedState;
+        }
+      });
+    });
+  };
+
   return (
     <div className="flex items-center w-full justify-between gap-4">
       <div className="flex items-center gap-4">
@@ -35,18 +72,20 @@ export function ChatHeader({
         </div>
         <div className="flex items-center space-x-2 flex-shrink-0">
           <button
-            onClick={() => setVoiceMode(!voiceMode)}
+            onClick={toggleAgentVoice}
             className="p-2 rounded-lg hover:bg-gray-200 transition-colors flex items-center justify-center"
-            title={voiceMode ? 'Disable AI Voice' : 'Enable AI Voice'}
+            title={!isAgentMuted ? 'Disable AI Voice' : 'Enable AI Voice'}
           >
-            {voiceMode ? (
+            {!isAgentMuted ? (
               <Volume2 className="h-4 w-4 text-gray-700" />
             ) : (
               <VolumeX className="h-4 w-4 text-gray-700" />
             )}
           </button>
           <button
-            onClick={() => setVoiceOnlyMode(!voiceOnlyMode)}
+            onClick={() => {
+              setVoiceOnlyMode(!voiceOnlyMode);
+            }}
             className="p-2 rounded-lg hover:bg-gray-200 transition-colors flex items-center justify-center"
             title={voiceOnlyMode ? 'Switch to Chat' : 'Switch to Voice'}
           >
