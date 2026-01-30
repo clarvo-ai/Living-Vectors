@@ -253,14 +253,12 @@ async def stt(file: UploadFile = File(...)):
         return JSONResponse(status_code=500, content={"message": "Internal server error", "status": 500})
 
 @app.post("/api/upload-jobs")
-async def upload_jobs(url: str):
+async def upload_jobs(url: str = Body(..., embed=True)):
     """Endpoint to upload job listings"""
     try:
         content = process_file(url)
-        # Here you would process and store the job listings as needed
-        return {"message": "Job listings uploaded successfully", "status": 200}
+        return {"content": content, "status": 200}
     except Exception as e:
-        logging.exception("Unhandled error in /api/upload-jobs")
         return JSONResponse(status_code=500, content={"message": "Internal server error", "status": 500})
 
 @app.on_event("startup")

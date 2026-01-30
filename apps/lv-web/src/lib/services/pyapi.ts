@@ -40,11 +40,9 @@ export async function getUser(userId: string): Promise<PyAPIUser> {
 }
 
 export async function uploadJobs(fileUrl: string): Promise<{ message: string; status: number }> {
-  const response = await fetch(`${getBaseUrl()}/upload-jobs`, {
+  const response = await fetch(`${getBaseUrl()}/api/upload-jobs`, {
     method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-    },
+    headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ url: fileUrl }),
   });
 
@@ -52,5 +50,6 @@ export async function uploadJobs(fileUrl: string): Promise<{ message: string; st
     throw new Error(`Failed to upload jobs: ${response.statusText}`);
   }
 
-  return response.json();
+  const data = await response.json();
+  return data;
 }
