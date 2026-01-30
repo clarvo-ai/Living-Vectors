@@ -232,6 +232,12 @@ cd packages/database/prisma && npx prisma generate
 cd ../../..
 ```
 
+If that does not work, try
+
+```bash
+npx turbo run db:generate
+```
+
 **Important:** You must run `npx prisma generate` in `packages/database/prisma` whenever you switch between Docker-run and npm-run environments, as Prisma needs to generate the client for your specific platform.
 
 ### Running
