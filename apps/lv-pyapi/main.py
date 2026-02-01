@@ -253,13 +253,29 @@ async def stt(file: UploadFile = File(...)):
         return JSONResponse(status_code=500, content={"message": "Internal server error", "status": 500})
 
 @app.post("/api/upload-jobs")
-async def upload_jobs(url: str = Body(..., embed=True)):
+async def upload_jobs(filename: str = Body(..., embed=True)):
     """Endpoint to upload job listings"""
     try:
-        content = process_file(url)
-        return {"content": content, "status": 200}
+        result = process_file(filename)
+        return {"message": result, "status": 200}
+    except FileNotFoundError as e:
+        logging.error(f"File not found: {str(e)}")
+        return JSONResponse(
+            status_code=404, 
+            content={"message": str(e), "status": 404}
+        )
+    except ValueError as e:
+        logging.error(f"Validation error: {str(e)}")
+        return JSONResponse(
+            status_code=400, 
+            content={"message": str(e), "status": 400}
+        )
     except Exception as e:
-        return JSONResponse(status_code=500, content={"message": "Internal server error", "status": 500})
+        logging.exception("Unhandled error in /api/upload-jobs")
+        return JSONResponse(
+            status_code=500, 
+            content={"message": f"Failed to process jobs: {str(e)}", "status": 500}
+        )
 
 @app.on_event("startup")
 async def _startup_livekit_agent():

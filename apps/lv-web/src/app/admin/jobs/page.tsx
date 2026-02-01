@@ -4,7 +4,7 @@ import { uploadJobs } from '@/lib/services/pyapi';
 import { useState } from 'react';
 
 export default function AdminJobsPage() {
-  const [url, setUrl] = useState('');
+  const [filename, setFilename] = useState('');
   const [loading, setLoading] = useState(false);
   const [response, setResponse] = useState<any>(null);
   const [error, setError] = useState('');
@@ -12,8 +12,8 @@ export default function AdminJobsPage() {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
-    if (!url.trim()) {
-      setError('Please enter a URL');
+    if (!filename.trim()) {
+      setError('Please enter a filename');
       return;
     }
 
@@ -22,7 +22,7 @@ export default function AdminJobsPage() {
     setResponse(null);
 
     try {
-      const result = await uploadJobs(url);
+      const result = await uploadJobs(filename);
       setResponse(result);
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to upload jobs');
@@ -40,15 +40,16 @@ export default function AdminJobsPage() {
 
         <form onSubmit={handleSubmit} className="space-y-4">
           <div>
-            <label className="block text-sm font-medium mb-2">Job File URL</label>
+            <label className="block text-sm font-medium mb-2">Job File Name (in GCS bucket)</label>
             <input
               type="text"
-              value={url}
-              onChange={(e) => setUrl(e.target.value)}
-              placeholder="https://example.com/jobs.csv"
+              value={filename}
+              onChange={(e) => setFilename(e.target.value)}
+              placeholder="jobs-xxxxxxxx-total-x.csv"
               disabled={loading}
               className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
             />
+            <p className="text-sm text-gray-500 mt-1">Enter the CSV file name in your GCS bucket</p>
           </div>
 
           <button
@@ -60,11 +61,15 @@ export default function AdminJobsPage() {
           </button>
         </form>
 
-        {error && <div className="mt-4 p-3 bg-red-100 text-red-800 rounded-lg">{error}</div>}
+        {error && (
+          <div className="mt-4 p-4 bg-red-50 border-l-4 border-red-500 rounded-lg">
+            <p className="text-red-700 font-medium">❌ {error}</p>
+          </div>
+        )}
 
         {response && (
-          <div className="mt-4 p-3 bg-green-100 text-green-800 rounded-lg">
-            <pre className="whitespace-pre-wrap">{JSON.stringify(response, null, 2)}</pre>
+          <div className="mt-4 p-4 bg-green-50 border-l-4 border-green-500 rounded-lg">
+            <p className="text-green-700 font-medium">✓ {response.message}</p>
           </div>
         )}
       </div>

@@ -39,17 +39,19 @@ export async function getUser(userId: string): Promise<PyAPIUser> {
   return response.json();
 }
 
-export async function uploadJobs(fileUrl: string): Promise<{ message: string; status: number }> {
+export async function uploadJobs(filename: string): Promise<{ message: string; status: number }> {
   const response = await fetch(`${getBaseUrl()}/api/upload-jobs`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ url: fileUrl }),
+    body: JSON.stringify({ filename: filename }),
   });
 
+  const data = await response.json();
+  
   if (!response.ok) {
-    throw new Error(`Failed to upload jobs: ${response.statusText}`);
+    // Extract the error message from the response body
+    throw new Error(data.message || `Failed to upload jobs: ${response.statusText}`);
   }
 
-  const data = await response.json();
   return data;
 }
