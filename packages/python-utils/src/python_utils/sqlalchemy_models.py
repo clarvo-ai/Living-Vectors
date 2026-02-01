@@ -148,25 +148,41 @@ class User(Base):
     session: Mapped[List["Session"]] = relationship("Session", back_populates="user")
     authenticator: Mapped[List["Authenticator"]] = relationship("Authenticator", back_populates="user")
     learning: Mapped[List["Learning"]] = relationship("Learning", back_populates="user")
+    userEmbedding: Mapped[Optional["UserEmbedding"]] = relationship("UserEmbedding", back_populates="user", uselist=False)
 
 
 class Vector(TypeDecorator):
-    """Custom type for PostgreSQL vector type"""
+    """Custom type for PostgreSQL pgvector type.
+    
+    Handles conversion between Python lists and PostgreSQL vector format.
+    pgvector stores vectors as '[1.0,2.0,3.0]' format.
+    """
     impl = String
     cache_ok = True
 
-    def __init__(self, dimensions=None):
+    def __init__(self, dimensions=768):
         super().__init__()
         self.dimensions = dimensions
 
     def process_bind_param(self, value, dialect):
+        """Convert Python list to pgvector string format for INSERT/UPDATE"""
         if value is None:
             return None
+        if isinstance(value, list):
+            # Convert list to pgvector format: [1.0,2.0,3.0]
+            return "[" + ",".join(str(float(x)) for x in value) + "]"
         return str(value)
 
     def process_result_value(self, value, dialect):
+        """Convert pgvector string to Python list for SELECT"""
         if value is None:
             return None
+        if isinstance(value, str):
+            # Parse pgvector format: [1.0,2.0,3.0]
+            cleaned = value.strip("[]")
+            if cleaned:
+                return [float(x) for x in cleaned.split(",")]
+            return []
         return value
 
 class VerificationToken(Base):
@@ -176,6 +192,35 @@ class VerificationToken(Base):
     identifier: Mapped[str] = mapped_column(Text, primary_key=True, nullable=False)
     token: Mapped[str] = mapped_column(Text, primary_key=True, nullable=False)
     expires: Mapped[datetime] = mapped_column(TIMESTAMP, nullable=False)
+
+class UserEmbedding(Base):
+    """Stores the user's combined learning embedding vector"""
+    __tablename__ = "UserEmbedding"
+    __table_args__ = {'schema': 'public'}
+
+    id: Mapped[UUID] = mapped_column(PostgresUUID(as_uuid=True), primary_key=True, nullable=False, server_default=text("gen_random_uuid()"))
+    userId: Mapped[UUID] = mapped_column(PostgresUUID(as_uuid=True), ForeignKey("public.User.id"), unique=True, nullable=False)
+    embedding = mapped_column(Vector(768), nullable=False)  # pgvector(768) for Gemini embeddings
+    updatedAt: Mapped[datetime] = mapped_column(TIMESTAMP, nullable=False, server_default=func.now(), onupdate=func.now())
+
+    # Relationships
+    user: Mapped["User"] = relationship("User", back_populates="userEmbedding", uselist=False)
+
+
+class Job(Base):
+    """Stores job postings with their embedding vectors"""
+    __tablename__ = "Job"
+    __table_args__ = {'schema': 'public'}
+
+    id: Mapped[UUID] = mapped_column(PostgresUUID(as_uuid=True), primary_key=True, nullable=False, server_default=text("gen_random_uuid()"))
+    title: Mapped[str] = mapped_column(Text, nullable=False)
+    company: Mapped[str] = mapped_column(Text, nullable=False)
+    description: Mapped[str] = mapped_column(Text, nullable=False)
+    location: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
+    embedding = mapped_column(Vector(768), nullable=False)  # pgvector(768) for Gemini embeddings
+    createdAt: Mapped[datetime] = mapped_column(TIMESTAMP, nullable=False, server_default=func.now())
+    updatedAt: Mapped[datetime] = mapped_column(TIMESTAMP, nullable=False, default=func.now(), onupdate=func.now())
+
 
 class _ConversationMessageToLearning(Base):
     __tablename__ = "_ConversationMessageToLearning"

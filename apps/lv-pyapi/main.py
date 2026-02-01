@@ -1,6 +1,6 @@
 from fastapi import FastAPI, Depends, HTTPException, Body, BackgroundTasks, UploadFile, File, Response
 from sqlalchemy.orm import Session
-from sqlalchemy import select
+from sqlalchemy import select, text
 from typing import List, Optional
 import uvicorn
 import os
@@ -10,13 +10,15 @@ from google import genai
 import logging
 
 from database import get_db, SessionLocal
-from python_utils.sqlalchemy_models import User
+from python_utils.sqlalchemy_models import User, UserEmbedding, Job
 from message_save import save_message
 from python_utils.sqlalchemy_models import User, MessageSender
 from fastapi.responses import JSONResponse
 from voice import text_to_speech, speech_to_text
 from learnings import check_and_trigger_learnings
 from gemini_client import client
+from user_embedding import generate_user_embedding
+from job_embedding import create_job_with_embedding
 
 import json
 from pathlib import Path
@@ -220,9 +222,8 @@ async def get_gemini_response(
         #if userId then save to db
         if userId:
             save_message(db, userId, MessageSender.AI, ai_text, question_context=question_metadata)
-
             # Trigger background task to check if learnings generation is needed
-        bg_tasks.add_task(check_and_trigger_learnings, userId, SessionLocal)
+            bg_tasks.add_task(check_and_trigger_learnings, userId, SessionLocal)
 
         return {            
                 "message": ai_text,
@@ -255,6 +256,167 @@ async def stt(file: UploadFile = File(...)):
     except Exception as e:
         logging.exception("Unhandled error in /api/stt")
         return JSONResponse(status_code=500, content={"message": "Internal server error", "status": 500})
+
+
+# ============== EMBEDDING & JOB MATCHING ENDPOINTS ==============
+
+@app.post("/api/users/{user_id}/generate-embedding")
+async def generate_embedding_endpoint(user_id: str, db: Session = Depends(get_db)):
+    """
+    Generate embedding for a user from their learnings.
+    
+    Call this after a career discussion is complete to create/update
+    the user's embedding vector for job matching.
+    """
+    try:
+        result = generate_user_embedding(user_id, db)
+        if result:
+            return {"status": 200, "message": "Embedding generated successfully", "embedding_id": str(result.id)}
+        else:
+            return {"status": 404, "message": "No learnings found for user. Complete a career discussion first."}
+    except Exception as e:
+        logging.exception("Error generating user embedding")
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@app.get("/api/jobs/match")
+async def match_jobs(
+    user_id: str,
+    page: int = 1,
+    per_page: int = 20,
+    db: Session = Depends(get_db)
+):
+    """
+    Get jobs matched to user, sorted by similarity.
+    
+    Uses cosine similarity via pgvector to compare user embedding
+    against all job embeddings and return the best matches.
+    
+    Args:
+        user_id: The user's ID
+        page: Page number (default 1)
+        per_page: Results per page (default 20)
+    
+    Returns:
+        Paginated list of jobs with similarity scores
+    """
+    # Get user embedding
+    user_emb = db.query(UserEmbedding).filter_by(userId=user_id).first()
+    if not user_emb:
+        raise HTTPException(
+            status_code=404, 
+            detail="User embedding not found. Generate it first by calling POST /api/users/{user_id}/generate-embedding"
+        )
+    
+    # Convert embedding list to pgvector format string
+    # user_emb.embedding is already a list from our Vector type
+    embedding_list = user_emb.embedding
+    if isinstance(embedding_list, str):
+        embedding_str = embedding_list  # Already in pgvector format
+    else:
+        embedding_str = "[" + ",".join(str(float(x)) for x in embedding_list) + "]"
+    
+    # Query jobs ordered by cosine similarity
+    # pgvector: <=> is cosine distance (0 = identical, 2 = opposite)
+    # We compute similarity as 1 - distance
+    offset = (page - 1) * per_page
+    
+    # Count total jobs for pagination info
+    total_count = db.execute(text('SELECT COUNT(*) FROM "Job"')).scalar() or 0
+    
+    # Note: We use string formatting for the embedding vector because SQLAlchemy's
+    # parameter binding conflicts with PostgreSQL's ::vector cast syntax.
+    # The embedding is generated internally, not from user input, so this is safe.
+    query = text(f"""
+        SELECT id, title, company, description, location,
+               1 - (embedding <=> '{embedding_str}'::vector) as similarity
+        FROM "Job"
+        ORDER BY embedding <=> '{embedding_str}'::vector
+        LIMIT :limit OFFSET :offset
+    """)
+    
+    jobs = db.execute(
+        query,
+        {
+            "limit": per_page,
+            "offset": offset
+        }
+    ).fetchall()
+    
+    return {
+        "status": 200,
+        "page": page,
+        "per_page": per_page,
+        "total": total_count,
+        "has_more": (page * per_page) < total_count,
+        "jobs": [
+            {
+                "id": str(j.id),
+                "title": j.title,
+                "company": j.company,
+                "description": j.description,
+                "location": j.location,
+                "similarity": round(float(j.similarity), 3) if j.similarity else 0
+            }
+            for j in jobs
+        ]
+    }
+
+
+@app.post("/api/jobs")
+async def create_job(
+    title: str = Body(...),
+    company: str = Body(...),
+    description: str = Body(...),
+    location: Optional[str] = Body(None),
+    db: Session = Depends(get_db)
+):
+    """
+    Create a new job with embedding.
+    
+    This endpoint creates a job posting and automatically generates
+    its embedding vector for matching against users.
+    """
+    try:
+        job = create_job_with_embedding(title, company, description, location, db)
+        return {
+            "status": 200, 
+            "job_id": str(job.id), 
+            "message": f"Job '{title}' created with embedding"
+        }
+    except Exception as e:
+        logging.exception("Error creating job")
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@app.get("/api/jobs")
+async def list_jobs(
+    page: int = 1,
+    per_page: int = 20,
+    db: Session = Depends(get_db)
+):
+    """
+    List all jobs (without matching, just browsing).
+    """
+    offset = (page - 1) * per_page
+    jobs = db.query(Job).offset(offset).limit(per_page).all()
+    
+    return {
+        "status": 200,
+        "page": page,
+        "per_page": per_page,
+        "jobs": [
+            {
+                "id": str(j.id),
+                "title": j.title,
+                "company": j.company,
+                "description": j.description,
+                "location": j.location
+            }
+            for j in jobs
+        ]
+    }
+
 
 if __name__ == "__main__":
     uvicorn.run(app, host="0.0.0.0", port=8080)

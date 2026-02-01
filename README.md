@@ -341,6 +341,63 @@ Inside the LV-WEB app folder:
 npx shadcn@latest add [COMPONENT]
 ```
 
+## Vector Embeddings & Job Matching
+
+The project includes a vector embedding system for matching users to jobs based on their learnings.
+
+### How It Works
+
+1. **User Learnings** → Extracted from career conversations and stored in the `Learning` table
+2. **User Embedding** → All learnings concatenated and converted to a 768-dimensional vector using Gemini API
+3. **Job Embeddings** → Job descriptions converted to vectors when jobs are created
+4. **Job Matching** → Cosine similarity between user and job vectors, ranked by match score
+
+### API Endpoints
+
+| Endpoint | Method | Description |
+|----------|--------|-------------|
+| `POST /api/users/{user_id}/generate-embedding` | POST | Generate embedding from user's learnings |
+| `GET /api/jobs/match?user_id=X&page=1&per_page=20` | GET | Get jobs matched to user by similarity |
+| `POST /api/jobs` | POST | Create a job with automatic embedding |
+| `GET /api/jobs` | GET | List all jobs |
+
+### Testing the Matching Algorithm
+
+Run the manual test script to verify embeddings and job matching:
+
+```bash
+cd apps/lv-pyapi
+python3 tests/manual/test_embeddings_and_matching.py
+```
+
+Options:
+- `--keep-jobs` - Keep test jobs after running (for inspection)
+- `--no-cleanup` - Don't cleanup any test data
+
+### Example: Testing via curl
+
+```bash
+# Create a job
+curl -X POST http://localhost:8091/api/jobs \
+  -H "Content-Type: application/json" \
+  -d '{"title": "Frontend Developer", "company": "TechCorp", "description": "React and TypeScript skills required", "location": "Remote"}'
+
+# Generate user embedding (after user has learnings)
+curl -X POST http://localhost:8091/api/users/{USER_ID}/generate-embedding
+
+# Get matched jobs
+curl "http://localhost:8091/api/jobs/match?user_id={USER_ID}&page=1&per_page=20"
+```
+
+### Database Schema
+
+- `UserEmbedding` - One embedding per user (768-dim vector from all learnings combined)
+- `Job` - Job postings with embedding vectors for matching
+
+Uses PostgreSQL's `pgvector` extension for efficient cosine similarity queries.
+
+---
+
 ## Seed Mock Database with Test Data
 
 The project includes a seed script that populates a separate mock database with sample users, conversations, and learnings. This helps with quick project setup, testing, and onboarding.
