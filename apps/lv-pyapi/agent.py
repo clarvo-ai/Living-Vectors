@@ -1,7 +1,6 @@
 import logging
 import os
 import sys
-import multiprocessing
 from dotenv import load_dotenv
 
 from livekit import agents
@@ -59,26 +58,9 @@ async def my_agent(ctx: agents.JobContext):
         instructions="Greet the user warmly as their career interview assistant. Keep it brief and natural."
     )
 
-def _run_worker_process():
-    """
-    Runs the LiveKit Worker in a separate process.
-    """
-    # Use "start" in Google Cloud Run, "dev" in local development
-    is_cloud_run = os.environ.get("K_SERVICE") is not None
-    command = "start" if is_cloud_run else "dev"
-    sys.argv = ["agent.py", command]
-    logger.info(f"Starting Voice Agent Worker '{AGENT_NAME}' connecting to {LIVEKIT_URL}...")
-    
-    agents.cli.run_app(server)
-
-
-def start_agent():
-    """
-    Public function called by FastAPI to start the agent lifecycle.
-    """
-    p = multiprocessing.Process(target=_run_worker_process)
-    p.start()
-
-
 if __name__ == "__main__":
+    # Use "start" for LiveKit Cloud (wss://), "dev" for local (ws://)
+    command = "start" if LIVEKIT_URL.startswith("wss://") else "dev"
+    sys.argv = ["agent.py", command]
+    logger.info(f"Starting Voice Agent Worker '{AGENT_NAME}' connecting to {LIVEKIT_URL} (mode: {command})...")
     agents.cli.run_app(server)
