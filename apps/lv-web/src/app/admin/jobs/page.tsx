@@ -6,7 +6,7 @@ import { useState } from 'react';
 export default function AdminJobsPage() {
   const [filename, setFilename] = useState('');
   const [loading, setLoading] = useState(false);
-  const [response, setResponse] = useState<any>(null);
+  const [response, setResponse] = useState<{ message: string; status: number } | null>(null);
   const [error, setError] = useState('');
 
   const handleSubmit = async (e: React.FormEvent) => {
