@@ -258,23 +258,11 @@ async def upload_jobs(filename: str = Body(..., embed=True)):
     try:
         result = process_file(filename)
         return {"message": result, "status": 200}
-    except FileNotFoundError as e:
-        logging.error(f"File not found: {str(e)}")
-        return JSONResponse(
-            status_code=404, 
-            content={"message": str(e), "status": 404}
-        )
-    except ValueError as e:
-        logging.error(f"Validation error: {str(e)}")
-        return JSONResponse(
-            status_code=400, 
-            content={"message": str(e), "status": 400}
-        )
     except Exception as e:
-        logging.exception("Unhandled error in /api/upload-jobs")
+        logging.exception("Error processing jobs")
         return JSONResponse(
             status_code=500, 
-            content={"message": f"Failed to process jobs: {str(e)}", "status": 500}
+            content={"message": str(e), "status": 500}
         )
 
 @app.on_event("startup")

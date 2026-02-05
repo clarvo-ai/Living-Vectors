@@ -100,6 +100,3 @@ CREATE INDEX "Job_salary_min_idx" ON "public"."Job"("salary_min");
 
 -- CreateIndex
 CREATE INDEX "Job_guessed_salary_idx" ON "public"."Job"("guessed_salary");
-
--- CreateIndex
-CREATE UNIQUE INDEX "Job_source_external_id_key" ON "public"."Job"("source", "external_id");

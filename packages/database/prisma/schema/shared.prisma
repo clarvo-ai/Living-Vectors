@@ -219,7 +219,7 @@ model Job {
   
   titleId                       String?   @db.Uuid
   organizationId                String?   @db.Uuid
-  @@unique([source, external_id])
+  //@@unique([source, external_id])      Commented this as this combination was the same for literally every job
   @@index([published_date])
   @@index([country, city])
   @@index([working_mode])
