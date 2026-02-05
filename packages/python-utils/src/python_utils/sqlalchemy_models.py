@@ -87,7 +87,7 @@ class ConversationMessage(Base):
     content: Mapped[str] = mapped_column(Text, nullable=False)
     createdAt: Mapped[datetime] = mapped_column(TIMESTAMP, nullable=False, server_default=func.now())
     learnedFrom: Mapped[bool] = mapped_column(Boolean, nullable=False, server_default=text("false"))
-    questionContext: Mapped[Optional[str]] = mapped_column(JSONB, nullable=True)
+    questionContext: Mapped[Optional[dict]] = mapped_column(JSONB, nullable=True)
 
     # Relationships
     _ConversationMessageToLearning: Mapped[List["_ConversationMessageToLearning"]] = relationship("_ConversationMessageToLearning", back_populates="conversationMessage")
@@ -212,7 +212,6 @@ class User(Base):
     image: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
     phone: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
     bio: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
-    role: Mapped[UserRole] = mapped_column(Enum(UserRole), nullable=False, default=UserRole.USER)
 
     # Relationships
     conversationMessage: Mapped[List["ConversationMessage"]] = relationship("ConversationMessage", back_populates="user")
