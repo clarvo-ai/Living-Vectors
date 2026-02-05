@@ -17,7 +17,6 @@ from fastapi.responses import JSONResponse
 from voice import text_to_speech, speech_to_text
 from learnings import check_and_trigger_learnings
 from gemini_client import client
-from agent import start_agent
 from store_jobs import process_file
 
 import json
@@ -264,14 +263,6 @@ async def upload_jobs(filename: str = Body(..., embed=True)):
             status_code=500, 
             content={"message": "Internal server error", "status": 500}
         )
-
-@app.on_event("startup")
-async def _startup_livekit_agent():
-    """Start the LiveKit voice agent worker when FastAPI starts."""
-    try:
-        start_agent()
-    except Exception as e:
-        logging.exception("Unhandled error during LiveKit agent startup")
 
 if __name__ == "__main__":
     uvicorn.run(app, host="0.0.0.0", port=8080)
