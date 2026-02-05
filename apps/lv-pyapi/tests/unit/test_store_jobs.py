@@ -1,7 +1,6 @@
-import pytest
 import pandas as pd
 from unittest.mock import Mock, patch, MagicMock
-from store_jobs import parse_vector, parse_lists, parse_uuid, parse_timestamp, parse_int, parse_string, parse_float, parse_bool, save_jobs_to_db
+from store_jobs import parse_vector, parse_lists, parse_uuid, parse_timestamp, parse_int, parse_float, parse_bool, save_jobs_to_db
 from datetime import datetime
 import uuid
 
