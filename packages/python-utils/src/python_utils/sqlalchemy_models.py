@@ -2,6 +2,7 @@ from sqlalchemy import String, DateTime, Boolean, Integer, BigInteger, ForeignKe
 from sqlalchemy.dialects.postgresql import UUID as PostgresUUID, TIMESTAMP, DOUBLE_PRECISION, ENUM, JSONB
 from sqlalchemy.orm import DeclarativeBase, relationship, Mapped, mapped_column, Mapper
 from sqlalchemy.types import TypeDecorator
+from pgvector.sqlalchemy import Vector
 from uuid import UUID
 from typing import Optional, List, Any, Sequence
 from datetime import datetime
@@ -161,8 +162,8 @@ class Job(Base):
     source: Mapped[str] = mapped_column(Text, nullable=False)
     sub_source: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
     external_id: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
-    job_embedding: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
-    job_title_embedding: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
+    job_embedding: Mapped[Optional[list[float]]] = mapped_column(Vector(1536), nullable=True)
+    job_title_embedding: Mapped[Optional[list[float]]] = mapped_column(Vector(1536), nullable=True)
     titleId: Mapped[Optional[UUID]] = mapped_column(PostgresUUID(as_uuid=True), nullable=True)
     organizationId: Mapped[Optional[UUID]] = mapped_column(PostgresUUID(as_uuid=True), nullable=True)
 
@@ -220,25 +221,6 @@ class User(Base):
     authenticator: Mapped[List["Authenticator"]] = relationship("Authenticator", back_populates="user")
     learning: Mapped[List["Learning"]] = relationship("Learning", back_populates="user")
 
-
-class Vector(TypeDecorator):
-    """Custom type for PostgreSQL vector type"""
-    impl = String
-    cache_ok = True
-
-    def __init__(self, dimensions=None):
-        super().__init__()
-        self.dimensions = dimensions
-
-    def process_bind_param(self, value, dialect):
-        if value is None:
-            return None
-        return str(value)
-
-    def process_result_value(self, value, dialect):
-        if value is None:
-            return None
-        return value
 
 class VerificationToken(Base):
     __tablename__ = "VerificationToken"

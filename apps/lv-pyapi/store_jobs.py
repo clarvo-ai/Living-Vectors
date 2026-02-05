@@ -83,7 +83,21 @@ def parse_bool(value):
 def parse_vector(value):
   if pd.isna(value):
     return None
-  return value
+  if isinstance(value, str):
+    # Remove square brackets if present
+    value = value.strip()
+    if value.startswith('[') and value.endswith(']'):
+      value = value[1:-1]
+    
+    # Parse using csv reader which handles quotes properly
+    reader = csv.reader([value], delimiter=',', quotechar='"')
+    floats = []
+    for row in reader:
+      floats.extend([float(item.strip()) for item in row if item.strip()])
+    return floats
+  if isinstance(value, list):
+    return [float(v) for v in value]
+  return None
 
 def save_jobs_to_db(df: pd.DataFrame):
   """Save jobs from DataFrame to database"""
