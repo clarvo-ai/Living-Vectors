@@ -34,7 +34,7 @@ export default function AdminJobsPage() {
   return (
     <div className="p-8">
       <div className="bg-white rounded-lg shadow p-6 mb-6">
-        <h2 className="text-xl font-semibold mb-4">Upload jobs from Google Cloud Storage</h2>
+        <h2 className="text-xl font-semibold mb-4">Upload jobs from Google Cloud Storage to the database</h2>
 
         <form onSubmit={handleSubmit}>
           <div className="mb-4">
