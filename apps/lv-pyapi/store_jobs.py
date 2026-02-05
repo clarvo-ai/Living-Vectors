@@ -173,6 +173,9 @@ def save_jobs_to_db(df: pd.DataFrame):
     
     db.commit()
     
+    if inserted_count == 0:
+      return f"Successfully read but only found duplicates"
+    
     return f"Successfully inserted {inserted_count} jobs (skipped {total_count - inserted_count} duplicates)"
   except Exception as e:
     db.rollback()

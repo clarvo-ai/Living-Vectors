@@ -262,7 +262,7 @@ async def upload_jobs(filename: str = Body(..., embed=True)):
         logging.exception("Error processing jobs")
         return JSONResponse(
             status_code=500, 
-            content={"message": str(e), "status": 500}
+            content={"message": "Internal server error", "status": 500}
         )
 
 @app.on_event("startup")

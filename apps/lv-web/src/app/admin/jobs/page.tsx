@@ -33,48 +33,69 @@ export default function AdminJobsPage() {
 
   return (
     <div className="p-8">
-      <h1 className="text-2xl font-bold mb-4">Job Listings</h1>
-
       <div className="bg-white rounded-lg shadow p-6 mb-6">
-        <h2 className="text-xl font-semibold mb-4">Upload Jobs from URL</h2>
+        <h2 className="text-xl font-semibold mb-4">Upload jobs from Google Cloud Storage</h2>
 
-        <form onSubmit={handleSubmit} className="space-y-4">
-          <div>
-            <label className="block text-sm font-medium mb-2">Job File Name (in GCS bucket)</label>
-            <input
-              type="text"
-              value={filename}
-              onChange={(e) => setFilename(e.target.value)}
-              placeholder="jobs-xxxxxxxx-total-x.csv"
-              disabled={loading}
-              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-            />
-            <p className="text-sm text-gray-500 mt-1">Enter the CSV file name in your GCS bucket</p>
+        <form onSubmit={handleSubmit}>
+          <div className="mb-4">
+            <label className="block text-sm font-medium mb-2">Enter CSV Filename</label>
+            <div className="flex items-center border border-gray-300 rounded-lg focus-within:ring-2 focus-within:ring-blue-500">
+              <span className="px-3 py-2 bg-gray-100 text-gray-600 border-r border-gray-300 whitespace-nowrap rounded-l-lg">
+                lv-storage/job-data/
+              </span>
+              <input
+                type="text"
+                value={filename}
+                onChange={(e) => setFilename(e.target.value)}
+                placeholder="jobs-xxxxxxxx-total-x.csv"
+                disabled={loading}
+                className="flex-1 px-3 py-2 rounded-r-lg focus:outline-none"
+              />
+            </div>
           </div>
 
           <button
             type="submit"
             disabled={loading}
-            className="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed"
+            className="px-5 py-2.5 rounded-lg text-white font-medium transition-all shadow-sm disabled:opacity-50 disabled:cursor-not-allowed"
+            style={{
+              background: 'var(--gradient-primary)',
+            }}
           >
             {loading ? 'Processing...' : 'Upload Jobs'}
           </button>
         </form>
 
         {error && (
-          <div className="mt-4 p-4 bg-red-50 border-l-4 border-red-500 rounded-lg">
-            <p className="text-red-700 font-medium">❌ {error}</p>
+          <div 
+            className="mt-4 p-4 rounded-lg shadow-sm"
+            style={{
+              backgroundColor: '#fef2f2',
+              border: '1px solid #fecaca',
+            }}
+          >
+            <div className="flex items-start gap-3">
+              <span className="text-xl flex-shrink-0" style={{ color: '#ef4444' }}>❌</span>
+              <p className="font-medium" style={{ color: '#b91c1c' }}>{error}</p>
+            </div>
           </div>
         )}
 
         {response && (
-          <div className="mt-4 p-4 bg-green-50 border-l-4 border-green-500 rounded-lg">
-            <p className="text-green-700 font-medium">✓ {response.message}</p>
+          <div 
+            className="mt-4 p-4 rounded-lg shadow-sm"
+            style={{
+              backgroundColor: '#ecfdf5',
+              border: '1px solid #a7f3d0',
+            }}
+          >
+            <div className="flex items-start gap-3">
+              <span className="text-xl flex-shrink-0" style={{ color: '#10b981' }}>✓</span>
+              <p className="font-medium" style={{ color: '#047857' }}>{response.message}</p>
+            </div>
           </div>
         )}
       </div>
-
-      <p>Manage job listings here.</p>
     </div>
   );
 }
