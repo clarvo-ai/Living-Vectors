@@ -1,14 +1,16 @@
 name: Deploy LiveKit Agent
 
 on:
-  push:
-    branches: [ feature/agendeployment-CI/CD ]
-#    paths:
-#      - 'apps/lv-pyapi/agents/**'
-#      - 'apps/lv-pyapi/agents/livekit.toml'
+  pull_request:
+    types:
+      - closed
+    branches:
+      - dev
+  workflow_dispatch:
 
 jobs:
   deploy:
+    if: github.event_name != 'pull_request' || github.event.pull_request.merged == true
     runs-on: ubuntu-latest
     steps:
       - name: Checkout code
