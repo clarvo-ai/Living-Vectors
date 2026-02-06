@@ -272,7 +272,8 @@ TIP: use Docker/Containers extension in Cursor to manage containers and see logs
 
 1. Clone repository or pull latest changes
 
-2. Create .env files (`apps/lv-web/.env` and `apps/lv-pyapi/.env`)
+2. Create .env.local files (`apps/lv-web/.env.local` and `apps/lv-pyapi/.env.local`)
+   For Docker, you may have to additionally create .env files with same vars `apps/lv-web/.env` and `apps/lv-pyapi/.env`)
 
 3. (May be temporary) Set up Google Cloud Credentials for voice features, see [Voice Interface Setup](#10-voice-interface-setup)
 
