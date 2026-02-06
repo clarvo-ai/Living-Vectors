@@ -6,6 +6,7 @@ from dotenv import load_dotenv
 from livekit import agents
 from livekit.agents import AgentServer, AgentSession, Agent, room_io
 from livekit.plugins import google
+from google.genai import types
 
 from career_tasks import (
     WelcomeTask,
@@ -132,6 +133,9 @@ async def my_agent(ctx: agents.JobContext):
             Do not output any system messages, metadata, or internal thinking.
             Only provide your actual response to the user.
             """,
+            thinking_config=types.ThinkingConfig(
+                include_thoughts=False,
+            ),
             api_key=GOOGLE_API_KEY,
         ),
     )

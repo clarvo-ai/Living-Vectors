@@ -199,9 +199,11 @@ class MotivationTask(AgentTask[MotivationResult]):
             - Why are they exploring opportunities now?
             - How active is their job search?
             Be curious and understanding about their situation.
+            Use the individual recording tools as you learn each aspect.
             """,
             chat_ctx=chat_ctx,
         )
+        self._results = {}
     
     async def on_enter(self) -> None:
         await self.session.generate_reply(
@@ -209,13 +211,29 @@ class MotivationTask(AgentTask[MotivationResult]):
         )
     
     @function_tool
-    async def record_motivation(self, why_exploring: str, activity_level: str) -> str:
-        """Record motivation details. Activity level can be 'actively looking', 'casually exploring', etc."""
-        self.complete(MotivationResult(
-            why_exploring_now=why_exploring,
-            search_activity_level=activity_level,
-        ))
-        return "Motivation recorded. Task complete."
+    async def record_why_exploring(self, why_exploring: str) -> None:
+        """Record why they are exploring opportunities now."""
+        self._results["why_exploring_now"] = why_exploring
+        await self._check_completion()
+    
+    @function_tool
+    async def record_activity_level(self, activity_level: str) -> None:
+        """Record their search activity level: 'actively looking', 'casually exploring', etc."""
+        self._results["search_activity_level"] = activity_level
+        await self._check_completion()
+    
+    async def _check_completion(self) -> None:
+        required_keys = {"why_exploring_now", "search_activity_level"}
+        if required_keys.issubset(self._results.keys()):
+            self.complete(MotivationResult(
+                why_exploring_now=self._results["why_exploring_now"],
+                search_activity_level=self._results["search_activity_level"],
+            ))
+        else:
+            missing = required_keys - self._results.keys()
+            await self.session.generate_reply(
+                instructions=f"Continue learning about their motivation. Still need: {', '.join(missing)}"
+            )
 
 
 class BaselineInfoTask(AgentTask[BaselineInfoResult]):
@@ -226,15 +244,17 @@ class BaselineInfoTask(AgentTask[BaselineInfoResult]):
             instructions="""
             Collect baseline information about the candidate:
             - Education background
-            - Graduation year (if relevant)
+            - Graduation year
             - Work authorization status
             - Availability to start
             - Types of roles interested in (full-time, contract, etc.)
             
             Ask naturally and don't make it feel like an interrogation.
+            Use the individual recording tools as you learn each piece of information.
             """,
             chat_ctx=chat_ctx,
         )
+        self._results = {}
     
     async def on_enter(self) -> None:
         await self.session.generate_reply(
@@ -242,23 +262,45 @@ class BaselineInfoTask(AgentTask[BaselineInfoResult]):
         )
     
     @function_tool
-    async def record_baseline_info(
-        self,
-        education: str,
-        work_authorization: str,
-        availability: str,
-        role_types: list[str],
-        graduation_year: str = "",
-    ) -> str:
-        """Record baseline information about the candidate."""
-        self.complete(BaselineInfoResult(
-            education=education,
-            graduation_year=graduation_year if graduation_year else None,
-            work_authorization=work_authorization,
-            availability=availability,
-            role_types=role_types,
-        ))
-        return "Baseline information recorded. Task complete."
+    async def record_education(self, education: str, graduation_year: str = "") -> None:
+        """Record education background and graduation year if relevant."""
+        self._results["education"] = education
+        self._results["graduation_year"] = graduation_year if graduation_year else None
+        await self._check_completion()
+    
+    @function_tool
+    async def record_work_authorization(self, work_authorization: str) -> None:
+        """Record work authorization status."""
+        self._results["work_authorization"] = work_authorization
+        await self._check_completion()
+    
+    @function_tool
+    async def record_availability(self, availability: str) -> None:
+        """Record availability to start (e.g., 'immediately', '2 weeks notice')."""
+        self._results["availability"] = availability
+        await self._check_completion()
+    
+    @function_tool
+    async def record_role_types(self, role_types: list[str]) -> None:
+        """Record types of roles interested in (e.g., ['full-time', 'contract'])."""
+        self._results["role_types"] = role_types
+        await self._check_completion()
+    
+    async def _check_completion(self) -> None:
+        required_keys = {"education", "work_authorization", "availability", "role_types"}
+        if required_keys.issubset(self._results.keys()):
+            self.complete(BaselineInfoResult(
+                education=self._results["education"],
+                graduation_year=self._results["graduation_year"],
+                work_authorization=self._results["work_authorization"],
+                availability=self._results["availability"],
+                role_types=self._results["role_types"],
+            ))
+        else:
+            missing = required_keys - self._results.keys()
+            await self.session.generate_reply(
+                instructions=f"Continue collecting remaining baseline information: {', '.join(missing)}"
+            )
 
 
 class LocationPreferencesTask(AgentTask[LocationResult]):
@@ -271,9 +313,12 @@ class LocationPreferencesTask(AgentTask[LocationResult]):
             - What cities or regions are they interested in?
             - Are they open to relocation?
             - Do they prefer remote, hybrid, or on-site work?
+            
+            Use the individual recording tools as you learn each piece of information.
             """,
             chat_ctx=chat_ctx,
         )
+        self._results = {}
     
     async def on_enter(self) -> None:
         await self.session.generate_reply(
@@ -281,19 +326,36 @@ class LocationPreferencesTask(AgentTask[LocationResult]):
         )
     
     @function_tool
-    async def record_location_preferences(
-        self,
-        preferred_locations: list[str],
-        open_to_relocation: bool,
-        work_mode: str,
-    ) -> str:
-        """Record location preferences. Work mode should be 'remote', 'hybrid', or 'on-site'."""
-        self.complete(LocationResult(
-            preferred_locations=preferred_locations,
-            open_to_relocation=open_to_relocation,
-            work_mode=work_mode,
-        ))
-        return "Location preferences recorded. Task complete."
+    async def record_preferred_locations(self, preferred_locations: list[str]) -> None:
+        """Record preferred cities or regions."""
+        self._results["preferred_locations"] = preferred_locations
+        await self._check_completion()
+    
+    @function_tool
+    async def record_relocation_openness(self, open_to_relocation: bool) -> None:
+        """Record whether they're open to relocation."""
+        self._results["open_to_relocation"] = open_to_relocation
+        await self._check_completion()
+    
+    @function_tool
+    async def record_work_mode(self, work_mode: str) -> None:
+        """Record work mode preference: 'remote', 'hybrid', or 'on-site'."""
+        self._results["work_mode"] = work_mode
+        await self._check_completion()
+    
+    async def _check_completion(self) -> None:
+        required_keys = {"preferred_locations", "open_to_relocation", "work_mode"}
+        if required_keys.issubset(self._results.keys()):
+            self.complete(LocationResult(
+                preferred_locations=self._results["preferred_locations"],
+                open_to_relocation=self._results["open_to_relocation"],
+                work_mode=self._results["work_mode"],
+            ))
+        else:
+            missing = required_keys - self._results.keys()
+            await self.session.generate_reply(
+                instructions=f"Continue collecting remaining location information: {', '.join(missing)}"
+            )
 
 
 class ExperienceTask(AgentTask[ExperienceResult]):
@@ -309,9 +371,11 @@ class ExperienceTask(AgentTask[ExperienceResult]):
             - What are their key learnings?
             
             Show genuine interest and ask follow-up questions.
+            Use the individual recording tools as you learn each aspect.
             """,
             chat_ctx=chat_ctx,
         )
+        self._results = {}
     
     async def on_enter(self) -> None:
         await self.session.generate_reply(
@@ -319,21 +383,43 @@ class ExperienceTask(AgentTask[ExperienceResult]):
         )
     
     @function_tool
-    async def record_experience(
-        self,
-        roles_and_projects: str,
-        enjoyed_aspects: str,
-        challenging_aspects: str,
-        key_learnings: str,
-    ) -> str:
-        """Record experience details after discussing thoroughly."""
-        self.complete(ExperienceResult(
-            roles_and_projects=roles_and_projects,
-            enjoyed_aspects=enjoyed_aspects,
-            challenging_aspects=challenging_aspects,
-            key_learnings=key_learnings,
-        ))
-        return "Experience recorded. Task complete."
+    async def record_roles_and_projects(self, roles_and_projects: str) -> None:
+        """Record the roles and projects they've worked on."""
+        self._results["roles_and_projects"] = roles_and_projects
+        await self._check_completion()
+    
+    @function_tool
+    async def record_enjoyed_aspects(self, enjoyed_aspects: str) -> None:
+        """Record what aspects they enjoyed most."""
+        self._results["enjoyed_aspects"] = enjoyed_aspects
+        await self._check_completion()
+    
+    @function_tool
+    async def record_challenging_aspects(self, challenging_aspects: str) -> None:
+        """Record what they found challenging."""
+        self._results["challenging_aspects"] = challenging_aspects
+        await self._check_completion()
+    
+    @function_tool
+    async def record_key_learnings(self, key_learnings: str) -> None:
+        """Record their key learnings from experience."""
+        self._results["key_learnings"] = key_learnings
+        await self._check_completion()
+    
+    async def _check_completion(self) -> None:
+        required_keys = {"roles_and_projects", "enjoyed_aspects", "challenging_aspects", "key_learnings"}
+        if required_keys.issubset(self._results.keys()):
+            self.complete(ExperienceResult(
+                roles_and_projects=self._results["roles_and_projects"],
+                enjoyed_aspects=self._results["enjoyed_aspects"],
+                challenging_aspects=self._results["challenging_aspects"],
+                key_learnings=self._results["key_learnings"],
+            ))
+        else:
+            missing = required_keys - self._results.keys()
+            await self.session.generate_reply(
+                instructions=f"Continue exploring their experience. Still need to learn about: {', '.join(missing)}"
+            )
 
 
 class TechnicalSkillsTask(AgentTask[TechnicalSkillsResult]):
@@ -347,9 +433,12 @@ class TechnicalSkillsTask(AgentTask[TechnicalSkillsResult]):
             - What areas do they want to grow in?
             - What tools and technologies do they use?
             - What technical areas do they want to focus on?
+            
+            Use the individual recording tools as you learn each aspect.
             """,
             chat_ctx=chat_ctx,
         )
+        self._results = {}
     
     async def on_enter(self) -> None:
         await self.session.generate_reply(
@@ -357,21 +446,43 @@ class TechnicalSkillsTask(AgentTask[TechnicalSkillsResult]):
         )
     
     @function_tool
-    async def record_technical_skills(
-        self,
-        current_strengths: list[str],
-        growth_areas: list[str],
-        tools_and_technologies: list[str],
-        focus_areas: str,
-    ) -> str:
-        """Record technical skills assessment."""
-        self.complete(TechnicalSkillsResult(
-            current_strengths=current_strengths,
-            growth_areas=growth_areas,
-            tools_and_technologies=tools_and_technologies,
-            focus_areas=focus_areas,
-        ))
-        return "Technical skills recorded. Task complete."
+    async def record_current_strengths(self, current_strengths: list[str]) -> None:
+        """Record their current technical strengths."""
+        self._results["current_strengths"] = current_strengths
+        await self._check_completion()
+    
+    @function_tool
+    async def record_growth_areas(self, growth_areas: list[str]) -> None:
+        """Record areas they want to grow in."""
+        self._results["growth_areas"] = growth_areas
+        await self._check_completion()
+    
+    @function_tool
+    async def record_tools_and_technologies(self, tools_and_technologies: list[str]) -> None:
+        """Record tools and technologies they use."""
+        self._results["tools_and_technologies"] = tools_and_technologies
+        await self._check_completion()
+    
+    @function_tool
+    async def record_focus_areas(self, focus_areas: str) -> None:
+        """Record technical areas they want to focus on."""
+        self._results["focus_areas"] = focus_areas
+        await self._check_completion()
+    
+    async def _check_completion(self) -> None:
+        required_keys = {"current_strengths", "growth_areas", "tools_and_technologies", "focus_areas"}
+        if required_keys.issubset(self._results.keys()):
+            self.complete(TechnicalSkillsResult(
+                current_strengths=self._results["current_strengths"],
+                growth_areas=self._results["growth_areas"],
+                tools_and_technologies=self._results["tools_and_technologies"],
+                focus_areas=self._results["focus_areas"],
+            ))
+        else:
+            missing = required_keys - self._results.keys()
+            await self.session.generate_reply(
+                instructions=f"Continue discussing their technical profile. Still need: {', '.join(missing)}"
+            )
 
 
 class SuperpowersTask(AgentTask[SuperpowersResult]):
@@ -385,9 +496,11 @@ class SuperpowersTask(AgentTask[SuperpowersResult]):
             - Can they share examples that demonstrate these strengths?
             
             Encourage them to be specific with examples.
+            Use the individual recording tools as you learn each aspect.
             """,
             chat_ctx=chat_ctx,
         )
+        self._results = {}
     
     async def on_enter(self) -> None:
         await self.session.generate_reply(
@@ -395,17 +508,29 @@ class SuperpowersTask(AgentTask[SuperpowersResult]):
         )
     
     @function_tool
-    async def record_superpowers(
-        self,
-        strengths: list[str],
-        examples: str,
-    ) -> str:
-        """Record personal strengths and examples."""
-        self.complete(SuperpowersResult(
-            strengths=strengths,
-            examples=examples,
-        ))
-        return "Superpowers recorded. Task complete."
+    async def record_strengths(self, strengths: list[str]) -> None:
+        """Record their personal strengths."""
+        self._results["strengths"] = strengths
+        await self._check_completion()
+    
+    @function_tool
+    async def record_examples(self, examples: str) -> None:
+        """Record examples that demonstrate their strengths."""
+        self._results["examples"] = examples
+        await self._check_completion()
+    
+    async def _check_completion(self) -> None:
+        required_keys = {"strengths", "examples"}
+        if required_keys.issubset(self._results.keys()):
+            self.complete(SuperpowersResult(
+                strengths=self._results["strengths"],
+                examples=self._results["examples"],
+            ))
+        else:
+            missing = required_keys - self._results.keys()
+            await self.session.generate_reply(
+                instructions=f"Continue exploring their superpowers. Still need: {', '.join(missing)}"
+            )
 
 
 class WorkStyleTask(AgentTask[WorkStyleResult]):
@@ -418,9 +543,12 @@ class WorkStyleTask(AgentTask[WorkStyleResult]):
             - What team dynamics do they thrive in?
             - What management style do they prefer?
             - Do they prefer startup, mid-size, or enterprise companies?
+            
+            Use the individual recording tools as you learn each aspect.
             """,
             chat_ctx=chat_ctx,
         )
+        self._results = {}
     
     async def on_enter(self) -> None:
         await self.session.generate_reply(
@@ -428,19 +556,36 @@ class WorkStyleTask(AgentTask[WorkStyleResult]):
         )
     
     @function_tool
-    async def record_work_style(
-        self,
-        team_dynamics_preference: str,
-        management_style_preference: str,
-        company_size_preference: str,
-    ) -> str:
-        """Record work style preferences. Company size can be 'startup', 'mid-size', or 'enterprise'."""
-        self.complete(WorkStyleResult(
-            team_dynamics_preference=team_dynamics_preference,
-            management_style_preference=management_style_preference,
-            company_size_preference=company_size_preference,
-        ))
-        return "Work style preferences recorded. Task complete."
+    async def record_team_dynamics(self, team_dynamics_preference: str) -> None:
+        """Record their team dynamics preference."""
+        self._results["team_dynamics_preference"] = team_dynamics_preference
+        await self._check_completion()
+    
+    @function_tool
+    async def record_management_style(self, management_style_preference: str) -> None:
+        """Record their management style preference."""
+        self._results["management_style_preference"] = management_style_preference
+        await self._check_completion()
+    
+    @function_tool
+    async def record_company_size(self, company_size_preference: str) -> None:
+        """Record company size preference: 'startup', 'mid-size', or 'enterprise'."""
+        self._results["company_size_preference"] = company_size_preference
+        await self._check_completion()
+    
+    async def _check_completion(self) -> None:
+        required_keys = {"team_dynamics_preference", "management_style_preference", "company_size_preference"}
+        if required_keys.issubset(self._results.keys()):
+            self.complete(WorkStyleResult(
+                team_dynamics_preference=self._results["team_dynamics_preference"],
+                management_style_preference=self._results["management_style_preference"],
+                company_size_preference=self._results["company_size_preference"],
+            ))
+        else:
+            missing = required_keys - self._results.keys()
+            await self.session.generate_reply(
+                instructions=f"Continue exploring their work style. Still need: {', '.join(missing)}"
+            )
 
 
 class LearningDriversTask(AgentTask[LearningDriversResult]):
@@ -454,9 +599,12 @@ class LearningDriversTask(AgentTask[LearningDriversResult]):
             - Do they prefer autonomy or more guidance?
             - Do they like structure or flexibility?
             - What do they want more exposure to?
+            
+            Use the individual recording tools as you learn each aspect.
             """,
             chat_ctx=chat_ctx,
         )
+        self._results = {}
     
     async def on_enter(self) -> None:
         await self.session.generate_reply(
@@ -464,21 +612,43 @@ class LearningDriversTask(AgentTask[LearningDriversResult]):
         )
     
     @function_tool
-    async def record_learning_drivers(
-        self,
-        mentorship_importance: str,
-        autonomy_preference: str,
-        structure_preference: str,
-        exposure_interests: str,
-    ) -> str:
-        """Record learning and growth preferences."""
-        self.complete(LearningDriversResult(
-            mentorship_importance=mentorship_importance,
-            autonomy_preference=autonomy_preference,
-            structure_preference=structure_preference,
-            exposure_interests=exposure_interests,
-        ))
-        return "Learning drivers recorded. Task complete."
+    async def record_mentorship_importance(self, mentorship_importance: str) -> None:
+        """Record how important mentorship is to them."""
+        self._results["mentorship_importance"] = mentorship_importance
+        await self._check_completion()
+    
+    @function_tool
+    async def record_autonomy_preference(self, autonomy_preference: str) -> None:
+        """Record their preference for autonomy vs guidance."""
+        self._results["autonomy_preference"] = autonomy_preference
+        await self._check_completion()
+    
+    @function_tool
+    async def record_structure_preference(self, structure_preference: str) -> None:
+        """Record their preference for structure vs flexibility."""
+        self._results["structure_preference"] = structure_preference
+        await self._check_completion()
+    
+    @function_tool
+    async def record_exposure_interests(self, exposure_interests: str) -> None:
+        """Record what they want more exposure to."""
+        self._results["exposure_interests"] = exposure_interests
+        await self._check_completion()
+    
+    async def _check_completion(self) -> None:
+        required_keys = {"mentorship_importance", "autonomy_preference", "structure_preference", "exposure_interests"}
+        if required_keys.issubset(self._results.keys()):
+            self.complete(LearningDriversResult(
+                mentorship_importance=self._results["mentorship_importance"],
+                autonomy_preference=self._results["autonomy_preference"],
+                structure_preference=self._results["structure_preference"],
+                exposure_interests=self._results["exposure_interests"],
+            ))
+        else:
+            missing = required_keys - self._results.keys()
+            await self.session.generate_reply(
+                instructions=f"Continue exploring their learning drivers. Still need: {', '.join(missing)}"
+            )
 
 
 class CompensationTask(AgentTask[CompensationResult]):
@@ -492,9 +662,11 @@ class CompensationTask(AgentTask[CompensationResult]):
             - How flexible are they on compensation?
             
             Be respectful and professional when discussing money.
+            Use the individual recording tools as you learn each aspect.
             """,
             chat_ctx=chat_ctx,
         )
+        self._results = {}
     
     async def on_enter(self) -> None:
         await self.session.generate_reply(
@@ -502,17 +674,29 @@ class CompensationTask(AgentTask[CompensationResult]):
         )
     
     @function_tool
-    async def record_compensation(
-        self,
-        salary_expectation: str,
-        flexibility: str,
-    ) -> str:
-        """Record compensation expectations and flexibility."""
-        self.complete(CompensationResult(
-            salary_expectation=salary_expectation,
-            flexibility=flexibility,
-        ))
-        return "Compensation expectations recorded. Task complete."
+    async def record_salary_expectation(self, salary_expectation: str) -> None:
+        """Record their salary expectations."""
+        self._results["salary_expectation"] = salary_expectation
+        await self._check_completion()
+    
+    @function_tool
+    async def record_flexibility(self, flexibility: str) -> None:
+        """Record how flexible they are on compensation."""
+        self._results["flexibility"] = flexibility
+        await self._check_completion()
+    
+    async def _check_completion(self) -> None:
+        required_keys = {"salary_expectation", "flexibility"}
+        if required_keys.issubset(self._results.keys()):
+            self.complete(CompensationResult(
+                salary_expectation=self._results["salary_expectation"],
+                flexibility=self._results["flexibility"],
+            ))
+        else:
+            missing = required_keys - self._results.keys()
+            await self.session.generate_reply(
+                instructions=f"Continue discussing compensation. Still need: {', '.join(missing)}"
+            )
 
 
 class LongTermGoalsTask(AgentTask[LongTermGoalsResult]):
@@ -595,9 +779,12 @@ class CommunicationPreferencesTask(AgentTask[CommunicationPreferencesResult]):
             Clarify their communication preferences:
             - What's their preferred communication channel (email, phone, text)?
             - How often would they like to receive updates?
+            
+            Use the individual recording tools as you learn each aspect.
             """,
             chat_ctx=chat_ctx,
         )
+        self._results = {}
     
     async def on_enter(self) -> None:
         await self.session.generate_reply(
@@ -605,17 +792,29 @@ class CommunicationPreferencesTask(AgentTask[CommunicationPreferencesResult]):
         )
     
     @function_tool
-    async def record_communication_preferences(
-        self,
-        preferred_channel: str,
-        preferred_frequency: str,
-    ) -> str:
-        """Record communication preferences."""
-        self.complete(CommunicationPreferencesResult(
-            preferred_channel=preferred_channel,
-            preferred_frequency=preferred_frequency,
-        ))
-        return "Communication preferences recorded. Task complete."
+    async def record_preferred_channel(self, preferred_channel: str) -> None:
+        """Record their preferred communication channel: 'email', 'phone', or 'text'."""
+        self._results["preferred_channel"] = preferred_channel
+        await self._check_completion()
+    
+    @function_tool
+    async def record_preferred_frequency(self, preferred_frequency: str) -> None:
+        """Record how often they'd like to receive updates."""
+        self._results["preferred_frequency"] = preferred_frequency
+        await self._check_completion()
+    
+    async def _check_completion(self) -> None:
+        required_keys = {"preferred_channel", "preferred_frequency"}
+        if required_keys.issubset(self._results.keys()):
+            self.complete(CommunicationPreferencesResult(
+                preferred_channel=self._results["preferred_channel"],
+                preferred_frequency=self._results["preferred_frequency"],
+            ))
+        else:
+            missing = required_keys - self._results.keys()
+            await self.session.generate_reply(
+                instructions=f"Continue collecting communication preferences. Still need: {', '.join(missing)}"
+            )
 
 
 class FeedbackTask(AgentTask[FeedbackResult]):
