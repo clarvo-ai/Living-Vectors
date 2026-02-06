@@ -1,0 +1,29 @@
+name: Deploy LiveKit Agent
+
+on:
+  push:
+    branches: [ feature/agendeployment-CI/CD ]
+    # Triggers only when the agent code or deployment config changes
+    paths:
+      - 'apps/lv-pyapi/agents/**'
+      - 'apps/lv-pyapi/agents/livekit.toml'
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Deploy to LiveKit Cloud
+        uses: livekit/deploy-action@v1.2
+        with:
+          operation: 'deploy'
+          # Pointing to the new nested directory
+          working-directory: 'apps/lv-pyapi/agents'
+        env:
+          LIVEKIT_URL: ${{ secrets.LIVEKIT_URL }}
+          LIVEKIT_API_KEY: ${{ secrets.LIVEKIT_API_KEY }}
+          LIVEKIT_API_SECRET: ${{ secrets.LIVEKIT_API_SECRET }}
+          # Ensure all necessary environment variables are listed here
+          SECRET_LIST: "GEMINI_API_KEY=${{ secrets.GEMINI_API_KEY }}"
