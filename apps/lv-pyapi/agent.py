@@ -8,6 +8,7 @@ from livekit.agents import AgentServer, AgentSession, Agent, room_io
 from livekit.plugins import google
 from google.genai import types
 
+from livekit.agents.beta.workflows import TaskGroup
 from career_tasks import (
     WelcomeTask,
     MotivationTask,
@@ -60,53 +61,108 @@ class CareerInterviewAgent(Agent):
         )
 
     async def on_enter(self) -> None:
-        """Start the structured career conversation using sequential tasks."""
-        logger.info("Starting career interview conversation flow")
+        """Start the structured career conversation using TaskGroup."""
+        logger.info("Starting career interview conversation flow with TaskGroup")
         
-        # Define tasks in sequence (avoiding TaskGroup's revisit feature which is incompatible with Google Realtime API)
-        task_factories = [
-            # =========== START PHASE ===========
-            ("welcome", WelcomeTask),
-            # =========== MAIN PHASE ===========
-            ("motivation", MotivationTask),
-            ("baseline_info", BaselineInfoTask),
-            ("location", LocationPreferencesTask),
-            ("experience", ExperienceTask),
-            ("technical_skills", TechnicalSkillsTask),
-            ("superpowers", SuperpowersTask),
-            ("work_style", WorkStyleTask),
-            ("learning_drivers", LearningDriversTask),
-            ("compensation", CompensationTask),
-            ("long_term_goals", LongTermGoalsTask),
-            # =========== END PHASE ===========
-            ("summary_confirmation", SummaryConfirmationTask),
-            ("communication_preferences", CommunicationPreferencesTask),
-            ("feedback", FeedbackTask),
-        ]
+        # Import TaskGroup from beta workflows
         
-        # Execute tasks sequentially by awaiting each task directly
-        # Per LiveKit docs: "Await the task to receive its result"
-        task_results = {}
-        for task_id, TaskClass in task_factories:
-            logger.info(f"Starting task: {task_id}")
-            try:
-                # Create task with shared chat context and await it directly
-                task = TaskClass(chat_ctx=self.chat_ctx)
-                result = await task
-                task_results[task_id] = result
-                logger.info(f"Completed task: {task_id} with result: {type(result).__name__}")
-            except Exception as e:
-                logger.error(f"Task {task_id} failed: {e}")
-                import traceback
-                traceback.print_exc()
-                # Continue with next task even if one fails
-                task_results[task_id] = None
+        # Create TaskGroup with shared chat context
+        task_group = TaskGroup(
+            chat_ctx=self.chat_ctx,
+            summarize_chat_ctx=False,  # Summarize interactions into main context
+        )
+        
+        # =========== START PHASE ===========
+        task_group.add(
+            lambda: WelcomeTask(chat_ctx=self.chat_ctx),
+            id="welcome",
+            description="Welcome and initial context gathering"
+        )
+        
+        # =========== MAIN PHASE ===========
+        task_group.add(
+            lambda: MotivationTask(chat_ctx=self.chat_ctx),
+            id="motivation",
+            description="Understand motivation and timing for job search"
+        )
+        task_group.add(
+            lambda: BaselineInfoTask(chat_ctx=self.chat_ctx),
+            id="baseline_info",
+            description="Collect education, work authorization, and availability"
+        )
+        task_group.add(
+            lambda: LocationPreferencesTask(chat_ctx=self.chat_ctx),
+            id="location",
+            description="Gather location and work mode preferences"
+        )
+        task_group.add(
+            lambda: ExperienceTask(chat_ctx=self.chat_ctx),
+            id="experience",
+            description="Discuss past experience and learnings"
+        )
+        task_group.add(
+            lambda: TechnicalSkillsTask(chat_ctx=self.chat_ctx),
+            id="technical_skills",
+            description="Assess technical skills and growth areas"
+        )
+        task_group.add(
+            lambda: SuperpowersTask(chat_ctx=self.chat_ctx),
+            id="superpowers",
+            description="Discover personal strengths through examples"
+        )
+        task_group.add(
+            lambda: WorkStyleTask(chat_ctx=self.chat_ctx),
+            id="work_style",
+            description="Understand work style and culture fit preferences"
+        )
+        task_group.add(
+            lambda: LearningDriversTask(chat_ctx=self.chat_ctx),
+            id="learning_drivers",
+            description="Explore learning and growth drivers"
+        )
+        task_group.add(
+            lambda: CompensationTask(chat_ctx=self.chat_ctx),
+            id="compensation",
+            description="Discuss compensation expectations"
+        )
+        task_group.add(
+            lambda: LongTermGoalsTask(chat_ctx=self.chat_ctx),
+            id="long_term_goals",
+            description="Understand long-term career direction"
+        )
+        
+        # =========== END PHASE ===========
+        task_group.add(
+            lambda: SummaryConfirmationTask(chat_ctx=self.chat_ctx),
+            id="summary_confirmation",
+            description="Summarize and confirm understanding"
+        )
+        task_group.add(
+            lambda: CommunicationPreferencesTask(chat_ctx=self.chat_ctx),
+            id="communication_preferences",
+            description="Collect communication preferences"
+        )
+        task_group.add(
+            lambda: FeedbackTask(chat_ctx=self.chat_ctx),
+            id="feedback",
+            description="Gather feedback on conversation experience"
+        )
+        
+        # Execute the task group - TaskGroup handles transitions properly
+        logger.info("Executing TaskGroup with 14 tasks")
+        results = await task_group
+        
+        # Access results
+        task_results = results.task_results
         
         # Log the collected information
         logger.info("Career interview completed successfully")
         logger.info(f"Collected data from {len(task_results)} tasks:")
         for task_id, result in task_results.items():
-            logger.info(f"  - {task_id}: {type(result).__name__ if result else 'None'}")
+            if isinstance(result, Exception):
+                logger.error(f"  - {task_id}: FAILED - {result}")
+            else:
+                logger.info(f"  - {task_id}: {type(result).__name__ if result else 'None'}")
 
 
 server = AgentServer()
