@@ -16,7 +16,7 @@ jobs:
         uses: actions/checkout@v4
 
       - name: Deploy to LiveKit Cloud
-        uses: livekit/deploy-action@v1.2
+        uses: livekit/deploy-action@v2.12.1
         with:
           operation: 'deploy'
           # Pointing to the new nested directory
