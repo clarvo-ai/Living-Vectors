@@ -11,8 +11,8 @@ echo "Database is ready!"
 # echo "Running database migrations..."
 npx turbo run db:migrate
 
-# Run seed
+# Run seed (non-blocking - don't fail if seed errors)
 # echo "Running database seed..."
-npx turbo run db:seed
+npx turbo run db:seed || echo "Seed script failed, continuing anyway..."
 
 # echo "Database initialization completed." 
