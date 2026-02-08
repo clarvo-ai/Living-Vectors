@@ -1,5 +1,5 @@
 from sqlalchemy import String, DateTime, Boolean, Integer, BigInteger, ForeignKey, ForeignKeyConstraint, Table, ARRAY, Text, Float, Enum, text, func, event
-from sqlalchemy.dialects.postgresql import UUID as PostgresUUID, TIMESTAMP, DOUBLE_PRECISION, ENUM
+from sqlalchemy.dialects.postgresql import UUID as PostgresUUID, TIMESTAMP, DOUBLE_PRECISION, ENUM, JSONB
 from sqlalchemy.orm import DeclarativeBase, relationship, Mapped, mapped_column, Mapper
 from sqlalchemy.types import TypeDecorator
 from uuid import UUID
@@ -18,8 +18,6 @@ class UserRole(enum.Enum):
     """Enum type for UserRole"""
     USER = 'USER'
     ADMIN = 'ADMIN'
-
-
 
 # Base Class
 class Base(DeclarativeBase):
@@ -93,8 +91,8 @@ class ConversationMessage(Base):
     sender: Mapped[MessageSender] = mapped_column(Enum(MessageSender), nullable=False)
     content: Mapped[str] = mapped_column(Text, nullable=False)
     createdAt: Mapped[datetime] = mapped_column(TIMESTAMP, nullable=False, server_default=func.now())
-    questionContext: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
-    learnedFrom: Mapped[bool] = mapped_column(Boolean, nullable=False)
+    questionContext: Mapped[Optional[dict]] = mapped_column(JSONB, nullable=True)
+    learnedFrom: Mapped[bool] = mapped_column(Boolean, nullable=False, server_default=text('false'))
 
     # Relationships
     _ConversationMessageToLearning: Mapped[List["_ConversationMessageToLearning"]] = relationship("_ConversationMessageToLearning", back_populates="conversationMessage")
@@ -199,7 +197,6 @@ class VerificationToken(Base):
     identifier: Mapped[str] = mapped_column(Text, primary_key=True, nullable=False)
     token: Mapped[str] = mapped_column(Text, primary_key=True, nullable=False)
     expires: Mapped[datetime] = mapped_column(TIMESTAMP, nullable=False)
-
 
 class _ConversationMessageToLearning(Base):
     __tablename__ = "_ConversationMessageToLearning"
