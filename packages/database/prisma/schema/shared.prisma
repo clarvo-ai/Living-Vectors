@@ -25,6 +25,7 @@ model User {
   Authenticator Authenticator[]
   messages      ConversationMessage[]
   learnings     Learning[]
+  jobRecommendations JobRecommendation[]
 
   @@index([id])
   @@index([email])
@@ -113,6 +114,22 @@ model Learning {
   messages  ConversationMessage[]
 
   @@index([userId])
+}
+
+model JobRecommendation {
+  id        String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  userId    String   @db.Uuid
+  jobId     String
+  score     Float?
+  timestamp DateTime? @default(now())
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  
+  @@index([userId])
+  @@index([jobId])
+  @@index([userId, timestamp])
 }
 
 enum MessageSender {
