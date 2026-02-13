@@ -1,4 +1,5 @@
 import { PYAPI_URL } from '@/config';
+import { JobRecommendationsResponse } from '@/types/job';
 
 export interface PyAPIHealthResponse {
   status: string;
@@ -47,11 +48,53 @@ export async function uploadJobs(filename: string): Promise<{ message: string; s
   });
 
   const data = await response.json();
-  
+
   if (!response.ok) {
     // Extract the error message from the response body
     throw new Error(data.message || `Failed to upload jobs: ${response.statusText}`);
   }
 
   return data;
+}
+
+export async function getJobRecommendations(userId: string): Promise<JobRecommendationsResponse> {
+  const response = await fetch(`/api/jobs/recommendations/${userId}`);
+
+  if (!response.ok) {
+    throw new Error(`Failed to fetch job recommendations: ${response.statusText}`);
+  }
+
+  return response.json();
+}
+
+export async function triggerJobRecommendations(
+  userId: string
+): Promise<JobRecommendationsResponse> {
+  const pyapiBaseUrl = getBaseUrl();
+
+  if (pyapiBaseUrl) {
+    try {
+      const response = await fetch(`${pyapiBaseUrl}/api/jobs/recommendations/trigger`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ userId }),
+      });
+
+      if (response.ok) {
+        return response.json();
+      }
+    } catch {}
+  }
+
+  return getJobRecommendations(userId);
+}
+
+export async function getAllJobs(): Promise<JobRecommendationsResponse> {
+  const response = await fetch('/api/jobs');
+
+  if (!response.ok) {
+    throw new Error(`Failed to fetch jobs: ${response.statusText}`);
+  }
+
+  return response.json();
 }

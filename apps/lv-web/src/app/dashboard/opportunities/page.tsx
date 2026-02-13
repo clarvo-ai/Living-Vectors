@@ -1,6 +1,6 @@
 'use client';
 
-import { getJobRecommendations, triggerJobRecommendations } from '@/lib/services/pyapi';
+import { getAllJobs, getJobRecommendations, triggerJobRecommendations } from '@/lib/services/pyapi';
 import { Job } from '@/types/job';
 import { Dialog, DialogContent } from '@repo/ui/components/dialog';
 import { Sparkles } from 'lucide-react';
@@ -13,6 +13,7 @@ export default function OpportunitiesPage() {
   const { data: session, status } = useSession();
   const router = useRouter();
   const [jobs, setJobs] = useState<Job[]>([]);
+  const [isFallbackToAllJobs, setIsFallbackToAllJobs] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
   const [isGenerating, setIsGenerating] = useState(false);
   const [selectedJob, setSelectedJob] = useState<Job | null>(null);
@@ -33,12 +34,28 @@ export default function OpportunitiesPage() {
     setError(null);
 
     try {
-      const response = await getJobRecommendations(session.user.id);
-      setJobs(response.jobs);
+      const recommendationsResponse = await getJobRecommendations(session.user.id);
+
+      if (recommendationsResponse.jobs.length > 0) {
+        setJobs(recommendationsResponse.jobs);
+        setIsFallbackToAllJobs(false);
+      } else {
+        const allJobsResponse = await getAllJobs();
+        setJobs(allJobsResponse.jobs);
+        setIsFallbackToAllJobs(true);
+      }
     } catch (err) {
       console.error('Error fetching job recommendations:', err);
-      setError('Failed to load job recommendations');
-      setJobs([]);
+
+      try {
+        const allJobsResponse = await getAllJobs();
+        setJobs(allJobsResponse.jobs);
+        setIsFallbackToAllJobs(true);
+      } catch (allJobsError) {
+        console.error('Error fetching all jobs:', allJobsError);
+        setError('Failed to load opportunities');
+        setJobs([]);
+      }
     } finally {
       setIsLoading(false);
     }
@@ -59,10 +76,26 @@ export default function OpportunitiesPage() {
 
     try {
       const response = await triggerJobRecommendations(session.user.id);
-      setJobs(response.jobs);
+
+      if (response.jobs.length > 0) {
+        setJobs(response.jobs);
+        setIsFallbackToAllJobs(false);
+      } else {
+        const allJobsResponse = await getAllJobs();
+        setJobs(allJobsResponse.jobs);
+        setIsFallbackToAllJobs(true);
+      }
     } catch (err) {
       console.error('Error generating job recommendations:', err);
-      setError('Failed to generate job recommendations');
+
+      try {
+        const allJobsResponse = await getAllJobs();
+        setJobs(allJobsResponse.jobs);
+        setIsFallbackToAllJobs(true);
+      } catch (allJobsError) {
+        console.error('Error fetching all jobs:', allJobsError);
+        setError('Failed to load opportunities');
+      }
     } finally {
       setIsGenerating(false);
     }
@@ -103,7 +136,9 @@ export default function OpportunitiesPage() {
             <h1 className="text-2xl font-bold text-gray-900">Recommended for You</h1>
           </div>
           <p className="text-gray-600 ml-12">
-            Jobs matched to your skills and preferences based on your profile
+            {isFallbackToAllJobs
+              ? 'Showing all active jobs because no personal recommendations are available yet'
+              : 'Jobs matched to your skills and preferences based on your profile'}
           </p>
         </div>
 
@@ -132,7 +167,7 @@ export default function OpportunitiesPage() {
 
         {/* Job Detail Modal */}
         <Dialog open={!!selectedJob} onOpenChange={() => handleCloseDetail()}>
-          <DialogContent className="max-w-4xl p-0 bg-transparent border-0 shadow-none">
+          <DialogContent className="max-w-4xl p-0 bg-transparent border-0 shadow-none [&>button]:hidden">
             {selectedJob && <JobDetailView job={selectedJob} onClose={handleCloseDetail} />}
           </DialogContent>
         </Dialog>
