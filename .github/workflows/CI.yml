@@ -1,7 +1,7 @@
 name: Testing and Linting
 on:
   push:
-    branches: [dev, feature/npm-security-audit]
+    branches: [dev]
   pull_request:
     types:
       - opened
