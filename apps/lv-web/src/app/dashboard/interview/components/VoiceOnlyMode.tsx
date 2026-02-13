@@ -1,126 +1,134 @@
-import { Bot, Loader2, Mic, Phone } from 'lucide-react';
+import {
+  BarVisualizer,
+  useLocalParticipant,
+  useRemoteParticipants,
+  useTracks,
+  useVoiceAssistant,
+} from '@livekit/components-react';
+import '@livekit/components-styles';
+import { Track } from 'livekit-client';
+import { Bot, MessageSquare, Mic, MicOff } from 'lucide-react';
+import { useEffect } from 'react';
+
+function cn(...classes: (string | undefined | false)[]): string {
+  return classes.filter(Boolean).join(' ');
+}
 
 interface VoiceOnlyModeProps {
-  isAiSpeaking: boolean;
-  isUserRecording: boolean;
-  isProcessing: boolean;
-  onStart?: () => void;
   onGoToChat?: () => void;
-  messageCount?: number;
   hasStarted: boolean;
 }
 
-export function VoiceOnlyMode({
-  isAiSpeaking,
-  isUserRecording,
-  isProcessing,
-  onStart,
-  onGoToChat,
-  messageCount = 0,
-  hasStarted,
-}: VoiceOnlyModeProps) {
-  return (
-    <div
-      data-testid="voice-only-mode"
-      className="flex-1 w-full flex flex-col items-center justify-center space-y-8"
-    >
-      {!isAiSpeaking && !isUserRecording && !isProcessing && !hasStarted && messageCount === 1 && (
-        <div className="text-center space-y-2">
-          <p className="text-2xl font-semibold text-gray-700">Welcome to the interview!</p>
-          <p className="text-sm text-gray-500">Press the button to start</p>
-        </div>
-      )}
-      {isAiSpeaking ? (
-        <div className="flex items-center justify-center animate-pulse">
-          <div
-            className="w-28 h-28 rounded-full flex items-center justify-center flex-shrink-0"
-            style={{
-              backgroundColor: 'var(--border-white)',
-              border: '5px solid var(--border-light-gray)',
-            }}
-          >
+export function VoiceOnlyMode({ onGoToChat, hasStarted }: VoiceOnlyModeProps) {
+  const { isMicrophoneEnabled, localParticipant } = useLocalParticipant();
+  const remoteParticipants = useRemoteParticipants();
+  const { state: agentState } = useVoiceAssistant();
+
+  // Get agent audio track
+  const agentAudioTrack = useTracks([{ source: Track.Source.Microphone, withPlaceholder: false }], {
+    onlySubscribed: true,
+    updateOnlyOn: [],
+  }).find((track) => track.participant.identity !== localParticipant?.identity);
+
+  const toggleMute = async () => {
+    if (localParticipant) {
+      await localParticipant.setMicrophoneEnabled(!isMicrophoneEnabled);
+    }
+  };
+
+  // Ensure AI is never muted in voice-only mode
+  useEffect(() => {
+    if (!hasStarted) return;
+
+    remoteParticipants.forEach((participant) => {
+      participant.audioTrackPublications.forEach((publication) => {
+        const audioElement = publication.audioTrack?.attachedElements[0] as HTMLAudioElement;
+        if (audioElement && audioElement.muted) {
+          audioElement.muted = false;
+        }
+      });
+    });
+  }, [remoteParticipants, hasStarted]);
+
+  // If session is active, show LiveKit voice interface
+  if (hasStarted) {
+    return (
+      <div className="flex-1 w-full flex flex-col items-center justify-center">
+        <div className="flex flex-col items-center justify-center h-full gap-6">
+          <div className="flex items-center justify-center animate-pulse">
             <div
-              className="w-16 h-16 rounded-full flex items-center justify-center flex-shrink-0"
+              className="w-28 h-28 rounded-full flex items-center justify-center flex-shrink-0"
               style={{
-                backgroundColor: 'var(--bg-light-purple)',
-                border: '3px solid var(--border-purple)',
+                backgroundColor: 'var(--border-white)',
+                border: '5px solid var(--border-light-gray)',
               }}
             >
-              <Bot className="h-10 w-10" style={{ color: 'var(--icon-purple)' }} />
+              <div
+                className="w-16 h-16 rounded-full flex items-center justify-center flex-shrink-0"
+                style={{
+                  backgroundColor: 'var(--bg-light-purple)',
+                  border: '3px solid var(--border-purple)',
+                }}
+              >
+                <Bot className="h-10 w-10" style={{ color: 'var(--icon-purple)' }} />
+              </div>
             </div>
           </div>
-        </div>
-      ) : isUserRecording ? (
-        <Mic className="h-24 w-24 text-red-500 animate-pulse" />
-      ) : isProcessing ? (
-        <Loader2 className="h-24 w-24 text-blue-500 animate-spin" />
-      ) : (
-        <div className="flex items-center justify-center">
-          <div
-            className="w-28 h-28 rounded-full flex items-center justify-center flex-shrink-0"
-            style={{
-              backgroundColor: 'var(--border-white)',
-              border: '5px solid var(--border-light-gray)',
-            }}
+          <BarVisualizer
+            barCount={7}
+            state={agentState}
+            options={{ minHeight: 10, maxHeight: 150 }}
+            track={agentAudioTrack}
+            className={cn('flex h-16 items-center justify-center gap-0.5')}
           >
-            <div
-              className="w-16 h-16 rounded-full flex items-center justify-center flex-shrink-0"
-              style={{
-                backgroundColor: 'var(--bg-light-purple)',
-                border: '3px solid var(--border-purple)',
-              }}
-            >
-              <Bot className="h-10 w-10" style={{ color: 'var(--icon-purple)' }} />
-            </div>
-          </div>
-        </div>
-      )}
-      <div className="text-xl font-medium text-gray-600">
-        {isAiSpeaking ? (
-          <div className="flex flex-col items-center gap-2">
-            <span>AI is speaking...</span>
-            <button
-              onClick={onGoToChat}
-              className="px-4 py-1 text-sm text-gray-500 hover:text-gray-700 transition-colors"
-            >
-              Chat instead
-            </button>
-          </div>
-        ) : isUserRecording ? (
-          'Listening...'
-        ) : isProcessing ? (
-          'Waiting for AI...'
-        ) : !hasStarted && messageCount === 1 ? (
-          <div className="flex flex-col items-center gap-4">
-            <button
-              onClick={onGoToChat}
-              className="px-4 py-1 text-sm text-gray-500 hover:text-gray-700 transition-colors"
-            >
-              Chat instead
-            </button>
-            <button
-              onClick={onStart}
-              className="px-6 py-2 rounded-lg text-white font-normal transition-all transform hover:scale-105 shadow-lg flex items-center gap-2"
+            <span
+              className={cn(
+                'min-h-1 w-1.5 rounded-full transition-all duration-250 ease-linear',
+                'data-[lk-muted=true]:bg-gray-300 data-[lk-muted=true]:opacity-30',
+                'data-[lk-highlighted=true]:opacity-100 opacity-20'
+              )}
               style={{
                 background: 'var(--gradient-primary)',
               }}
+            />
+          </BarVisualizer>
+          <div
+            className="flex gap-2 p-3 rounded-lg bg-white bg-opacity-80 shadow-md border border-gray-200"
+            style={{
+              backdropFilter: 'blur(10px)',
+            }}
+          >
+            <button
+              onClick={toggleMute}
+              className="w-10 h-10 rounded-full flex items-center justify-center transition-all transform hover:scale-110"
+              style={{
+                background: `linear-gradient(white, white) padding-box, var(--gradient-primary) border-box`,
+                border: '2px solid transparent',
+                boxShadow: '0px 2px 8px -2px var(--gradient-message-shadow)',
+              }}
+              aria-label={!isMicrophoneEnabled ? 'Unmute' : 'Mute'}
             >
-              <Phone className="w-4 h-4" />
-              Start Call
+              {!isMicrophoneEnabled ? (
+                <MicOff className="w-5 h-5 text-gray-600" />
+              ) : (
+                <Mic className="w-5 h-5 text-gray-600" />
+              )}
             </button>
-          </div>
-        ) : (
-          <div className="flex flex-col items-center gap-2">
-            <span>Let&apos;s talk!</span>
             <button
               onClick={onGoToChat}
-              className="px-4 py-1 text-sm text-gray-500 hover:text-gray-700 transition-colors"
+              className="w-10 h-10 rounded-full flex items-center justify-center transition-all transform hover:scale-110"
+              style={{
+                background: `linear-gradient(white, white) padding-box, var(--gradient-primary) border-box`,
+                border: '2px solid transparent',
+                boxShadow: '0px 2px 8px -2px var(--gradient-message-shadow)',
+              }}
+              aria-label="Switch to chat"
             >
-              Chat instead
+              <MessageSquare className="w-5 h-5 text-gray-600" />
             </button>
           </div>
-        )}
+        </div>
       </div>
-    </div>
-  );
+    );
+  }
 }

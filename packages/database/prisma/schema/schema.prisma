@@ -4,6 +4,7 @@ generator client {
   provider        = "prisma-client-js"
   output          = "../generated/client"
   previewFeatures = ["postgresqlExtensions"]
+  binaryTargets   = ["native", "darwin-arm64"]
 }
 
 datasource db {

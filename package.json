@@ -5,7 +5,7 @@
   "scripts": {
     "build": "turbo run build",
     "dev": "turbo run dev",
-    "dev:lv-web": "NEXT_PUBLIC_APP_SOURCE_NAME=lv-web turbo run dev --filter=lv-web",
+    "dev:lv-web": "NEXT_PUBLIC_APP_SOURCE_NAME=lv-web turbo run dev --filter=lv-web --",
     "dev:caleuche": "NEXT_PUBLIC_APP_SOURCE_NAME=caleuche turbo run dev --filter=caleuche",
     "dev:bagan": "NEXT_PUBLIC_APP_SOURCE_NAME=bagan turbo run dev --filter=bagan",
     "dev:proximab": "NEXT_PUBLIC_APP_SOURCE_NAME=proximab turbo run dev --filter=proximab",
@@ -26,13 +26,17 @@
     "test:all:coverage": "npm run test:jest:coverage && npm run test:pytest:coverage"
   },
   "dependencies": {
+    "@livekit/components-react": "^2.9.18",
+    "@livekit/components-styles": "^1.2.0",
+    "livekit-client": "^2.17.0",
+    "livekit-server-sdk": "^2.15.0",
     "zod": "^3.24.1"
   },
   "devDependencies": {
-    "turbo": "^2.4.4",
     "ts-node": "^10.9.2",
-    "typescript": "^5",
-    "tsx": "4.19.3"
+    "tsx": "4.19.3",
+    "turbo": "^2.4.4",
+    "typescript": "^5"
   },
   "overrides": {
     "@radix-ui/react-focus-scope": "1.1.1",

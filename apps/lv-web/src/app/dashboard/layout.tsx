@@ -19,7 +19,7 @@ import {
   SidebarTrigger,
   useSidebar,
 } from '@repo/ui/components/sidebar';
-import { Briefcase, ChevronDown, LogOut, Menu, Phone, Shield, User } from 'lucide-react';
+import { Briefcase, ChevronDown, Database, LogOut, Menu, Phone, Shield, User } from 'lucide-react';
 import { signOut, useSession } from 'next-auth/react';
 import Image from 'next/image';
 import { usePathname, useRouter } from 'next/navigation';
@@ -223,10 +223,10 @@ function DashboardLayoutContent({ children }: { children: React.ReactNode }) {
                   <SidebarMenuItem>
                     <SidebarMenuButton
                       onClick={() => handleMobileNavigation('/admin/users')}
-                      isActive={pathname?.startsWith('/admin')}
+                      isActive={pathname?.startsWith('/admin/users')}
                       tooltip="Admin"
                       style={
-                        pathname?.startsWith('/admin') ? { backgroundColor: 'var(--bg-hover)' } : {}
+                        pathname?.startsWith('/admin/users') ? { backgroundColor: 'var(--bg-hover)' } : {}
                       }
                       className="justify-between hover:bg-blue-50"
                     >
@@ -237,10 +237,43 @@ function DashboardLayoutContent({ children }: { children: React.ReactNode }) {
                         />
                         <span
                           className={
-                            pathname?.startsWith('/admin') ? 'text-gray-900' : 'text-gray-600'
+                            pathname?.startsWith('/admin/users') ? 'text-gray-900' : 'text-gray-600'
                           }
                         >
                           Admin
+                        </span>
+                      </div>
+                    </SidebarMenuButton>
+                  </SidebarMenuItem>
+                )}
+
+                {/* Jobs - Only show if user is admin */}
+                {session.user?.role === 'ADMIN' && (
+                  <SidebarMenuItem>
+                    <SidebarMenuButton
+                      onClick={() => handleMobileNavigation('/admin/jobs')}
+                      isActive={pathname?.startsWith('/admin/jobs')}
+                      tooltip="Upload Jobs"
+                      style={
+                        pathname?.startsWith('/admin/jobs')
+                          ? { backgroundColor: 'var(--bg-hover)' }
+                          : {}
+                      }
+                      className="justify-between hover:bg-blue-50"
+                    >
+                      <div className="flex items-center gap-3">
+                        <Database
+                          className="w-5 h-5 flex-shrink-0"
+                          style={{ color: 'var(--icon-sidebar)' }}
+                        />
+                        <span
+                          className={
+                            pathname?.startsWith('/admin/jobs')
+                              ? 'text-gray-900'
+                              : 'text-gray-600'
+                          }
+                        >
+                          Upload Jobs
                         </span>
                       </div>
                     </SidebarMenuButton>
@@ -316,9 +349,11 @@ function DashboardLayoutContent({ children }: { children: React.ReactNode }) {
                 ? 'Profile Settings'
                 : pathname?.startsWith('/dashboard/opportunities')
                   ? 'Opportunities'
-                  : pathname?.startsWith('/admin')
+                  : pathname?.startsWith('/admin/users')
                     ? 'Admin'
-                    : 'Dashboard'}
+                    : pathname?.startsWith('/admin/jobs')
+                      ? 'Upload Jobs'
+                      : 'Dashboard'}
           </h2>
         </div>
         {/* Full-width content area */}
