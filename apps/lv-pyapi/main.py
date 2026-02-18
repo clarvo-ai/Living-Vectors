@@ -19,6 +19,7 @@ from learnings import check_and_trigger_learnings
 from gemini_client import client
 from user_embedding import generate_user_embedding
 from job_embedding import create_job_with_embedding
+from store_jobs import process_file
 
 import json
 from pathlib import Path
@@ -119,12 +120,6 @@ Make it conversational and encouraging. Blend the introduction and first questio
             }
         }
         
-    
-
-
-
-
-
 
 @app.post("/api/chat/answer")
 async def get_gemini_response(
@@ -417,6 +412,18 @@ async def list_jobs(
         ]
     }
 
+@app.post("/api/upload-jobs")
+async def upload_jobs(filename: str = Body(..., embed=True)):
+    """Endpoint to upload job listings"""
+    try:
+        result = process_file(filename)
+        return {"message": result, "status": 200}
+    except Exception as e:
+        logging.exception("Error processing jobs")
+        return JSONResponse(
+            status_code=500, 
+            content={"message": "Internal server error", "status": 500}
+        )
 
 if __name__ == "__main__":
     uvicorn.run(app, host="0.0.0.0", port=8080)

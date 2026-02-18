@@ -232,6 +232,12 @@ cd packages/database/prisma && npx prisma generate
 cd ../../..
 ```
 
+If that does not work, try
+
+```bash
+npx turbo run db:generate
+```
+
 **Important:** You must run `npx prisma generate` in `packages/database/prisma` whenever you switch between Docker-run and npm-run environments, as Prisma needs to generate the client for your specific platform.
 
 ### Running
@@ -266,7 +272,8 @@ TIP: use Docker/Containers extension in Cursor to manage containers and see logs
 
 1. Clone repository or pull latest changes
 
-2. Create .env files (`apps/lv-web/.env` and `apps/lv-pyapi/.env`)
+2. Create .env.local files (`apps/lv-web/.env.local` and `apps/lv-pyapi/.env.local`)
+   For Docker, you may have to additionally create .env files with same vars `apps/lv-web/.env` and `apps/lv-pyapi/.env`)
 
 3. (May be temporary) Set up Google Cloud Credentials for voice features, see [Voice Interface Setup](#10-voice-interface-setup)
 

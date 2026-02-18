@@ -2,6 +2,7 @@ from sqlalchemy import String, DateTime, Boolean, Integer, BigInteger, ForeignKe
 from sqlalchemy.dialects.postgresql import UUID as PostgresUUID, TIMESTAMP, DOUBLE_PRECISION, ENUM, JSONB
 from sqlalchemy.orm import DeclarativeBase, relationship, Mapped, mapped_column, Mapper
 from sqlalchemy.types import TypeDecorator
+from pgvector.sqlalchemy import Vector
 from uuid import UUID
 from typing import Optional, List, Any, Sequence
 from datetime import datetime
@@ -12,7 +13,6 @@ class MessageSender(enum.Enum):
     """Enum type for MessageSender"""
     USER = 'USER'
     AI = 'AI'
-
 
 
 # Base Class
@@ -87,13 +87,85 @@ class ConversationMessage(Base):
     sender: Mapped[MessageSender] = mapped_column(Enum(MessageSender), nullable=False)
     content: Mapped[str] = mapped_column(Text, nullable=False)
     createdAt: Mapped[datetime] = mapped_column(TIMESTAMP, nullable=False, server_default=func.now())
-    learnedFrom: Mapped[bool] = mapped_column(Boolean, nullable=False, server_default=text('false'))
-
+    learnedFrom: Mapped[bool] = mapped_column(Boolean, nullable=False, server_default=text("false"))
     questionContext: Mapped[Optional[dict]] = mapped_column(JSONB, nullable=True)
+
     # Relationships
     _ConversationMessageToLearning: Mapped[List["_ConversationMessageToLearning"]] = relationship("_ConversationMessageToLearning", back_populates="conversationMessage")
     user: Mapped["User"] = relationship("User", back_populates="conversationMessage", uselist=False)
 
+
+class Job(Base):
+    __tablename__ = "Job"
+    __table_args__ = {'schema': 'public'}
+
+    id: Mapped[UUID] = mapped_column(PostgresUUID(as_uuid=True), primary_key=True, nullable=False, server_default=text("gen_random_uuid()"))
+    job_title: Mapped[str] = mapped_column(Text, nullable=False)
+    job_description: Mapped[str] = mapped_column(Text, nullable=False)
+    job_description_summary: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
+    job_is_active: Mapped[bool] = mapped_column(Boolean, nullable=False)
+    company_name: Mapped[str] = mapped_column(Text, nullable=False)
+    company_description: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
+    company_industry: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
+    company_size: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
+    company_revenue: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
+    company_culture: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
+    company_values: Mapped[Optional[List[str]]] = mapped_column(ARRAY(Text), nullable=True)
+    published_date: Mapped[Optional[datetime]] = mapped_column(TIMESTAMP, nullable=True)
+    last_day_to_apply: Mapped[Optional[datetime]] = mapped_column(TIMESTAMP, nullable=True)
+    job_starting_date: Mapped[Optional[datetime]] = mapped_column(TIMESTAMP, nullable=True)
+    country: Mapped[str] = mapped_column(Text, nullable=False)
+    city: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
+    longitude: Mapped[Optional[float]] = mapped_column(DOUBLE_PRECISION, nullable=True)
+    latitude: Mapped[Optional[float]] = mapped_column(DOUBLE_PRECISION, nullable=True)
+    working_mode: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
+    role_industry: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
+    employment_type: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
+    contract_type: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
+    job_level: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
+    summer_job_internship: Mapped[bool] = mapped_column(Boolean, nullable=False)
+    required_skills: Mapped[Optional[List[str]]] = mapped_column(ARRAY(Text), nullable=True)
+    nice_to_have_skills: Mapped[Optional[List[str]]] = mapped_column(ARRAY(Text), nullable=True)
+    required_languages: Mapped[Optional[List[str]]] = mapped_column(ARRAY(Text), nullable=True)
+    nice_to_have_languages: Mapped[Optional[List[str]]] = mapped_column(ARRAY(Text), nullable=True)
+    language_summary: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
+    required_education: Mapped[Optional[List[str]]] = mapped_column(ARRAY(Text), nullable=True)
+    required_experience_months: Mapped[Optional[int]] = mapped_column(Integer, nullable=True)
+    requirements: Mapped[Optional[List[str]]] = mapped_column(ARRAY(Text), nullable=True)
+    salary: Mapped[Optional[float]] = mapped_column(DOUBLE_PRECISION, nullable=True)
+    salary_min: Mapped[Optional[float]] = mapped_column(DOUBLE_PRECISION, nullable=True)
+    salary_max: Mapped[Optional[float]] = mapped_column(DOUBLE_PRECISION, nullable=True)
+    bonus: Mapped[Optional[float]] = mapped_column(DOUBLE_PRECISION, nullable=True)
+    commission: Mapped[Optional[float]] = mapped_column(DOUBLE_PRECISION, nullable=True)
+    guessed_salary: Mapped[Optional[float]] = mapped_column(DOUBLE_PRECISION, nullable=True)
+    guessed_salary_min: Mapped[Optional[float]] = mapped_column(DOUBLE_PRECISION, nullable=True)
+    guessed_salary_max: Mapped[Optional[float]] = mapped_column(DOUBLE_PRECISION, nullable=True)
+    guessed_bonus: Mapped[Optional[float]] = mapped_column(DOUBLE_PRECISION, nullable=True)
+    guessed_commission: Mapped[Optional[float]] = mapped_column(DOUBLE_PRECISION, nullable=True)
+    deprecated_perks: Mapped[Optional[List[str]]] = mapped_column(ARRAY(Text), nullable=True)
+    work_hours: Mapped[Optional[float]] = mapped_column(DOUBLE_PRECISION, nullable=True)
+    work_hours_min: Mapped[Optional[float]] = mapped_column(DOUBLE_PRECISION, nullable=True)
+    work_hours_max: Mapped[Optional[float]] = mapped_column(DOUBLE_PRECISION, nullable=True)
+    work_hours_summary: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
+    source_url: Mapped[str] = mapped_column(Text, nullable=False)
+    apply_link: Mapped[str] = mapped_column(Text, nullable=False)
+    application_instructions: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
+    career_advancement_details: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
+    recruiter_name: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
+    recruiter_email: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
+    recruiter_phone: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
+    created_at: Mapped[datetime] = mapped_column(TIMESTAMP, nullable=False, server_default=func.now())
+    updated_at: Mapped[datetime] = mapped_column(TIMESTAMP, nullable=False, server_default=func.now(), onupdate=func.now())
+    deprecated_keywords: Mapped[Optional[List[str]]] = mapped_column(ARRAY(Text), nullable=True)
+    original_text: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
+    version: Mapped[Optional[float]] = mapped_column(DOUBLE_PRECISION, nullable=True)
+    source: Mapped[str] = mapped_column(Text, nullable=False)
+    sub_source: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
+    external_id: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
+    job_embedding: Mapped[Optional[list[float]]] = mapped_column(Vector(1536), nullable=True)
+    job_title_embedding: Mapped[Optional[list[float]]] = mapped_column(Vector(1536), nullable=True)
+    titleId: Mapped[Optional[UUID]] = mapped_column(PostgresUUID(as_uuid=True), nullable=True)
+    organizationId: Mapped[Optional[UUID]] = mapped_column(PostgresUUID(as_uuid=True), nullable=True)
 
 class Learning(Base):
     __tablename__ = "Learning"
@@ -205,22 +277,6 @@ class UserEmbedding(Base):
 
     # Relationships
     user: Mapped["User"] = relationship("User", back_populates="userEmbedding", uselist=False)
-
-
-class Job(Base):
-    """Stores job postings with their embedding vectors"""
-    __tablename__ = "Job"
-    __table_args__ = {'schema': 'public'}
-
-    id: Mapped[UUID] = mapped_column(PostgresUUID(as_uuid=True), primary_key=True, nullable=False, server_default=text("gen_random_uuid()"))
-    title: Mapped[str] = mapped_column(Text, nullable=False)
-    company: Mapped[str] = mapped_column(Text, nullable=False)
-    description: Mapped[str] = mapped_column(Text, nullable=False)
-    location: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
-    embedding = mapped_column(Vector(768), nullable=False)  # pgvector(768) for Gemini embeddings
-    createdAt: Mapped[datetime] = mapped_column(TIMESTAMP, nullable=False, server_default=func.now())
-    updatedAt: Mapped[datetime] = mapped_column(TIMESTAMP, nullable=False, default=func.now(), onupdate=func.now())
-
 
 class _ConversationMessageToLearning(Base):
     __tablename__ = "_ConversationMessageToLearning"
