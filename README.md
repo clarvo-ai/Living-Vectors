@@ -66,6 +66,12 @@ docker compose --profile tests run --rm test-migrate
 docker compose --profile tests run --rm test-runner
 ```
 
+(use `--no-cache` if you encounter import errors to avoid stale dependency layers)
+
+```bash
+docker compose --profile tests build --no-cache test-runner
+```
+
 ## Unit Testing - Frontend
 
 1. Navigate into the correct directory
@@ -361,12 +367,12 @@ The project includes a vector embedding system for matching users to jobs based 
 
 ### API Endpoints
 
-| Endpoint | Method | Description |
-|----------|--------|-------------|
-| `POST /api/users/{user_id}/generate-embedding` | POST | Generate embedding from user's learnings |
-| `GET /api/jobs/match?user_id=X&page=1&per_page=20` | GET | Get jobs matched to user by similarity |
-| `POST /api/jobs` | POST | Create a job with automatic embedding |
-| `GET /api/jobs` | GET | List all jobs |
+| Endpoint                                           | Method | Description                              |
+| -------------------------------------------------- | ------ | ---------------------------------------- |
+| `POST /api/users/{user_id}/generate-embedding`     | POST   | Generate embedding from user's learnings |
+| `GET /api/jobs/match?user_id=X&page=1&per_page=20` | GET    | Get jobs matched to user by similarity   |
+| `POST /api/jobs`                                   | POST   | Create a job with automatic embedding    |
+| `GET /api/jobs`                                    | GET    | List all jobs                            |
 
 ### Testing the Matching Algorithm
 
@@ -378,6 +384,7 @@ python3 tests/manual/test_embeddings_and_matching.py
 ```
 
 Options:
+
 - `--keep-jobs` - Keep test jobs after running (for inspection)
 - `--no-cleanup` - Don't cleanup any test data
 
