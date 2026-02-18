@@ -25,6 +25,7 @@ model User {
   Authenticator Authenticator[]
   messages      ConversationMessage[]
   learnings     Learning[]
+  userEmbedding UserEmbedding?
 
   @@index([id])
   @@index([email])
@@ -90,15 +91,15 @@ model Authenticator {
 }
 
 model ConversationMessage {
-  messageId String        @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
-  userId    String        @db.Uuid
-  sender    MessageSender
-  content   String
-  questionContext Json?   @db.JsonB
-  createdAt DateTime      @default(now())
-  user      User          @relation(fields: [userId], references: [id])
-  learnedFrom Boolean     @default(false)
-  learnings Learning[]
+  messageId       String        @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  userId          String        @db.Uuid
+  sender          MessageSender
+  content         String
+  questionContext Json?         @db.JsonB
+  createdAt       DateTime      @default(now())
+  user            User          @relation(fields: [userId], references: [id])
+  learnedFrom     Boolean       @default(false)
+  learnings       Learning[]
 
   @@index([userId])
 }
@@ -111,6 +112,17 @@ model Learning {
   updatedAt DateTime              @updatedAt
   user      User                  @relation(fields: [userId], references: [id])
   messages  ConversationMessage[]
+
+  @@index([userId])
+}
+
+model UserEmbedding {
+  id        String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  userId    String   @unique @db.Uuid
+  embedding Json     @db.JsonB
+  updatedAt DateTime @updatedAt
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@index([userId])
 }
