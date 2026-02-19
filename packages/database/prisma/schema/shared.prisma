@@ -117,10 +117,10 @@ model Learning {
 }
 
 model UserEmbedding {
-  id        String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
-  userId    String   @unique @db.Uuid
-  embedding Json     @db.JsonB
-  updatedAt DateTime @updatedAt
+  id        String                      @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  userId    String                      @unique @db.Uuid
+  embedding Unsupported("vector(1536)")
+  updatedAt DateTime                    @updatedAt
 
   user User @relation(fields: [userId], references: [id], onDelete: Cascade)
 

@@ -65,7 +65,8 @@ def generate_user_embedding(user_id: str, db: Session) -> Optional[UserEmbedding
         # Create new embedding
         user_embedding = UserEmbedding(
             userId=user_id,
-            embedding=embedding
+            embedding=embedding,
+            updatedAt=datetime.utcnow(),
         )
         db.add(user_embedding)
         db.commit()

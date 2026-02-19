@@ -15,12 +15,12 @@ Requirements:
 import requests
 import json
 import sys
+import os
 from datetime import datetime
 
 API_URL = "http://localhost:8091"
 DB_CONTAINER = "lv-db"
 
-# Test user ID (mohammad.asender95@gmail.com)
 TEST_USER_ID = "f2c28dc9-f7a3-41c3-80a3-fc4051cd5a43"
 
 
@@ -49,15 +49,70 @@ def cleanup_test_jobs():
     try:
         result = subprocess.run(
             ["docker", "exec", "lv-db", "psql", "-U", "postgres", "-d", "postgres", "-c",
-             "DELETE FROM \"Job\" WHERE company = 'TestCorp';"],
+             "DELETE FROM \"Job\" WHERE company_name = 'TestCorp';"],
             capture_output=True, text=True, timeout=10
         )
         if "DELETE" in result.stdout:
             count = result.stdout.strip().split()[-1] if result.stdout else "0"
-            print_success(f"Cleaned up test jobs")
+            print_success(f"Cleaned up {count} test jobs")
         return True
     except Exception as e:
         print_error(f"Failed to cleanup: {e}")
+        return False
+
+
+def setup_test_user():
+    """Insert test user and learnings required for embedding tests."""
+    print_header("SETUP: Seeding Test User & Learnings")
+    import subprocess
+
+    user_sql = (
+        f"INSERT INTO \"User\" (id, email, \"updatedAt\") "
+        f"VALUES ('{TEST_USER_ID}', 'test-embedding-user@testcorp.test', NOW()) "
+        f"ON CONFLICT (id) DO NOTHING;"
+    )
+    learnings = [
+        "Enjoys frontend development with React and TypeScript. Loves building accessible UIs.",
+        "Has strong Python skills and experience designing REST APIs with FastAPI.",
+    ]
+    learning_sqls = " ".join([
+        f"INSERT INTO \"Learning\" (\"userId\", summary, \"updatedAt\") "
+        f"VALUES ('{TEST_USER_ID}', '{summary}', NOW());"
+        for summary in learnings
+    ])
+
+    for label, sql in [("test user", user_sql), ("test learnings", learning_sqls)]:
+        try:
+            result = subprocess.run(
+                ["docker", "exec", "lv-db", "psql", "-U", "postgres", "-d", "postgres", "-c", sql],
+                capture_output=True, text=True, timeout=10
+            )
+            if result.returncode == 0:
+                print_success(f"Seeded {label}")
+            else:
+                print_error(f"Failed to seed {label}: {result.stderr}")
+                return False
+        except Exception as e:
+            print_error(f"Error seeding {label}: {e}")
+            return False
+    return True
+
+
+def cleanup_test_user():
+    """Remove test user (cascades to learnings and embeddings)."""
+    print_header("CLEANUP: Removing Test User")
+    import subprocess
+    try:
+        result = subprocess.run(
+            ["docker", "exec", "lv-db", "psql", "-U", "postgres", "-d", "postgres", "-c",
+             f"DELETE FROM \"User\" WHERE id = '{TEST_USER_ID}';"],
+            capture_output=True, text=True, timeout=10
+        )
+        if "DELETE" in result.stdout:
+            print_success("Removed test user (and cascaded learnings/embeddings)")
+        return True
+    except Exception as e:
+        print_error(f"Failed to cleanup test user: {e}")
         return False
 
 
@@ -86,19 +141,22 @@ def test_create_jobs():
             "title": "Test Frontend Developer",
             "company": "TestCorp",
             "description": "Frontend developer with React, TypeScript, and CSS skills. Work with designers to build beautiful UIs.",
-            "location": "Remote"
+            "working_mode": "Remote",
+            "country": "Finland"
         },
         {
             "title": "Test Backend Engineer", 
             "company": "TestCorp",
             "description": "Backend engineer with Python, PostgreSQL, and API design. Build scalable microservices.",
-            "location": "On-site"
+            "working_mode": "On-site",
+            "country": "Finland"
         },
         {
             "title": "Test DevOps Engineer",
             "company": "TestCorp", 
             "description": "DevOps engineer managing Kubernetes, Docker, and CI/CD pipelines.",
-            "location": "Hybrid"
+            "working_mode": "Hybrid",
+            "country": "Finland"
         }
     ]
     
@@ -274,7 +332,11 @@ def run_all_tests(cleanup_before=True, cleanup_after=True):
     # Cleanup old test data first
     if cleanup_before:
         cleanup_test_jobs()
-    
+        cleanup_test_user()
+
+    # Seed test user and learnings needed for embedding tests
+    setup_test_user()
+
     # Run tests in order
     results["API Health"] = test_api_health()
     
@@ -312,6 +374,7 @@ def run_all_tests(cleanup_before=True, cleanup_after=True):
     # Cleanup test data after tests
     if cleanup_after:
         cleanup_test_jobs()
+        cleanup_test_user()
     
     return exit_code
 

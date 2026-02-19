@@ -8,8 +8,9 @@ from typing import List
 from gemini_client import client
 
 # Gemini embedding model and output dimensions
+# Must match Job.job_embedding dimension (vector(1536) in the DB)
 EMBEDDING_MODEL = "gemini-embedding-001"
-EMBEDDING_DIMENSIONS = 768
+EMBEDDING_DIMENSIONS = 1536
 
 
 def get_embedding(text: str) -> List[float]:
@@ -20,7 +21,7 @@ def get_embedding(text: str) -> List[float]:
         text: The text to embed (e.g., concatenated learnings or job description)
         
     Returns:
-        List of 768 floats representing the embedding vector
+        List of 1536 floats representing the embedding vector
         
     Raises:
         ValueError: If text is empty

@@ -317,16 +317,17 @@ async def match_jobs(
     offset = (page - 1) * per_page
     
     # Count total jobs for pagination info
-    total_count = db.execute(text('SELECT COUNT(*) FROM "Job"')).scalar() or 0
+    total_count = db.execute(text('SELECT COUNT(*) FROM "public"."Job" WHERE job_embedding IS NOT NULL')).scalar() or 0
     
     # Note: We use string formatting for the embedding vector because SQLAlchemy's
     # parameter binding conflicts with PostgreSQL's ::vector cast syntax.
     # The embedding is generated internally, not from user input, so this is safe.
     query = text(f"""
-        SELECT id, title, company, description, location,
-               1 - (embedding <=> '{embedding_str}'::vector) as similarity
-        FROM "Job"
-        ORDER BY embedding <=> '{embedding_str}'::vector
+        SELECT id, job_title, company_name, job_description, city, country, working_mode,
+               1 - (job_embedding <=> '{embedding_str}'::vector) as similarity
+        FROM "public"."Job"
+        WHERE job_embedding IS NOT NULL
+        ORDER BY job_embedding <=> '{embedding_str}'::vector
         LIMIT :limit OFFSET :offset
     """)
     
@@ -347,10 +348,10 @@ async def match_jobs(
         "jobs": [
             {
                 "id": str(j.id),
-                "title": j.title,
-                "company": j.company,
-                "description": j.description,
-                "location": j.location,
+                "title": j.job_title,
+                "company": j.company_name,
+                "description": j.job_description,
+                "location": ", ".join(filter(None, [j.city, j.country, j.working_mode])),
                 "similarity": round(float(j.similarity), 3) if j.similarity else 0
             }
             for j in jobs
@@ -363,7 +364,9 @@ async def create_job(
     title: str = Body(...),
     company: str = Body(...),
     description: str = Body(...),
-    location: Optional[str] = Body(None),
+    working_mode: Optional[str] = Body(None),
+    country: str = Body(...),
+    city: Optional[str] = Body(None),
     db: Session = Depends(get_db)
 ):
     """
@@ -373,7 +376,7 @@ async def create_job(
     its embedding vector for matching against users.
     """
     try:
-        job = create_job_with_embedding(title, company, description, location, db)
+        job = create_job_with_embedding(title, company, description, country, city, working_mode, db)
         return {
             "status": 200, 
             "job_id": str(job.id), 
@@ -403,10 +406,10 @@ async def list_jobs(
         "jobs": [
             {
                 "id": str(j.id),
-                "title": j.title,
-                "company": j.company,
-                "description": j.description,
-                "location": j.location
+                "title": j.job_title,
+                "company": j.company_name,
+                "description": j.job_description,
+                "location": ", ".join(filter(None, [j.city, j.country, j.working_mode]))
             }
             for j in jobs
         ]
