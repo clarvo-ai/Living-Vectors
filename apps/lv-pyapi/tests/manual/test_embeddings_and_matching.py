@@ -21,7 +21,18 @@ from datetime import datetime
 API_URL = "http://localhost:8091"
 DB_CONTAINER = "lv-db"
 
-TEST_USER_ID = "f2c28dc9-f7a3-41c3-80a3-fc4051cd5a43"
+
+def get_first_user_with_learnings() -> str | None:
+    """Fetch the first user that has at least one learning from the real DB."""
+    import subprocess
+    result = subprocess.run(
+        ["docker", "exec", DB_CONTAINER, "psql", "-U", "postgres", "-d", "postgres",
+         "-t", "-c",
+         'SELECT "userId" FROM "Learning" GROUP BY "userId" HAVING COUNT(*) > 0 LIMIT 1;'],
+        capture_output=True, text=True, timeout=10
+    )
+    user_id = result.stdout.strip()
+    return user_id if user_id else None
 
 
 def print_header(text: str):
@@ -61,65 +72,7 @@ def cleanup_test_jobs():
         return False
 
 
-def setup_test_user():
-    """Insert test user and learnings required for embedding tests."""
-    print_header("SETUP: Seeding Test User & Learnings")
-    import subprocess
 
-    user_sql = (
-        f"INSERT INTO \"User\" (id, email, \"updatedAt\") "
-        f"VALUES ('{TEST_USER_ID}', 'test-embedding-user@testcorp.test', NOW()) "
-        f"ON CONFLICT (id) DO NOTHING;"
-    )
-    learnings = [
-        "Enjoys frontend development with React and TypeScript. Loves building accessible UIs.",
-        "Has strong Python skills and experience designing REST APIs with FastAPI.",
-    ]
-    learning_sqls = " ".join([
-        f"INSERT INTO \"Learning\" (\"userId\", summary, \"updatedAt\") "
-        f"VALUES ('{TEST_USER_ID}', '{summary}', NOW());"
-        for summary in learnings
-    ])
-
-    for label, sql in [("test user", user_sql), ("test learnings", learning_sqls)]:
-        try:
-            result = subprocess.run(
-                ["docker", "exec", "lv-db", "psql", "-U", "postgres", "-d", "postgres", "-c", sql],
-                capture_output=True, text=True, timeout=10
-            )
-            if result.returncode == 0:
-                print_success(f"Seeded {label}")
-            else:
-                print_error(f"Failed to seed {label}: {result.stderr}")
-                return False
-        except Exception as e:
-            print_error(f"Error seeding {label}: {e}")
-            return False
-    return True
-
-
-def cleanup_test_user():
-    """Remove test user and all related data."""
-    print_header("CLEANUP: Removing Test User")
-    import subprocess
-    sql = (
-        f"DELETE FROM \"Learning\" WHERE \"userId\" = '{TEST_USER_ID}';"
-        f"DELETE FROM \"UserEmbedding\" WHERE \"userId\" = '{TEST_USER_ID}';"
-        f"DELETE FROM \"User\" WHERE id = '{TEST_USER_ID}';"
-    )
-    try:
-        result = subprocess.run(
-            ["docker", "exec", "lv-db", "psql", "-U", "postgres", "-d", "postgres", "-c", sql],
-            capture_output=True, text=True, timeout=10
-        )
-        if result.returncode == 0:
-            print_success("Removed test user, learnings, and embeddings")
-        else:
-            print_error(f"Cleanup failed: {result.stderr}")
-        return result.returncode == 0
-    except Exception as e:
-        print_error(f"Failed to cleanup test user: {e}")
-        return False
 
 
 def test_api_health():
@@ -205,12 +158,12 @@ def test_list_jobs():
         return False
 
 
-def test_generate_user_embedding():
+def test_generate_user_embedding(user_id: str):
     """Test generating user embedding from learnings."""
     print_header("TEST 4: Generate User Embedding")
     try:
         resp = requests.post(
-            f"{API_URL}/api/users/{TEST_USER_ID}/generate-embedding",
+            f"{API_URL}/api/users/{user_id}/generate-embedding",
             timeout=30
         )
         if resp.status_code == 200:
@@ -229,13 +182,13 @@ def test_generate_user_embedding():
         return False
 
 
-def test_job_matching():
+def test_job_matching(user_id: str):
     """Test job matching with similarity scores."""
     print_header("TEST 5: Job Matching (Cosine Similarity)")
     try:
         resp = requests.get(
             f"{API_URL}/api/jobs/match",
-            params={"user_id": TEST_USER_ID, "page": 1, "per_page": 10},
+            params={"user_id": user_id, "page": 1, "per_page": 10},
             timeout=30
         )
         if resp.status_code == 200:
@@ -279,21 +232,21 @@ def test_job_matching():
         return False
 
 
-def test_pagination():
+def test_pagination(user_id: str):
     """Test pagination in job matching."""
     print_header("TEST 6: Pagination")
     try:
         # Get page 1
         resp1 = requests.get(
             f"{API_URL}/api/jobs/match",
-            params={"user_id": TEST_USER_ID, "page": 1, "per_page": 3},
+            params={"user_id": user_id, "page": 1, "per_page": 3},
             timeout=30
         )
         
         # Get page 2
         resp2 = requests.get(
             f"{API_URL}/api/jobs/match",
-            params={"user_id": TEST_USER_ID, "page": 2, "per_page": 3},
+            params={"user_id": user_id, "page": 2, "per_page": 3},
             timeout=30
         )
         
@@ -331,17 +284,19 @@ def run_all_tests(cleanup_before=True, cleanup_after=True):
     print("=" * 60)
     print(f"  Started: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}")
     print(f"  API URL: {API_URL}")
-    print(f"  Test User: {TEST_USER_ID[:8]}...")
     
     results = {}
-    
+
     # Cleanup old test data first
     if cleanup_before:
         cleanup_test_jobs()
-        cleanup_test_user()
 
-    # Seed test user and learnings needed for embedding tests
-    setup_test_user()
+    # Resolve the real user to test against
+    test_user_id = get_first_user_with_learnings()
+    if not test_user_id:
+        print_error("No user with learnings found in the DB. Run the app and complete a career conversation first.")
+        sys.exit(1)
+    print_info(f"Using real user: {test_user_id[:8]}...")
 
     # Run tests in order
     results["API Health"] = test_api_health()
@@ -353,9 +308,9 @@ def run_all_tests(cleanup_before=True, cleanup_after=True):
     
     results["Create Jobs"] = test_create_jobs()
     results["List Jobs"] = test_list_jobs()
-    results["Generate Embedding"] = test_generate_user_embedding()
-    results["Job Matching"] = test_job_matching()
-    results["Pagination"] = test_pagination()
+    results["Generate Embedding"] = test_generate_user_embedding(test_user_id)
+    results["Job Matching"] = test_job_matching(test_user_id)
+    results["Pagination"] = test_pagination(test_user_id)
     
     # Summary
     print_header("TEST SUMMARY")
@@ -380,7 +335,6 @@ def run_all_tests(cleanup_before=True, cleanup_after=True):
     # Cleanup test data after tests
     if cleanup_after:
         cleanup_test_jobs()
-        cleanup_test_user()
     
     return exit_code
 
