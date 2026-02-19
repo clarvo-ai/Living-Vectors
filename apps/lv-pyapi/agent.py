@@ -7,6 +7,7 @@ from livekit import agents
 from livekit.agents import AgentServer, AgentSession, Agent, JobProcess, room_io
 from livekit.agents.beta.workflows import TaskGroup
 from livekit.plugins import elevenlabs, google, silero
+from livekit.plugins.elevenlabs import TTS, VoiceSettings
 
 from tasks import (
     OpeningTask,
@@ -67,11 +68,24 @@ server.setup_fnc = prewarm
 async def my_agent(ctx: agents.JobContext):
     logger.info(f"Agent received job for room: {ctx.room.name}")
 
+    liam_tts = elevenlabs.TTS(
+        api_key=ELEVENLABS_API_KEY,
+        voice_id="TX3LPaxmHKxFdv7VOQHJ",
+        model="eleven_multilingual_v2",
+        voice_settings=VoiceSettings(
+        stability=0.25,           # Slight bump for consistency
+        similarity_boost=0.6,     # High "Roger-ness"
+        style=0.2,                # 0.0 is best for low-latency
+        use_speaker_boost=True    # Clearer vocal presence
+        )
+    )
+
+
     session = AgentSession(
         vad=ctx.proc.userdata["vad"],
         stt=elevenlabs.STT(api_key=ELEVENLABS_API_KEY),
         llm=google.LLM(model="gemini-2.0-flash", api_key=GOOGLE_API_KEY),
-        tts=elevenlabs.TTS(api_key=ELEVENLABS_API_KEY),
+        tts = liam_tts,
         allow_interruptions=True,
     )
 
