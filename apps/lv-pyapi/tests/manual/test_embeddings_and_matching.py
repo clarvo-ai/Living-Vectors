@@ -99,18 +99,24 @@ def setup_test_user():
 
 
 def cleanup_test_user():
-    """Remove test user (cascades to learnings and embeddings)."""
+    """Remove test user and all related data."""
     print_header("CLEANUP: Removing Test User")
     import subprocess
+    sql = (
+        f"DELETE FROM \"Learning\" WHERE \"userId\" = '{TEST_USER_ID}';"
+        f"DELETE FROM \"UserEmbedding\" WHERE \"userId\" = '{TEST_USER_ID}';"
+        f"DELETE FROM \"User\" WHERE id = '{TEST_USER_ID}';"
+    )
     try:
         result = subprocess.run(
-            ["docker", "exec", "lv-db", "psql", "-U", "postgres", "-d", "postgres", "-c",
-             f"DELETE FROM \"User\" WHERE id = '{TEST_USER_ID}';"],
+            ["docker", "exec", "lv-db", "psql", "-U", "postgres", "-d", "postgres", "-c", sql],
             capture_output=True, text=True, timeout=10
         )
-        if "DELETE" in result.stdout:
-            print_success("Removed test user (and cascaded learnings/embeddings)")
-        return True
+        if result.returncode == 0:
+            print_success("Removed test user, learnings, and embeddings")
+        else:
+            print_error(f"Cleanup failed: {result.stderr}")
+        return result.returncode == 0
     except Exception as e:
         print_error(f"Failed to cleanup test user: {e}")
         return False
