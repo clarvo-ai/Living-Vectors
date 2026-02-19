@@ -18,7 +18,7 @@ from voice import text_to_speech, speech_to_text
 from learnings import check_and_trigger_learnings
 from gemini_client import client
 from user_embedding import generate_user_embedding
-from job_embedding import create_job_with_embedding
+from job_embedding import create_job_with_embedding, generate_job_embedding, generate_missing_embeddings
 from store_jobs import process_file
 
 import json
@@ -416,10 +416,11 @@ async def list_jobs(
     }
 
 @app.post("/api/upload-jobs")
-async def upload_jobs(filename: str = Body(..., embed=True)):
+async def upload_jobs(filename: str = Body(..., embed=True), background_tasks: BackgroundTasks = None):
     """Endpoint to upload job listings"""
     try:
         result = process_file(filename)
+        background_tasks.add_task(generate_missing_embeddings)
         return {"message": result, "status": 200}
     except Exception as e:
         logging.exception("Error processing jobs")
@@ -427,6 +428,17 @@ async def upload_jobs(filename: str = Body(..., embed=True)):
             status_code=500, 
             content={"message": "Internal server error", "status": 500}
         )
+
+@app.post("/api/jobs/generate-embeddings")
+async def batch_generate_job_embeddings(background_tasks: BackgroundTasks):
+    """
+    Manually trigger embedding generation for all jobs missing one.
+
+    Runs in the background — returns immediately.
+    """
+    background_tasks.add_task(generate_missing_embeddings)
+    return {"status": 200, "message": "Embedding generation started in background"}
+
 
 if __name__ == "__main__":
     uvicorn.run(app, host="0.0.0.0", port=8080)

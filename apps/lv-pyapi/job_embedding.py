@@ -9,6 +9,8 @@ from datetime import datetime, timezone
 from sqlalchemy.orm import Session
 from python_utils.sqlalchemy_models import Job
 from embedding_service import get_embedding
+from database import SessionLocal
+import logging
 
 
 def generate_job_embedding(job_id: str, db: Session) -> Job:
@@ -96,3 +98,23 @@ def create_job_with_embedding(
     
     print(f"Created job with embedding: {title} at {company_name}")
     return job
+
+
+def generate_missing_embeddings():
+    """Background task: generate embeddings for all jobs missing one."""
+    db = SessionLocal()
+    try:
+        jobs = db.query(Job).filter(Job.job_embedding == None).all()
+        if not jobs:
+            logging.info("No jobs missing embeddings.")
+            return
+
+        for job in jobs:
+            generate_job_embedding(str(job.id), db)
+
+        logging.info(f"Generated embeddings for {len(jobs)} jobs")
+    except Exception as e:
+        db.rollback()
+        logging.exception("Error generating missing job embeddings")
+    finally:
+        db.close()
