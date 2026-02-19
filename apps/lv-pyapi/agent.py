@@ -12,8 +12,9 @@ from livekit.plugins.elevenlabs import TTS, VoiceSettings
 from tasks import (
     OpeningTask,
     LogisticsTask,
+    IndustryTask,
     LocationTask,
-    TechnicalTask,
+    BackgroundTask,
     CultureTask,
     ValueVisionTask,
     AlignmentTask,
@@ -52,8 +53,9 @@ class CareerAssistant(Agent):
         task_group = TaskGroup(chat_ctx=self.chat_ctx)
         task_group.add(lambda: OpeningTask(),      id="opening",      description="Why the candidate is here and how they found Clarvo")
         task_group.add(lambda: LogisticsTask(),    id="logistics",    description="Job search logistics, timing, and motivation to leave")
+        task_group.add(lambda: IndustryTask(),     id="industry",     description="Target industry or field the candidate wants to work in")
         task_group.add(lambda: LocationTask(),     id="location",     description="Preferred cities and remote/hybrid/onsite preferences")
-        task_group.add(lambda: TechnicalTask(),    id="technical",    description="Work experience, strengths, and tech stack")
+        task_group.add(lambda: BackgroundTask(),   id="background",   description="Work experience, strengths, and domain knowledge")
         task_group.add(lambda: CultureTask(),      id="culture",      description="Team size, management style, and company culture fit")
         task_group.add(lambda: ValueVisionTask(),  id="value_vision", description="Compensation expectations and career vision")
         task_group.add(lambda: AlignmentTask(),    id="alignment",    description="Summary confirmation and closing")
