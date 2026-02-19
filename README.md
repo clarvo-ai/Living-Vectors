@@ -373,6 +373,25 @@ The project includes a vector embedding system for matching users to jobs based 
 | `GET /api/jobs/match?user_id=X&page=1&per_page=20` | GET    | Get jobs matched to user by similarity   |
 | `POST /api/jobs`                                   | POST   | Create a job with automatic embedding    |
 | `GET /api/jobs`                                    | GET    | List all jobs                            |
+| `POST /api/upload-jobs`                            | POST   | Upload jobs from a GCS CSV file          |
+| `POST /api/jobs/generate-embeddings`               | POST   | Generate embeddings for jobs missing one |
+
+### Uploading Jobs from CSV
+
+Job data is stored in Google Cloud Storage. To upload jobs:
+
+1. **Set your account role to `ADMIN`** in the database — the job upload/download tab in the UI is only visible to admins:
+
+   ```sql
+   UPDATE "User" SET role = 'ADMIN' WHERE email = 'your@email.com';
+   ```
+
+2. **Get the CSV filename** from the GCS bucket:
+   [Browse job CSV files in GCS](<https://console.cloud.google.com/storage/browser/lv-storage/job-data;tab=objects?project=swp-livingvectors&pageState=(%22StorageObjectListTable%22:(%22f%22:%22%255B%255D%22))&prefix=&forceOnObjectsSortingFiltering=false>)
+
+3. Use the filename in the upload tab.
+
+   After upload, embeddings are generated automatically in the background for any jobs missing them.
 
 ### Testing the Matching Algorithm
 
