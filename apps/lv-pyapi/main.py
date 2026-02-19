@@ -18,7 +18,7 @@ from voice import text_to_speech, speech_to_text
 from learnings import check_and_trigger_learnings
 from gemini_client import client
 from user_embedding import generate_user_embedding
-from job_embedding import create_job_with_embedding, generate_job_embedding, generate_missing_embeddings
+from job_embedding import create_job_with_embedding, generate_missing_embeddings
 from store_jobs import process_file
 
 import json

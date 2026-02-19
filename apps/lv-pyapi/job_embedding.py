@@ -104,7 +104,7 @@ def generate_missing_embeddings():
     """Background task: generate embeddings for all jobs missing one."""
     db = SessionLocal()
     try:
-        jobs = db.query(Job).filter(Job.job_embedding == None).all()
+        jobs = db.query(Job).filter(Job.job_embedding.is_(None)).all()
         if not jobs:
             logging.info("No jobs missing embeddings.")
             return
