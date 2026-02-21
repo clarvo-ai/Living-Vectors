@@ -1,6 +1,7 @@
 from fastapi import FastAPI, Depends, HTTPException, Body, BackgroundTasks, UploadFile, File, Response
 from sqlalchemy.orm import Session
-from sqlalchemy import select, text
+from sqlalchemy import select, cast, func
+from pgvector.sqlalchemy import Vector as PgVector
 from typing import List, Optional
 import uvicorn
 import os
@@ -299,46 +300,42 @@ async def match_jobs(
     user_emb = db.query(UserEmbedding).filter_by(userId=user_id).first()
     if not user_emb:
         raise HTTPException(
-            status_code=404, 
+            status_code=404,
             detail="User embedding not found. Generate it first by calling POST /api/users/{user_id}/generate-embedding"
         )
-    
-    # Convert embedding list to pgvector format string
-    # user_emb.embedding is already a list from our Vector type
-    embedding_list = user_emb.embedding
-    if isinstance(embedding_list, str):
-        embedding_str = embedding_list  # Already in pgvector format
-    else:
-        embedding_str = "[" + ",".join(str(float(x)) for x in embedding_list) + "]"
-    
-    # Query jobs ordered by cosine similarity
-    # pgvector: <=> is cosine distance (0 = identical, 2 = opposite)
-    # We compute similarity as 1 - distance
+
+    # Deserialize the stored embedding string into a Python list of floats.
+    # The list is then passed as a *bind parameter* via pgvector's SQLAlchemy
+    # integration, so the query structure stays constant and PostgreSQL can
+    # cache the execution plan.
+    raw = user_emb.embedding
+    embedding_list = json.loads(raw) if isinstance(raw, str) else list(raw)
+
+    # Cast the text-mapped column to the native pgvector Vector type so we can
+    # use pgvector's typed operators (.cosine_distance) instead of raw SQL.
+    job_vec = cast(Job.job_embedding, PgVector(1536))
+    # pgvector <=> cosine distance: 0 = identical, 2 = opposite
+    cosine_dist = job_vec.cosine_distance(embedding_list)
+    similarity = (1 - cosine_dist).label("similarity")
+
     offset = (page - 1) * per_page
-    
-    # Count total jobs for pagination info
-    total_count = db.execute(text('SELECT COUNT(*) FROM "public"."Job" WHERE job_embedding IS NOT NULL')).scalar() or 0
-    
-    # Note: We use string formatting for the embedding vector because SQLAlchemy's
-    # parameter binding conflicts with PostgreSQL's ::vector cast syntax.
-    # The embedding is generated internally, not from user input, so this is safe.
-    query = text(f"""
-        SELECT id, job_title, company_name, job_description, city, country, working_mode,
-               1 - (job_embedding <=> '{embedding_str}'::vector) as similarity
-        FROM "public"."Job"
-        WHERE job_embedding IS NOT NULL
-        ORDER BY job_embedding <=> '{embedding_str}'::vector
-        LIMIT :limit OFFSET :offset
-    """)
-    
-    jobs = db.execute(
-        query,
-        {
-            "limit": per_page,
-            "offset": offset
-        }
-    ).fetchall()
-    
+
+    total_count = (
+        db.query(func.count(Job.id))
+        .filter(Job.job_embedding.isnot(None))
+        .scalar()
+        or 0
+    )
+
+    rows = (
+        db.query(Job, similarity)
+        .filter(Job.job_embedding.isnot(None))
+        .order_by(cosine_dist)
+        .offset(offset)
+        .limit(per_page)
+        .all()
+    )
+
     return {
         "status": 200,
         "page": page,
@@ -352,10 +349,10 @@ async def match_jobs(
                 "company": j.company_name,
                 "description": j.job_description,
                 "location": ", ".join(filter(None, [j.city, j.country, j.working_mode])),
-                "similarity": round(float(j.similarity), 3) if j.similarity else 0
+                "similarity": round(float(sim), 3) if sim is not None else 0,
             }
-            for j in jobs
-        ]
+            for j, sim in rows
+        ],
     }
 
 @app.get("/api/jobs")
