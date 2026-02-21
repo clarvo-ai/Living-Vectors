@@ -306,6 +306,7 @@ async def get_user_job_recommendations(
     except Exception as e:
         logging.exception("Error retrieving job recommendations")
         raise HTTPException(status_code=500, detail=str(e))
+
 @app.post("/api/upload-jobs")
 async def upload_jobs(filename: str = Body(..., embed=True)):
     """Endpoint to upload job listings"""
@@ -324,7 +325,7 @@ class EvaluateLearningRequest(BaseModel):
     messages: List[str]
 
 
-@app.post("/api/learnings/evaluate")
+@app.post("/api/admin/evaluate-learning")
 async def evaluate_learning_endpoint(request: EvaluateLearningRequest):
     """
     Evaluate a learning statement with an LLM judge.
