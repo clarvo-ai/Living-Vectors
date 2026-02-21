@@ -101,6 +101,21 @@ class ConversationMessage(Base):
     user: Mapped["User"] = relationship("User", back_populates="conversationMessage", uselist=False)
 
 
+class JobRecommendation(Base):
+    __tablename__ = "JobRecommendation"
+    __table_args__ = {'schema': 'public'}
+
+    id: Mapped[UUID] = mapped_column(PostgresUUID(as_uuid=True), primary_key=True, nullable=False, server_default=text("gen_random_uuid()"))
+    userId: Mapped[UUID] = mapped_column(PostgresUUID(as_uuid=True), ForeignKey("public.User.id"), nullable=False)
+    jobId: Mapped[str] = mapped_column(Text, nullable=False)
+    score: Mapped[Optional[float]] = mapped_column(DOUBLE_PRECISION, nullable=True)
+    timestamp: Mapped[Optional[datetime]] = mapped_column(TIMESTAMP, nullable=True)
+    createdAt: Mapped[datetime] = mapped_column(TIMESTAMP, nullable=False, server_default=func.now())
+    updatedAt: Mapped[datetime] = mapped_column(TIMESTAMP, nullable=False, server_default=func.now(), onupdate=func.now())
+
+    # Relationships
+    user: Mapped["User"] = relationship("User", back_populates="jobRecommendation", uselist=False)
+
 class Job(Base):
     __tablename__ = "Job"
     __table_args__ = {'schema': 'public'}
@@ -229,7 +244,7 @@ class User(Base):
     account: Mapped[List["Account"]] = relationship("Account", back_populates="user")
     session: Mapped[List["Session"]] = relationship("Session", back_populates="user")
     authenticator: Mapped[List["Authenticator"]] = relationship("Authenticator", back_populates="user")
-
+    jobRecommendation: Mapped[List["JobRecommendation"]] = relationship("JobRecommendation", back_populates="user")
 
 class UserEmbedding(Base):
     __tablename__ = "UserEmbedding"

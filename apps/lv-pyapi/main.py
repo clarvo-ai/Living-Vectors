@@ -20,6 +20,8 @@ from learnings import check_and_trigger_learnings
 from gemini_client import client
 from user_embedding import generate_user_embedding
 from job_embedding import generate_missing_embeddings
+from job_recommendations import save_job_recommendations, get_job_recommendations
+from pydantic import BaseModel
 from store_jobs import process_file
 
 import json
@@ -383,6 +385,58 @@ async def list_jobs(
         ]
     }
 
+# Pydantic models for job recommendations
+class JobRecommendationItem(BaseModel):
+    job_id: str
+    score: float | None = None
+    timestamp: str | None = None
+
+
+class SaveJobRecommendationsRequest(BaseModel):
+    recommendations: list[JobRecommendationItem]
+
+
+@app.post("/users/{user_id}/job-recommendations")
+async def save_user_job_recommendations(
+    user_id: str,
+    request: SaveJobRecommendationsRequest,
+    db: Session = Depends(get_db)
+):
+    """
+    Save job recommendations for a user.
+    
+    This endpoint is called after the matching algorithm computes top job matches.
+    """
+    try:
+        recs = [rec.model_dump() for rec in request.recommendations]
+        count = save_job_recommendations(db, user_id, recs)
+        return {
+            "message": f"Saved {count} job recommendations",
+            "user_id": user_id,
+            "count": count
+        }
+    except Exception as e:
+        logging.exception("Error saving job recommendations")
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@app.get("/users/{user_id}/job-recommendations")
+async def get_user_job_recommendations(
+    user_id: str,
+    limit: int | None = None,
+    db: Session = Depends(get_db)
+):
+    """Get job recommendations for a user"""
+    try:
+        recommendations = get_job_recommendations(db, user_id, limit)
+        return {
+            "user_id": user_id,
+            "recommendations": recommendations,
+            "count": len(recommendations)
+        }
+    except Exception as e:
+        logging.exception("Error retrieving job recommendations")
+        raise HTTPException(status_code=500, detail=str(e))
 @app.post("/api/upload-jobs")
 async def upload_jobs(filename: str = Body(..., embed=True), background_tasks: BackgroundTasks = None):
     """Endpoint to upload job listings"""

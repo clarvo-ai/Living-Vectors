@@ -64,6 +64,9 @@ jobs:
           node-version: 18
           cache: npm
 
+      - name: Enable Corepack
+        run: corepack enable
+
       - name: Install dependencies
         run: npm install
 
@@ -101,6 +104,9 @@ jobs:
         with:
           node-version: 18
           cache: npm
+
+      - name: Enable Corepack
+        run: corepack enable
 
       - name: Install Node dependencies
         run: npm install
