@@ -325,7 +325,7 @@ class EvaluateLearningRequest(BaseModel):
     messages: List[str]
 
 
-@app.post("/api/admin/evaluate-learning")
+@app.post("/api/learnings/evaluate")
 async def evaluate_learning_endpoint(request: EvaluateLearningRequest):
     """
     Evaluate a learning statement with an LLM judge.

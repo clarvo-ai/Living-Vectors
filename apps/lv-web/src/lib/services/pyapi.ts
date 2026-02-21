@@ -73,7 +73,7 @@ export async function evaluateLearning(
   summary: string,
   messages: string[]
 ): Promise<LearningEvaluationResult> {
-  const response = await fetch(`${getBaseUrl()}/api/admin/evaluate-learning`, {
+  const response = await fetch(`${getBaseUrl()}/api/learnings/evaluate`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ summary, messages }),
