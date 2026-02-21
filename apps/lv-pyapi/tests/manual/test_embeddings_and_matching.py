@@ -4,8 +4,8 @@ Manual test script for vector embeddings and job matching.
 
 Run this script to verify the embedding and job matching features work correctly.
 
-Usage:
-    python test_embeddings_and_matching.py
+Usage (from repo root):
+    python3 apps/lv-pyapi/tests/manual/test_embeddings_and_matching.py
 
 Requirements:
     - lv-db container running on localhost:3772
@@ -13,9 +13,7 @@ Requirements:
 """
 
 import requests
-import json
 import sys
-import os
 from datetime import datetime
 
 API_URL = "http://localhost:8091"

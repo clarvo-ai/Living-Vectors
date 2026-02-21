@@ -3,8 +3,8 @@ import uuid
 import json
 import pytest
 from datetime import datetime
-from unittest.mock import patch, MagicMock
-from sqlalchemy import create_engine, text
+from unittest.mock import patch
+from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker, Session
 
 from job_recommendations import (
