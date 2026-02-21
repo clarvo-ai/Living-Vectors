@@ -56,10 +56,12 @@ yarn-error.log*
 
 # env files (can opt-in for committing if needed)
 .env*
+!.env.example
 .env.local
 .env.development.local
 .env.test.local
 .env.production.local
+.env.production
 
 # credentials
 google-credentials.json
@@ -121,3 +123,6 @@ local/
 # Ignored workspace files
 0.code-workspace
 local.code-workspace
+
+#Agent configuration
+.vscode/mcp.json
