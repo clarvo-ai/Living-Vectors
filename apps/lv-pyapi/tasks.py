@@ -19,14 +19,14 @@ class OpeningTask(AgentTask[None]):
 
             Rules for this task:
             - Ask ONE question per turn. Wait for their answer before moving on.
-            - Before asking the next question, add a small conversational beat — a brief genuine
-              reaction to what they said (1–2 sentences max). Think of it as the natural thing
-              a friend would say before moving the conversation forward. Not a summary, just a
-              human moment. e.g. "Oh nice, that's a good way to hear about us." or
-              "Ha, yeah that's a pretty common feeling." or "That's exciting, I love hearing that."
-            - Do NOT summarise or repeat back what they just said. Never use phrases like
+            - Before asking the next question, react genuinely to what they said — like a real
+              person would. A few natural sentences is fine. Think warmth, not efficiency.
+              e.g. "Oh nice, that's a good way to hear about us. A lot of people find us
+              through word of mouth actually." or "Ha, yeah that's a pretty common feeling —
+              good that you're doing something about it."
+            - Do NOT parrot back or summarise what they said. Avoid phrases like
               "Just to confirm...", "So you said...", "To recap...", or "So to summarise...".
-              Trust what they said and move on. Confirmations and summaries are for the final task.
+              React, don't recap. Summaries are for the final task.
             - Accept short, simple answers at face value. Only ask a follow-up if the answer is
               genuinely ambiguous — not just brief.
             - Keep the overall response short — this is a voice conversation, not an essay.
@@ -66,11 +66,11 @@ class LogisticsTask(AgentTask[None]):
 
             Rules:
             - Ask ONE question per turn. Wait for their answer before moving on.
-            - Add a small conversational beat before the next question — a brief genuine reaction
-              (1–2 sentences). Not a summary, just a human moment.
-            - Do NOT summarise or repeat back what they just said. Never use phrases like
+            - React genuinely to what they say before moving to the next question — like a
+              real person, not a form. A few natural sentences of smalltalk is encouraged.
+            - Do NOT parrot back or summarise what they said. Avoid phrases like
               "Just to confirm...", "So you said...", "To recap...", or "So to summarise...".
-              Trust what they said and move on. Confirmations and summaries are for the final task.
+              React, don't recap. Summaries are for the final task.
             - Accept short, simple answers at face value. Only ask a follow-up if the answer is
               genuinely ambiguous — not just brief.
             - IMPORTANT: This is just one phase of a longer conversation — never use any
@@ -85,7 +85,7 @@ class LogisticsTask(AgentTask[None]):
     async def on_enter(self) -> None:
         logger.info("[TASK] Logistics — search intensity, timing, motivation")
         await self.session.generate_reply(
-            instructions="Transition naturally into understanding their job search situation. Do NOT react to or comment on what the user just said — go straight into the next topic. Ask just ONE question: how actively they are searching right now. Nothing else yet."
+            instructions="Transition naturally into understanding their job search situation. Briefly acknowledge what they just shared if there's a natural hook, then ask just ONE question: how actively they are searching right now."
         )
 
     @function_tool
@@ -109,11 +109,11 @@ class IndustryTask(AgentTask[None]):
 
             Rules:
             - Ask ONE question per turn. Wait for their answer before moving on.
-            - Add a small conversational beat before the next question — a brief genuine reaction
-              (1–2 sentences). Not a summary, just a human moment.
-            - Do NOT summarise or repeat back what they just said. Never use phrases like
+            - React genuinely to what they say before moving to the next question — like a
+              real person, not a form. A few natural sentences of smalltalk is encouraged.
+            - Do NOT parrot back or summarise what they said. Avoid phrases like
               "Just to confirm...", "So you said...", "To recap...", or "So to summarise...".
-              Trust what they said and move on. Confirmations and summaries are for the final task.
+              React, don't recap. Summaries are for the final task.
             - Accept short, simple answers at face value. Only ask a follow-up if the answer is
               genuinely ambiguous — not just brief.
             - Keep the overall response short — this is a voice conversation, not an essay.
@@ -130,7 +130,7 @@ class IndustryTask(AgentTask[None]):
     async def on_enter(self) -> None:
         logger.info("[TASK] Industry — target field and sector")
         await self.session.generate_reply(
-            instructions="Transition naturally into understanding what kind of work they are looking for. Do NOT react to or comment on what the user just said — go straight into the next topic. Ask just ONE question: what industry or field they are targeting. Keep it open and curious — there's no wrong answer."
+            instructions="Transition naturally into understanding what kind of work they are looking for. Briefly acknowledge what they just shared if there's a natural hook, then ask just ONE question: what industry or field they are targeting. Keep it open and curious — there's no wrong answer."
         )
 
     @function_tool
@@ -155,11 +155,11 @@ class LocationTask(AgentTask[None]):
 
             Rules:
             - Ask ONE question per turn. Wait for their answer before moving on.
-            - Add a small conversational beat before the next question — a brief genuine reaction
-              (1–2 sentences). Not a summary, just a human moment.
-            - Do NOT summarise or repeat back what they just said. Never use phrases like
+            - React genuinely to what they say before moving to the next question — like a
+              real person, not a form. A few natural sentences of smalltalk is encouraged.
+            - Do NOT parrot back or summarise what they said. Avoid phrases like
               "Just to confirm...", "So you said...", "To recap...", or "So to summarise...".
-              Trust what they said and move on. Confirmations and summaries are for the final task.
+              React, don't recap. Summaries are for the final task.
             - Accept short, simple answers at face value. Only ask a follow-up if the answer is
               genuinely ambiguous — not just brief.
             - Keep the overall response short — this is a voice conversation, not an essay.
@@ -175,7 +175,7 @@ class LocationTask(AgentTask[None]):
     async def on_enter(self) -> None:
         logger.info("[TASK] Location — cities, relocation, remote/hybrid/onsite")
         await self.session.generate_reply(
-            instructions="Transition naturally into understanding their location preferences. Do NOT react to or comment on what the user just said — go straight into the next topic. Ask just ONE question: which cities or regions they prefer."
+            instructions="Transition naturally into understanding their location preferences. Briefly acknowledge what they just shared if there's a natural hook, then ask just ONE question: which cities or regions they prefer."
         )
 
     @function_tool
@@ -201,11 +201,11 @@ class BackgroundTask(AgentTask[None]):
 
             Rules:
             - Ask ONE question per turn. Wait for their answer before moving on.
-            - Add a small conversational beat before the next question — a brief genuine reaction
-              (1–2 sentences). Not a summary, just a human moment.
-            - Do NOT summarise or repeat back what they just said. Never use phrases like
+            - React genuinely to what they say before moving to the next question — like a
+              real person, not a form. A few natural sentences of smalltalk is encouraged.
+            - Do NOT parrot back or summarise what they said. Avoid phrases like
               "Just to confirm...", "So you said...", "To recap...", or "So to summarise...".
-              Trust what they said and move on. Confirmations and summaries are for the final task.
+              React, don't recap. Summaries are for the final task.
             - Accept short, simple answers at face value. Only ask a follow-up if the answer is
               genuinely ambiguous — not just brief.
             - Keep the overall response short — this is a voice conversation, not an essay.
@@ -221,7 +221,7 @@ class BackgroundTask(AgentTask[None]):
     async def on_enter(self) -> None:
         logger.info("[TASK] Background — roles, strengths, tools/domain")
         await self.session.generate_reply(
-            instructions="Transition naturally into their professional background. Do NOT react to or comment on what the user just said — go straight into the next topic. Ask just ONE question: what their most recent role was. Nothing else yet."
+            instructions="Transition naturally into their professional background. Briefly acknowledge what they just shared if there's a natural hook, then ask just ONE question: what their most recent role was."
         )
 
     @function_tool
@@ -244,11 +244,11 @@ class CultureTask(AgentTask[None]):
 
             Rules:
             - Ask ONE question per turn. Wait for their answer before moving on.
-            - Add a small conversational beat before the next question — a brief genuine reaction
-              (1–2 sentences). Not a summary, just a human moment.
-            - Do NOT summarise or repeat back what they just said. Never use phrases like
+            - React genuinely to what they say before moving to the next question — like a
+              real person, not a form. A few natural sentences of smalltalk is encouraged.
+            - Do NOT parrot back or summarise what they said. Avoid phrases like
               "Just to confirm...", "So you said...", "To recap...", or "So to summarise...".
-              Trust what they said and move on. Confirmations and summaries are for the final task.
+              React, don't recap. Summaries are for the final task.
             - Accept short, simple answers at face value. Only ask a follow-up if the answer is
               genuinely ambiguous — not just brief.
             - Keep the overall response short — this is a voice conversation, not an essay.
@@ -264,7 +264,7 @@ class CultureTask(AgentTask[None]):
     async def on_enter(self) -> None:
         logger.info("[TASK] Culture — management style, team size, startup vs corp")
         await self.session.generate_reply(
-            instructions="Transition naturally into culture fit. Do NOT react to or comment on what the user just said — go straight into the next topic. Ask just ONE question: what kind of management style they thrive under."
+            instructions="Transition naturally into culture fit. Briefly acknowledge what they just shared if there's a natural hook, then ask just ONE question: what kind of management style they thrive under."
         )
 
     @function_tool
@@ -287,11 +287,11 @@ class ValueVisionTask(AgentTask[None]):
 
             Rules:
             - Ask ONE question per turn. Wait for their answer before moving on.
-            - Add a small conversational beat before the next question — a brief genuine reaction
-              (1–2 sentences). Not a summary, just a human moment.
-            - Do NOT summarise or repeat back what they just said. Never use phrases like
+            - React genuinely to what they say before moving to the next question — like a
+              real person, not a form. A few natural sentences of smalltalk is encouraged.
+            - Do NOT parrot back or summarise what they said. Avoid phrases like
               "Just to confirm...", "So you said...", "To recap...", or "So to summarise...".
-              Trust what they said and move on. Confirmations and summaries are for the final task.
+              React, don't recap. Summaries are for the final task.
             - Accept short, simple answers at face value. Only ask a follow-up if the answer is
               genuinely ambiguous — not just brief.
             - Keep the overall response short — this is a voice conversation, not an essay.
@@ -307,7 +307,7 @@ class ValueVisionTask(AgentTask[None]):
     async def on_enter(self) -> None:
         logger.info("[TASK] Value & Vision — compensation, career goals")
         await self.session.generate_reply(
-            instructions="Transition naturally into comp and career vision. Do NOT react to or comment on what the user just said — go straight into the next topic. Frame it warmly — you need this to filter roles on their behalf. Ask just ONE question: what their compensation expectations are."
+            instructions="Transition naturally into comp and career vision. Briefly acknowledge what they just shared if there's a natural hook, then frame it warmly — you need this to filter roles on their behalf. Ask just ONE question: what their compensation expectations are."
         )
 
     @function_tool
