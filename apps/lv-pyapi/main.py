@@ -17,6 +17,9 @@ from fastapi.responses import JSONResponse
 from voice import text_to_speech, speech_to_text
 from learnings import check_and_trigger_learnings
 from gemini_client import client
+from job_recommendations import save_job_recommendations, get_job_recommendations
+from pydantic import BaseModel
+from store_jobs import process_file
 
 import json
 from pathlib import Path
@@ -117,12 +120,6 @@ Make it conversational and encouraging. Blend the introduction and first questio
             }
         }
         
-    
-
-
-
-
-
 
 @app.post("/api/chat/answer")
 async def get_gemini_response(
@@ -255,6 +252,72 @@ async def stt(file: UploadFile = File(...)):
     except Exception as e:
         logging.exception("Unhandled error in /api/stt")
         return JSONResponse(status_code=500, content={"message": "Internal server error", "status": 500})
+
+
+# Pydantic models for job recommendations
+class JobRecommendationItem(BaseModel):
+    job_id: str
+    score: float | None = None
+    timestamp: str | None = None
+
+
+class SaveJobRecommendationsRequest(BaseModel):
+    recommendations: list[JobRecommendationItem]
+
+
+@app.post("/users/{user_id}/job-recommendations")
+async def save_user_job_recommendations(
+    user_id: str,
+    request: SaveJobRecommendationsRequest,
+    db: Session = Depends(get_db)
+):
+    """
+    Save job recommendations for a user.
+    
+    This endpoint is called after the matching algorithm computes top job matches.
+    """
+    try:
+        recs = [rec.model_dump() for rec in request.recommendations]
+        count = save_job_recommendations(db, user_id, recs)
+        return {
+            "message": f"Saved {count} job recommendations",
+            "user_id": user_id,
+            "count": count
+        }
+    except Exception as e:
+        logging.exception("Error saving job recommendations")
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@app.get("/users/{user_id}/job-recommendations")
+async def get_user_job_recommendations(
+    user_id: str,
+    limit: int | None = None,
+    db: Session = Depends(get_db)
+):
+    """Get job recommendations for a user"""
+    try:
+        recommendations = get_job_recommendations(db, user_id, limit)
+        return {
+            "user_id": user_id,
+            "recommendations": recommendations,
+            "count": len(recommendations)
+        }
+    except Exception as e:
+        logging.exception("Error retrieving job recommendations")
+        raise HTTPException(status_code=500, detail=str(e))
+@app.post("/api/upload-jobs")
+async def upload_jobs(filename: str = Body(..., embed=True)):
+    """Endpoint to upload job listings"""
+    try:
+        result = process_file(filename)
+        return {"message": result, "status": 200}
+    except Exception as e:
+        logging.exception("Error processing jobs")
+        return JSONResponse(
+            status_code=500, 
+            content={"message": "Internal server error", "status": 500}
+        )
 
 if __name__ == "__main__":
     uvicorn.run(app, host="0.0.0.0", port=8080)
