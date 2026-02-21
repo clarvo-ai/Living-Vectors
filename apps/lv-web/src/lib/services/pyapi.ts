@@ -47,11 +47,49 @@ export async function uploadJobs(filename: string): Promise<{ message: string; s
   });
 
   const data = await response.json();
-  
+
   if (!response.ok) {
     // Extract the error message from the response body
     throw new Error(data.message || `Failed to upload jobs: ${response.statusText}`);
   }
 
   return data;
+}
+
+export interface LearningEvaluationResult {
+  accuracy: number | null;
+  relevance: number | null;
+  coherence: number | null;
+  overallScore: number | null;
+  feedback: string | null;
+  evaluatedAt: string | null;
+}
+
+/**
+ * Evaluate a learning statement using an LLM judge.
+ * Routes through the Next.js proxy to enforce admin auth.
+ */
+export async function evaluateLearning(
+  summary: string,
+  messages: string[]
+): Promise<LearningEvaluationResult> {
+  const response = await fetch('/api/admin/evaluate-learning', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ summary, messages }),
+  });
+
+  if (!response.ok) {
+    throw new Error(`Evaluation failed: ${response.statusText}`);
+  }
+
+  const data = await response.json();
+  return {
+    accuracy: data.accuracy ?? null,
+    relevance: data.relevance ?? null,
+    coherence: data.coherence ?? null,
+    overallScore: data.overall_score ?? null,
+    feedback: data.feedback ?? null,
+    evaluatedAt: new Date().toISOString(),
+  };
 }
