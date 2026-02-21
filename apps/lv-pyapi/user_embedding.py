@@ -44,7 +44,7 @@ def generate_user_embedding(user_id: str, db: Session) -> Optional[UserEmbedding
     
     # 2. Concatenate all learning summaries into one text
     # Each learning is a separate insight about the user
-    combined_text = "\n".join([l.summary for l in learnings])
+    combined_text = " ".join([l.summary for l in learnings])
     print(f"Generating embedding for user {user_id} from {len(learnings)} learnings ({len(combined_text)} chars)")
     
     # 3. Generate embedding via Gemini
