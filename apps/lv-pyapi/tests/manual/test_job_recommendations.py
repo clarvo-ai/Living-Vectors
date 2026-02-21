@@ -1,14 +1,17 @@
 """
 Quick test script to verify job recommendations are working.
 Run this to test saving and retrieving job recommendations.
+
+Usage (from repo root):
+    docker compose run --rm lv-pyapi python tests/manual/test_job_recommendations.py
 """
 
 import sys
 import os
 from uuid import uuid4
 
-# Add parent directory to path
-sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+# Add apps/lv-pyapi to path so database, job_recommendations etc. are importable
+sys.path.insert(0, os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", ".."))
 
 from database import SessionLocal
 from job_recommendations import save_job_recommendations, get_job_recommendations
