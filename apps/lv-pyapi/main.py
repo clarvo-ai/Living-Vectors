@@ -1,7 +1,6 @@
 from fastapi import FastAPI, Depends, HTTPException, Body, BackgroundTasks, UploadFile, File, Response
 from sqlalchemy.orm import Session
-from sqlalchemy import select, cast, func
-from pgvector.sqlalchemy import Vector as PgVector
+from sqlalchemy import select, func
 from typing import List, Optional
 import uvicorn
 import os
@@ -20,7 +19,7 @@ from learnings import check_and_trigger_learnings
 from gemini_client import client
 from user_embedding import generate_user_embedding
 from job_embedding import generate_missing_embeddings
-from job_recommendations import save_job_recommendations, get_job_recommendations, recompute_recommendations
+from job_recommendations import save_job_recommendations, get_job_recommendations, recompute_recommendations, query_job_matches
 from pydantic import BaseModel
 from store_jobs import process_file
 
@@ -258,6 +257,20 @@ async def stt(file: UploadFile = File(...)):
 
 # ============== EMBEDDING & JOB MATCHING ENDPOINTS ==============
 
+@app.post("/api/upload-jobs")
+async def upload_jobs(filename: str = Body(..., embed=True), background_tasks: BackgroundTasks = None):
+    """Endpoint to upload job listings"""
+    try:
+        result = process_file(filename)
+        background_tasks.add_task(generate_missing_embeddings)
+        return {"message": result, "status": 200}
+    except Exception as e:
+        logging.exception("Error processing jobs")
+        return JSONResponse(
+            status_code=500, 
+            content={"message": "Internal server error", "status": 500}
+        )
+
 @app.post("/api/users/{user_id}/generate-embedding")
 async def generate_embedding_endpoint(user_id: str, background_tasks: BackgroundTasks, db: Session = Depends(get_db)):
     """
@@ -314,13 +327,6 @@ async def match_jobs(
     raw = user_emb.embedding
     embedding_list = json.loads(raw) if isinstance(raw, str) else list(raw)
 
-    # Cast the text-mapped column to the native pgvector Vector type so we can
-    # use pgvector's typed operators (.cosine_distance) instead of raw SQL.
-    job_vec = cast(Job.job_embedding, PgVector(1536))
-    # pgvector <=> cosine distance: 0 = identical, 2 = opposite
-    cosine_dist = job_vec.cosine_distance(embedding_list)
-    similarity = (1 - cosine_dist).label("similarity")
-
     offset = (page - 1) * per_page
 
     total_count = (
@@ -330,14 +336,7 @@ async def match_jobs(
         or 0
     )
 
-    rows = (
-        db.query(Job, similarity)
-        .filter(Job.job_embedding.isnot(None))
-        .order_by(cosine_dist)
-        .offset(offset)
-        .limit(per_page)
-        .all()
-    )
+    rows = query_job_matches(db, embedding_list, limit=per_page, offset=offset)
 
     result_jobs = [
             {
@@ -440,20 +439,6 @@ async def get_user_job_recommendations(
     except Exception as e:
         logging.exception("Error retrieving job recommendations")
         raise HTTPException(status_code=500, detail=str(e))
-
-@app.post("/api/upload-jobs")
-async def upload_jobs(filename: str = Body(..., embed=True), background_tasks: BackgroundTasks = None):
-    """Endpoint to upload job listings"""
-    try:
-        result = process_file(filename)
-        background_tasks.add_task(generate_missing_embeddings)
-        return {"message": result, "status": 200}
-    except Exception as e:
-        logging.exception("Error processing jobs")
-        return JSONResponse(
-            status_code=500, 
-            content={"message": "Internal server error", "status": 500}
-        )
 
 @app.post("/api/jobs/generate-embeddings")
 async def batch_generate_job_embeddings(background_tasks: BackgroundTasks):

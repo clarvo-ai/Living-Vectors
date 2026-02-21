@@ -133,6 +133,39 @@ def get_job_recommendations(
         raise Exception(f"Failed to retrieve job recommendations: {str(e)}")
 
 
+def query_job_matches(
+    db: Session,
+    embedding: list,
+    limit: Optional[int] = None,
+    offset: int = 0,
+) -> list:
+    """
+    Run a cosine-similarity query against all jobs that have an embedding.
+
+    Args:
+        db: Database session
+        embedding: User embedding as a list of floats
+        limit: Max rows to return (None = all)
+        offset: Row offset for pagination
+
+    Returns:
+        List of (Job, similarity_float) tuples ordered by descending similarity
+    """
+    job_vec = cast(Job.job_embedding, PgVector(1536))
+    cosine_dist = job_vec.cosine_distance(embedding)
+    similarity = (1 - cosine_dist).label("similarity")
+
+    q = (
+        db.query(Job, similarity)
+        .filter(Job.job_embedding.isnot(None))
+        .order_by(cosine_dist)
+        .offset(offset)
+    )
+    if limit is not None:
+        q = q.limit(limit)
+    return q.all()
+
+
 def recompute_recommendations(user_id: str) -> None:
     """
     Compute the top TOP_RECOMMENDATIONS_COUNT job matches for a user using
@@ -152,17 +185,7 @@ def recompute_recommendations(user_id: str) -> None:
         raw = user_emb.embedding
         embedding_list = json.loads(raw) if isinstance(raw, str) else list(raw)
 
-        job_vec = cast(Job.job_embedding, PgVector(1536))
-        cosine_dist = job_vec.cosine_distance(embedding_list)
-        similarity = (1 - cosine_dist).label("similarity")
-
-        rows = (
-            db.query(Job, similarity)
-            .filter(Job.job_embedding.isnot(None))
-            .order_by(cosine_dist)
-            .limit(TOP_RECOMMENDATIONS_COUNT)
-            .all()
-        )
+        rows = query_job_matches(db, embedding_list, limit=TOP_RECOMMENDATIONS_COUNT)
 
         recs = [{"job_id": str(j.id), "score": round(float(sim), 3)} for j, sim in rows]
         count = save_job_recommendations(db, user_id, recs)
@@ -171,4 +194,3 @@ def recompute_recommendations(user_id: str) -> None:
         logging.exception(f"Error recomputing job recommendations for user {user_id}")
     finally:
         db.close()
-
