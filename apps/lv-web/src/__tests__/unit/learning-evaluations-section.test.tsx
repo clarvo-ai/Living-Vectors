@@ -10,6 +10,7 @@ import type { LearningConnection } from '../../types/admin';
 // - Shows error cards when evaluation fails
 // - Shows average scores summary
 // - Shows "Re-run Evaluations" button after completion
+// - Source messages toggle: collapsed by default, expands on click, shows sender badges, collapses again
 
 jest.mock('../../lib/services/pyapi', () => ({
   evaluateLearning: jest.fn(),
@@ -243,6 +244,100 @@ describe('LearningEvaluationsSection', () => {
 
     await waitFor(() => {
       expect(screen.getByText('1 / 2 evaluated')).toBeInTheDocument();
+    });
+  });
+
+  describe('Source messages toggle', () => {
+    it('shows collapsed toggle with message count in loading card', () => {
+      mockEvaluateLearning.mockImplementation(() => new Promise(() => {}));
+
+      render(
+        <LearningEvaluationsSection
+          learningConnections={[mockLearning2]}
+          learningConnectionsLoading={false}
+        />
+      );
+      fireEvent.click(screen.getByRole('button', { name: /Run Evaluations/i }));
+
+      expect(screen.getByText('Show 2 source messages')).toBeInTheDocument();
+    });
+
+    it('expands to show message content and sender badges when toggle clicked', () => {
+      mockEvaluateLearning.mockImplementation(() => new Promise(() => {}));
+
+      render(
+        <LearningEvaluationsSection
+          learningConnections={[mockLearning2]}
+          learningConnectionsLoading={false}
+        />
+      );
+      fireEvent.click(screen.getByRole('button', { name: /Run Evaluations/i }));
+
+      fireEvent.click(screen.getByText('Show 2 source messages'));
+
+      expect(screen.getByText('Hide 2 source messages')).toBeInTheDocument();
+      expect(screen.getByText('I debug CSS a lot')).toBeInTheDocument();
+      expect(screen.getByText('Tell me more')).toBeInTheDocument();
+      expect(screen.getByText('You')).toBeInTheDocument();
+      expect(screen.getByText('AI')).toBeInTheDocument();
+    });
+
+    it('collapses again when toggle clicked a second time', () => {
+      mockEvaluateLearning.mockImplementation(() => new Promise(() => {}));
+
+      render(
+        <LearningEvaluationsSection
+          learningConnections={[mockLearning1]}
+          learningConnectionsLoading={false}
+        />
+      );
+      fireEvent.click(screen.getByRole('button', { name: /Run Evaluations/i }));
+
+      fireEvent.click(screen.getByText('Show 1 source message'));
+      expect(screen.getByText('I love building web apps')).toBeInTheDocument();
+
+      fireEvent.click(screen.getByText('Hide 1 source message'));
+      expect(screen.queryByText('I love building web apps')).not.toBeInTheDocument();
+    });
+
+    it('shows source messages toggle in error card', async () => {
+      mockEvaluateLearning.mockRejectedValue(new Error('fail'));
+
+      render(
+        <LearningEvaluationsSection
+          learningConnections={[mockLearning1]}
+          learningConnectionsLoading={false}
+        />
+      );
+      fireEvent.click(screen.getByRole('button', { name: /Run Evaluations/i }));
+
+      await waitFor(() => {
+        expect(screen.getByText('⚠️ Evaluation failed')).toBeInTheDocument();
+      });
+
+      expect(screen.getByText('Show 1 source message')).toBeInTheDocument();
+    });
+
+    it('shows source messages toggle in completed evaluation card', async () => {
+      mockEvaluateLearning.mockResolvedValue(mockEvaluationResult);
+
+      render(
+        <LearningEvaluationsSection
+          learningConnections={[mockLearning1]}
+          learningConnectionsLoading={false}
+        />
+      );
+      fireEvent.click(screen.getByRole('button', { name: /Run Evaluations/i }));
+
+      await waitFor(() => {
+        expect(screen.getByText('🧠 LLM Evaluation')).toBeInTheDocument();
+      });
+
+      expect(screen.getByText('Show 1 source message')).toBeInTheDocument();
+
+      fireEvent.click(screen.getByText('Show 1 source message'));
+      expect(screen.getByText('I love building web apps')).toBeInTheDocument();
+      expect(screen.getByText('You')).toBeInTheDocument();
     });
   });
 });

@@ -13,6 +13,39 @@ interface LearningEvaluationsSectionProps {
 
 type EvalState = LearningEvaluation | 'loading' | 'error';
 
+function SourceMessages({ messages }: { messages: LearningConnection['messages'] }) {
+  const [open, setOpen] = useState(false);
+  return (
+    <div className="mt-3 pt-3 border-t border-gray-100">
+      <button
+        onClick={() => setOpen((o) => !o)}
+        className="flex items-center gap-1 text-xs text-muted-foreground hover:text-gray-700 transition-colors"
+      >
+        <span>{open ? '▾' : '▸'}</span>
+        <span>{open ? 'Hide' : 'Show'} {messages.length} source message{messages.length !== 1 ? 's' : ''}</span>
+      </button>
+      {open && (
+        <div className="mt-2 space-y-1.5">
+          {messages.map((m) => (
+            <div key={m.messageId} className="flex items-start gap-2">
+              <span
+                className={`mt-0.5 shrink-0 inline-flex items-center rounded-full px-1.5 py-0.5 text-[10px] font-semibold ${
+                  m.sender === 'USER'
+                    ? 'bg-blue-100 text-blue-700'
+                    : 'bg-gray-100 text-gray-600'
+                }`}
+              >
+                {m.sender === 'USER' ? 'You' : 'AI'}
+              </span>
+              <p className="text-xs text-gray-600 leading-relaxed">{m.content}</p>
+            </div>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
+
 function ScoreBadge({ score, label }: { score: number | null; label: string }) {
   if (score === null) {
     return (
@@ -76,10 +109,7 @@ function EvaluationLoadingCard({ learning }: { learning: LearningConnection }) {
           </span>
         </div>
         <p className="text-sm font-medium text-purple-900 mb-2">{learning.summary}</p>
-        <p className="text-xs text-muted-foreground">
-          Based on {learning.messages.length} source message
-          {learning.messages.length !== 1 ? 's' : ''}
-        </p>
+        <SourceMessages messages={learning.messages} />
       </div>
       <div className="p-4 bg-white/50">
         <div className="grid grid-cols-4 gap-4">
@@ -105,6 +135,7 @@ function EvaluationErrorCard({ learning }: { learning: LearningConnection }) {
           </span>
         </div>
         <p className="text-sm text-gray-700">{learning.summary}</p>
+        <SourceMessages messages={learning.messages} />
       </div>
     </div>
   );
@@ -132,10 +163,7 @@ function EvaluationCard({
           )}
         </div>
         <p className="text-sm font-medium text-purple-900 mb-2">{learning.summary}</p>
-        <p className="text-xs text-muted-foreground">
-          Based on {learning.messages.length} source message
-          {learning.messages.length !== 1 ? 's' : ''}
-        </p>
+        <SourceMessages messages={learning.messages} />
       </div>
 
       {/* Scores Grid */}
