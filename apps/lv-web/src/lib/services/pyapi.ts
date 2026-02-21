@@ -38,3 +38,20 @@ export async function getUser(userId: string): Promise<PyAPIUser> {
   }
   return response.json();
 }
+
+export async function uploadJobs(filename: string): Promise<{ message: string; status: number }> {
+  const response = await fetch(`${getBaseUrl()}/api/upload-jobs`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ filename: filename }),
+  });
+
+  const data = await response.json();
+  
+  if (!response.ok) {
+    // Extract the error message from the response body
+    throw new Error(data.message || `Failed to upload jobs: ${response.statusText}`);
+  }
+
+  return data;
+}
