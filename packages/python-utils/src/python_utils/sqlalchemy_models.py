@@ -2,6 +2,7 @@ from sqlalchemy import String, DateTime, Boolean, Integer, BigInteger, ForeignKe
 from sqlalchemy.dialects.postgresql import UUID as PostgresUUID, TIMESTAMP, DOUBLE_PRECISION, ENUM, JSONB
 from sqlalchemy.orm import DeclarativeBase, relationship, Mapped, mapped_column, Mapper
 from sqlalchemy.types import TypeDecorator
+from pgvector.sqlalchemy import Vector
 from uuid import UUID
 from typing import Optional, List, Any, Sequence
 from datetime import datetime
@@ -114,6 +115,77 @@ class JobRecommendation(Base):
     # Relationships
     user: Mapped["User"] = relationship("User", back_populates="jobRecommendation", uselist=False)
 
+class Job(Base):
+    __tablename__ = "Job"
+    __table_args__ = {'schema': 'public'}
+
+    id: Mapped[UUID] = mapped_column(PostgresUUID(as_uuid=True), primary_key=True, nullable=False, server_default=text("gen_random_uuid()"))
+    job_title: Mapped[str] = mapped_column(Text, nullable=False)
+    job_description: Mapped[str] = mapped_column(Text, nullable=False)
+    job_description_summary: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
+    job_is_active: Mapped[bool] = mapped_column(Boolean, nullable=False)
+    company_name: Mapped[str] = mapped_column(Text, nullable=False)
+    company_description: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
+    company_industry: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
+    company_size: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
+    company_revenue: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
+    company_culture: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
+    company_values: Mapped[Optional[List[str]]] = mapped_column(ARRAY(Text), nullable=True)
+    published_date: Mapped[Optional[datetime]] = mapped_column(TIMESTAMP, nullable=True)
+    last_day_to_apply: Mapped[Optional[datetime]] = mapped_column(TIMESTAMP, nullable=True)
+    job_starting_date: Mapped[Optional[datetime]] = mapped_column(TIMESTAMP, nullable=True)
+    country: Mapped[str] = mapped_column(Text, nullable=False)
+    city: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
+    longitude: Mapped[Optional[float]] = mapped_column(DOUBLE_PRECISION, nullable=True)
+    latitude: Mapped[Optional[float]] = mapped_column(DOUBLE_PRECISION, nullable=True)
+    working_mode: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
+    role_industry: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
+    employment_type: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
+    contract_type: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
+    job_level: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
+    summer_job_internship: Mapped[bool] = mapped_column(Boolean, nullable=False)
+    required_skills: Mapped[Optional[List[str]]] = mapped_column(ARRAY(Text), nullable=True)
+    nice_to_have_skills: Mapped[Optional[List[str]]] = mapped_column(ARRAY(Text), nullable=True)
+    required_languages: Mapped[Optional[List[str]]] = mapped_column(ARRAY(Text), nullable=True)
+    nice_to_have_languages: Mapped[Optional[List[str]]] = mapped_column(ARRAY(Text), nullable=True)
+    language_summary: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
+    required_education: Mapped[Optional[List[str]]] = mapped_column(ARRAY(Text), nullable=True)
+    required_experience_months: Mapped[Optional[int]] = mapped_column(Integer, nullable=True)
+    requirements: Mapped[Optional[List[str]]] = mapped_column(ARRAY(Text), nullable=True)
+    salary: Mapped[Optional[float]] = mapped_column(DOUBLE_PRECISION, nullable=True)
+    salary_min: Mapped[Optional[float]] = mapped_column(DOUBLE_PRECISION, nullable=True)
+    salary_max: Mapped[Optional[float]] = mapped_column(DOUBLE_PRECISION, nullable=True)
+    bonus: Mapped[Optional[float]] = mapped_column(DOUBLE_PRECISION, nullable=True)
+    commission: Mapped[Optional[float]] = mapped_column(DOUBLE_PRECISION, nullable=True)
+    guessed_salary: Mapped[Optional[float]] = mapped_column(DOUBLE_PRECISION, nullable=True)
+    guessed_salary_min: Mapped[Optional[float]] = mapped_column(DOUBLE_PRECISION, nullable=True)
+    guessed_salary_max: Mapped[Optional[float]] = mapped_column(DOUBLE_PRECISION, nullable=True)
+    guessed_bonus: Mapped[Optional[float]] = mapped_column(DOUBLE_PRECISION, nullable=True)
+    guessed_commission: Mapped[Optional[float]] = mapped_column(DOUBLE_PRECISION, nullable=True)
+    deprecated_perks: Mapped[Optional[List[str]]] = mapped_column(ARRAY(Text), nullable=True)
+    work_hours: Mapped[Optional[float]] = mapped_column(DOUBLE_PRECISION, nullable=True)
+    work_hours_min: Mapped[Optional[float]] = mapped_column(DOUBLE_PRECISION, nullable=True)
+    work_hours_max: Mapped[Optional[float]] = mapped_column(DOUBLE_PRECISION, nullable=True)
+    work_hours_summary: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
+    source_url: Mapped[str] = mapped_column(Text, nullable=False)
+    apply_link: Mapped[str] = mapped_column(Text, nullable=False)
+    application_instructions: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
+    career_advancement_details: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
+    recruiter_name: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
+    recruiter_email: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
+    recruiter_phone: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
+    created_at: Mapped[datetime] = mapped_column(TIMESTAMP, nullable=False, server_default=func.now())
+    updated_at: Mapped[datetime] = mapped_column(TIMESTAMP, nullable=False, server_default=func.now(), onupdate=func.now())
+    deprecated_keywords: Mapped[Optional[List[str]]] = mapped_column(ARRAY(Text), nullable=True)
+    original_text: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
+    version: Mapped[Optional[float]] = mapped_column(DOUBLE_PRECISION, nullable=True)
+    source: Mapped[str] = mapped_column(Text, nullable=False)
+    sub_source: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
+    external_id: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
+    job_embedding: Mapped[Optional[list[float]]] = mapped_column(Vector(1536), nullable=True)
+    job_title_embedding: Mapped[Optional[list[float]]] = mapped_column(Vector(1536), nullable=True)
+    titleId: Mapped[Optional[UUID]] = mapped_column(PostgresUUID(as_uuid=True), nullable=True)
+    organizationId: Mapped[Optional[UUID]] = mapped_column(PostgresUUID(as_uuid=True), nullable=True)
 
 class Learning(Base):
     __tablename__ = "Learning"
@@ -171,25 +243,6 @@ class User(Base):
     learning: Mapped[List["Learning"]] = relationship("Learning", back_populates="user")
     jobRecommendation: Mapped[List["JobRecommendation"]] = relationship("JobRecommendation", back_populates="user")
 
-class Vector(TypeDecorator):
-    """Custom type for PostgreSQL vector type"""
-    impl = String
-    cache_ok = True
-
-    def __init__(self, dimensions=None):
-        super().__init__()
-        self.dimensions = dimensions
-
-    def process_bind_param(self, value, dialect):
-        if value is None:
-            return None
-        return str(value)
-
-    def process_result_value(self, value, dialect):
-        if value is None:
-            return None
-        return value
-
 class VerificationToken(Base):
     __tablename__ = "VerificationToken"
     __table_args__ = {'schema': 'public'}
@@ -197,6 +250,7 @@ class VerificationToken(Base):
     identifier: Mapped[str] = mapped_column(Text, primary_key=True, nullable=False)
     token: Mapped[str] = mapped_column(Text, primary_key=True, nullable=False)
     expires: Mapped[datetime] = mapped_column(TIMESTAMP, nullable=False)
+
 
 class _ConversationMessageToLearning(Base):
     __tablename__ = "_ConversationMessageToLearning"

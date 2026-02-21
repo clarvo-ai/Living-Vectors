@@ -141,3 +141,110 @@ enum UserRole {
   USER
   ADMIN
 }
+
+model Job {
+  // Primary identifiers and core job details
+  id                            String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  job_title                     String    
+  job_description               String
+  job_description_summary       String?
+  job_is_active                 Boolean   @default(true)
+  
+  // Company information
+  company_name                  String
+  company_description           String?
+  company_industry              String?
+  company_size                  String?
+  company_revenue               String?
+  company_culture               String?
+  company_values                String[]
+  
+  // Dates and deadlines
+  published_date                DateTime?
+  last_day_to_apply             DateTime?
+  job_starting_date             DateTime?
+  
+  // Location details
+  country                       String
+  city                          String?
+  longitude                     Float?
+  latitude                      Float?
+  working_mode                  String?   // remote | hybrid | on-site
+  
+  // Job classification and type
+  role_industry                 String?
+  employment_type               String?   // full-time | part-time
+  contract_type                 String?   // permanent | fixed-term | self-employed
+  job_level                     String?   // entry | junior | mid | senior
+  summer_job_internship         Boolean   @default(false)
+  
+  // Requirements and skills
+  required_skills               String[]
+  nice_to_have_skills           String[]
+  required_languages            String[]
+  nice_to_have_languages        String[]
+  language_summary              String?
+  required_education            String[] //(high school, associate degree, bachelor degree, professional certificate, postgraduate degree)
+  required_experience_months    Int?
+  requirements                  String[]
+  
+  // Compensation and benefits
+  // salary, bonus and commission always monthly values
+  // currency is always EUR
+  salary                        Float?
+  salary_min                    Float?
+  salary_max                    Float?
+  bonus                         Float?
+  commission                    Float?
+  guessed_salary                Float?
+  guessed_salary_min            Float?
+  guessed_salary_max            Float?
+  guessed_bonus                 Float?
+  guessed_commission            Float?
+  deprecated_perks              String[]
+  
+  // Work hours
+  work_hours                    Float?
+  work_hours_min                Float?
+  work_hours_max                Float?
+  work_hours_summary            String?
+  
+  // Application details
+  source_url                    String    @unique
+  apply_link                    String
+  application_instructions      String?
+  career_advancement_details    String?
+  
+  // Recruiter information
+  recruiter_name                String?
+  recruiter_email               String?
+  recruiter_phone               String?
+  
+  // Metadata and relationships
+  created_at                    DateTime  @default(now())
+  updated_at                    DateTime  @updatedAt
+  deprecated_keywords           String[]
+  original_text                 String?
+  version                       Float?
+  source                        String
+  sub_source                    String?
+  external_id                   String?
+
+  // Embeddings
+  job_embedding                         Unsupported("vector(1536)")? // overall
+  job_title_embedding                   Unsupported("vector(1536)")? // not used
+  
+  titleId                       String?   @db.Uuid
+  organizationId                String?   @db.Uuid
+  //@@unique([source, external_id])      Commented this as this combination was the same for literally every job
+  @@index([published_date])
+  @@index([country, city])
+  @@index([working_mode])
+  @@index([employment_type])
+  @@index([contract_type])
+  @@index([job_level])
+  @@index([salary])
+  @@index([salary_min])
+  @@index([guessed_salary])
+  // Note: HNSW index exists on job_embedding: CREATE INDEX job_embedding_hnsw_idx ON "Job" USING hnsw (job_embedding vector_ip_ops) WHERE job_embedding IS NOT NULL AND job_is_active = true AND (job_level = 'entry' OR job_level = 'junior') / job_level = 'mid' / job_level = 'senior' / -
+}
