@@ -18,7 +18,7 @@ from voice import text_to_speech, speech_to_text
 from learnings import check_and_trigger_learnings
 from gemini_client import client
 from user_embedding import generate_user_embedding
-from job_embedding import create_job_with_embedding, generate_missing_embeddings
+from job_embedding import generate_missing_embeddings
 from store_jobs import process_file
 
 import json
@@ -357,35 +357,6 @@ async def match_jobs(
             for j in jobs
         ]
     }
-
-
-@app.post("/api/jobs")
-async def create_job(
-    title: str = Body(...),
-    company: str = Body(...),
-    description: str = Body(...),
-    working_mode: Optional[str] = Body(None),
-    country: str = Body(...),
-    city: Optional[str] = Body(None),
-    db: Session = Depends(get_db)
-):
-    """
-    Create a new job with embedding.
-    
-    This endpoint creates a job posting and automatically generates
-    its embedding vector for matching against users.
-    """
-    try:
-        job = create_job_with_embedding(title, company, description, country, city, working_mode, db)
-        return {
-            "status": 200, 
-            "job_id": str(job.id), 
-            "message": f"Job '{title}' created with embedding"
-        }
-    except Exception as e:
-        logging.exception("Error creating job")
-        raise HTTPException(status_code=500, detail=str(e))
-
 
 @app.get("/api/jobs")
 async def list_jobs(

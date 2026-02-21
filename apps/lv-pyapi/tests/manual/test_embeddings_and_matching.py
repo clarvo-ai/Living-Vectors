@@ -66,6 +66,8 @@ def cleanup_test_jobs():
         if "DELETE" in result.stdout:
             count = result.stdout.strip().split()[-1] if result.stdout else "0"
             print_success(f"Cleaned up {count} test jobs")
+        else:
+            print_info("No test jobs to clean up")
         return True
     except Exception as e:
         print_error(f"Failed to cleanup: {e}")
@@ -92,48 +94,43 @@ def test_api_health():
 
 
 def test_create_jobs():
-    """Test creating jobs with embeddings."""
-    print_header("TEST 2: Create Jobs with Embeddings")
-    
+    """Insert test jobs directly into the DB (POST /api/jobs was removed; jobs are now loaded via file upload or direct DB seeding)."""
+    print_header("TEST 2: Seed Test Jobs into DB")
+    import subprocess
+
     test_jobs = [
-        {
-            "title": "Test Frontend Developer",
-            "company": "TestCorp",
-            "description": "Frontend developer with React, TypeScript, and CSS skills. Work with designers to build beautiful UIs.",
-            "working_mode": "Remote",
-            "country": "Finland"
-        },
-        {
-            "title": "Test Backend Engineer", 
-            "company": "TestCorp",
-            "description": "Backend engineer with Python, PostgreSQL, and API design. Build scalable microservices.",
-            "working_mode": "On-site",
-            "country": "Finland"
-        },
-        {
-            "title": "Test DevOps Engineer",
-            "company": "TestCorp", 
-            "description": "DevOps engineer managing Kubernetes, Docker, and CI/CD pipelines.",
-            "working_mode": "Hybrid",
-            "country": "Finland"
-        }
+        ("Test Frontend Developer", "TestCorp",
+         "Frontend developer with React, TypeScript, and CSS skills. Work with designers to build beautiful UIs.",
+         "Remote", "Finland", "https://testcorp.example.com/jobs/frontend"),
+        ("Test Backend Engineer", "TestCorp",
+         "Backend engineer with Python, PostgreSQL, and API design. Build scalable microservices.",
+         "On-site", "Finland", "https://testcorp.example.com/jobs/backend"),
+        ("Test DevOps Engineer", "TestCorp",
+         "DevOps engineer managing Kubernetes, Docker, and CI/CD pipelines.",
+         "Hybrid", "Finland", "https://testcorp.example.com/jobs/devops"),
     ]
-    
-    created_jobs = []
-    for job in test_jobs:
+
+    created = 0
+    for title, company, description, working_mode, country, source_url in test_jobs:
+        sql = (
+            f"INSERT INTO \"Job\" (job_title, company_name, job_description, working_mode, country, source_url, apply_link, source, updated_at) "
+            f"VALUES ('{title}', '{company}', '{description}', '{working_mode}', '{country}', '{source_url}', '{source_url}', 'test', NOW());"
+        )
         try:
-            resp = requests.post(f"{API_URL}/api/jobs", json=job, timeout=30)
-            if resp.status_code == 200:
-                data = resp.json()
-                print_success(f"Created: {job['title']} (ID: {data.get('job_id', 'N/A')[:8]}...)")
-                created_jobs.append(data.get('job_id'))
+            result = subprocess.run(
+                ["docker", "exec", DB_CONTAINER, "psql", "-U", "postgres", "-d", "postgres", "-c", sql],
+                capture_output=True, text=True, timeout=10
+            )
+            if result.returncode == 0 and "INSERT" in result.stdout:
+                print_success(f"Inserted: {title}")
+                created += 1
             else:
-                print_error(f"Failed to create {job['title']}: {resp.text}")
+                print_error(f"Failed to insert {title}: {result.stderr.strip()}")
         except Exception as e:
-            print_error(f"Error creating {job['title']}: {e}")
-    
-    print_info(f"Created {len(created_jobs)}/{len(test_jobs)} jobs")
-    return len(created_jobs) == len(test_jobs)
+            print_error(f"Error inserting {title}: {e}")
+
+    print_info(f"Inserted {created}/{len(test_jobs)} test jobs")
+    return created == len(test_jobs)
 
 
 def test_list_jobs():

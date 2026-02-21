@@ -44,62 +44,6 @@ def generate_job_embedding(job_id: str, db: Session) -> Job:
     print(f"Generated embedding for job: {job.job_title} at {job.company_name}")
     return job
 
-
-def create_job_with_embedding(
-    title: str,
-    company_name: str,
-    job_description: str,
-    country: str,
-    city: Optional[str],
-    working_mode: Optional[str],
-    db: Session
-) -> Job:
-    """
-    Create a new job and generate its embedding in one step.
-    
-    This is the main function to use when adding new jobs to the system.
-    It creates the job record and immediately generates its embedding.
-    
-    Args:
-        title: Job title (e.g., "Frontend Developer")
-        company_name: Company name (e.g., "TechCorp")
-        job_description: Full job description
-        country: Country (e.g., "Finland")
-        city: Optional city (e.g., "Helsinki")
-        working_mode: Optional working mode (e.g., "Remote", "On-site")
-        db: Database session
-        
-    Returns:
-        The new Job record with embedding
-    """
-    # Generate embedding from job info
-    text = f"{title} at {company_name}. {job_description}"
-    embedding = get_embedding(text)
-    
-    # Create job with embedding
-    job = Job(
-        job_title=title,
-        company_name=company_name,
-        job_description=job_description,
-        country=country,
-        city=city,
-        working_mode=working_mode,
-        job_embedding=embedding,
-        job_is_active=True,
-        summer_job_internship=False,
-        source_url=f"manual://{company_name.lower().replace(' ', '-')}/{title.lower().replace(' ', '-')}",
-        apply_link="",
-        source="manual",
-        updated_at=datetime.now(timezone.utc),
-    )
-    db.add(job)
-    db.commit()
-    db.refresh(job)
-    
-    print(f"Created job with embedding: {title} at {company_name}")
-    return job
-
-
 def generate_missing_embeddings():
     """Background task: generate embeddings for all jobs missing one."""
     db = SessionLocal()
