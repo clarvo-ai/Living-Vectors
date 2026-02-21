@@ -2,18 +2,24 @@
 Service for saving job recommendations to the database.
 
 This module provides functionality to save job recommendations generated
-by the matching algorithm. The matching algorithm should call save_job_recommendations
-after computing the top job matches for a user.
+by the matching algorithm. Call recompute_recommendations after a user
+embedding is generated to compute and persist the top matches.
 """
 
-from sqlalchemy.orm import Session
-from sqlalchemy import delete
-from typing import List, Dict, Optional, Any
+import json
+import logging
 from datetime import datetime
+from typing import Any, Dict, List, Optional
 from uuid import UUID
 
-# Note: JobRecommendation model will be auto-generated after running migrations
-# Import will be: from python_utils.sqlalchemy_models import JobRecommendation
+from sqlalchemy import cast, delete, desc, select
+from sqlalchemy.orm import Session
+from pgvector.sqlalchemy import Vector as PgVector
+
+from database import SessionLocal
+from python_utils.sqlalchemy_models import Job, JobRecommendation, UserEmbedding
+
+TOP_RECOMMENDATIONS_COUNT = 20 # Number of top matches to save per user
 
 
 def save_job_recommendations(
@@ -38,9 +44,6 @@ def save_job_recommendations(
         Number of recommendations saved
     """
     try:
-        # Import here to avoid errors before migration is run
-        from python_utils.sqlalchemy_models import JobRecommendation
-        
         # Delete existing recommendations if requested
         if replace_existing:
             db.execute(
@@ -103,9 +106,6 @@ def get_job_recommendations(
         List of recommendation dicts with job_id, score, timestamp
     """
     try:
-        from python_utils.sqlalchemy_models import JobRecommendation
-        from sqlalchemy import select, desc
-        
         stmt = (
             select(JobRecommendation)
             .where(JobRecommendation.userId == UUID(user_id))
@@ -131,4 +131,44 @@ def get_job_recommendations(
         
     except Exception as e:
         raise Exception(f"Failed to retrieve job recommendations: {str(e)}")
+
+
+def recompute_recommendations(user_id: str) -> None:
+    """
+    Compute the top TOP_RECOMMENDATIONS_COUNT job matches for a user using
+    cosine similarity and persist them to JobRecommendation, replacing any
+    existing ones.
+
+    Opens its own DB session, making it safe to call as a background task
+    outside the request lifecycle.
+    """
+    db = SessionLocal()
+    try:
+        user_emb = db.query(UserEmbedding).filter_by(userId=user_id).first()
+        if not user_emb:
+            logging.warning(f"recompute_recommendations: no embedding found for user {user_id}")
+            return
+
+        raw = user_emb.embedding
+        embedding_list = json.loads(raw) if isinstance(raw, str) else list(raw)
+
+        job_vec = cast(Job.job_embedding, PgVector(1536))
+        cosine_dist = job_vec.cosine_distance(embedding_list)
+        similarity = (1 - cosine_dist).label("similarity")
+
+        rows = (
+            db.query(Job, similarity)
+            .filter(Job.job_embedding.isnot(None))
+            .order_by(cosine_dist)
+            .limit(TOP_RECOMMENDATIONS_COUNT)
+            .all()
+        )
+
+        recs = [{"job_id": str(j.id), "score": round(float(sim), 3)} for j, sim in rows]
+        count = save_job_recommendations(db, user_id, recs)
+        logging.info(f"Saved {count} job recommendations for user {user_id}")
+    except Exception:
+        logging.exception(f"Error recomputing job recommendations for user {user_id}")
+    finally:
+        db.close()
 

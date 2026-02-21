@@ -20,7 +20,7 @@ from learnings import check_and_trigger_learnings
 from gemini_client import client
 from user_embedding import generate_user_embedding
 from job_embedding import generate_missing_embeddings
-from job_recommendations import save_job_recommendations, get_job_recommendations
+from job_recommendations import save_job_recommendations, get_job_recommendations, recompute_recommendations
 from pydantic import BaseModel
 from store_jobs import process_file
 
@@ -259,23 +259,24 @@ async def stt(file: UploadFile = File(...)):
 # ============== EMBEDDING & JOB MATCHING ENDPOINTS ==============
 
 @app.post("/api/users/{user_id}/generate-embedding")
-async def generate_embedding_endpoint(user_id: str, db: Session = Depends(get_db)):
+async def generate_embedding_endpoint(user_id: str, background_tasks: BackgroundTasks, db: Session = Depends(get_db)):
     """
     Generate embedding for a user from their learnings.
     
     Call this after a career discussion is complete to create/update
     the user's embedding vector for job matching.
+    Also triggers a background recompute of the user's top job recommendations.
     """
     try:
         result = generate_user_embedding(user_id, db)
         if result:
+            background_tasks.add_task(recompute_recommendations, user_id)
             return {"status": 200, "message": "Embedding generated successfully", "embedding_id": str(result.id)}
         else:
             return {"status": 404, "message": "No learnings found for user. Complete a career discussion first."}
     except Exception as e:
         logging.exception("Error generating user embedding")
         raise HTTPException(status_code=500, detail=str(e))
-
 
 @app.get("/api/jobs/match")
 async def match_jobs(
@@ -338,13 +339,7 @@ async def match_jobs(
         .all()
     )
 
-    return {
-        "status": 200,
-        "page": page,
-        "per_page": per_page,
-        "total": total_count,
-        "has_more": (page * per_page) < total_count,
-        "jobs": [
+    result_jobs = [
             {
                 "id": str(j.id),
                 "title": j.job_title,
@@ -354,7 +349,15 @@ async def match_jobs(
                 "similarity": round(float(sim), 3) if sim is not None else 0,
             }
             for j, sim in rows
-        ],
+        ]
+
+    return {
+        "status": 200,
+        "page": page,
+        "per_page": per_page,
+        "total": total_count,
+        "has_more": (page * per_page) < total_count,
+        "jobs": result_jobs,
     }
 
 @app.get("/api/jobs")
@@ -396,7 +399,7 @@ class SaveJobRecommendationsRequest(BaseModel):
     recommendations: list[JobRecommendationItem]
 
 
-@app.post("/users/{user_id}/job-recommendations")
+@app.post("/api/users/{user_id}/job-recommendations")
 async def save_user_job_recommendations(
     user_id: str,
     request: SaveJobRecommendationsRequest,
@@ -420,7 +423,7 @@ async def save_user_job_recommendations(
         raise HTTPException(status_code=500, detail=str(e))
 
 
-@app.get("/users/{user_id}/job-recommendations")
+@app.get("/api/users/{user_id}/job-recommendations")
 async def get_user_job_recommendations(
     user_id: str,
     limit: int | None = None,
@@ -437,6 +440,7 @@ async def get_user_job_recommendations(
     except Exception as e:
         logging.exception("Error retrieving job recommendations")
         raise HTTPException(status_code=500, detail=str(e))
+
 @app.post("/api/upload-jobs")
 async def upload_jobs(filename: str = Body(..., embed=True), background_tasks: BackgroundTasks = None):
     """Endpoint to upload job listings"""
