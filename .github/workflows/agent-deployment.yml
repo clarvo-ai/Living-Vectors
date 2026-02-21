@@ -25,5 +25,6 @@ jobs:
           LIVEKIT_URL: ${{ secrets.LIVEKIT_URL }}
           LIVEKIT_API_KEY: ${{ secrets.LIVEKIT_API_KEY }}
           LIVEKIT_API_SECRET: ${{ secrets.LIVEKIT_API_SECRET }}
+          ELEVENLABS_API_KEY: ${{ secrets.ELEVENLABS_API_KEY }}
           # The fix: Pass the KEY=VALUE pair directly into the SECRET_LIST string
-          SECRET_LIST: "GEMINI_API_KEY=${{ secrets.GEMINI_API_KEY }}"
+          SECRET_LIST: 'GEMINI_API_KEY=${{ secrets.GEMINI_API_KEY }}'
