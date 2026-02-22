@@ -2,6 +2,8 @@ import logging
 
 from livekit.agents import AgentTask, function_tool
 
+from tools import capture_user_insight
+
 logger = logging.getLogger("career-agent")
 
 
@@ -18,6 +20,11 @@ class OpeningTask(AgentTask[None]):
             warm, relaxed, and genuine, but focused and purposeful. Never stiff, never overly casual.
 
             Rules for this task:
+            - ⚠️ CRITICAL — HIGHEST PRIORITY: Whenever the candidate shares ANYTHING
+              relevant to their job search, you MUST call capture_user_insight immediately
+              with a concise insight string, before composing your reply. This is the most
+              important action in every phase — do not skip it. It doesn't need to relate
+              to this specific phase — capture everything.
             - Ask ONE question per turn. Wait for their answer before moving on.
             - Before asking the next question, react genuinely to what they said — like a real
               person would. A few natural sentences is fine. Think warmth, not efficiency.
@@ -38,10 +45,10 @@ class OpeningTask(AgentTask[None]):
               Do not say "great", "got it", "that's helpful", or anything else. Call the function
               silently — the next phase will handle the next response.
             """,
+            tools=[capture_user_insight],
         )
 
     async def on_enter(self) -> None:
-        logger.info("[TASK] Opening — greeting and discovery")
         await self.session.generate_reply(
             instructions="Warmly welcome the candidate and introduce yourself briefly as their career consultant. Keep it natural and friendly — like you're genuinely glad they're here. Then ask just ONE question: what brought them here today. Nothing else."
         )
@@ -65,6 +72,11 @@ class LogisticsTask(AgentTask[None]):
             - What is driving them to consider a change (the "push" factor)
 
             Rules:
+            - ⚠️ CRITICAL — HIGHEST PRIORITY: Whenever the candidate shares ANYTHING
+              relevant to their job search, you MUST call capture_user_insight immediately
+              with a concise insight string, before composing your reply. This is the most
+              important action in every phase — do not skip it. It doesn't need to relate
+              to this specific phase — capture everything.
             - Ask ONE question per turn. Wait for their answer before moving on.
             - React genuinely to what they say before moving to the next question — like a
               real person, not a form. A few natural sentences of smalltalk is encouraged.
@@ -80,6 +92,7 @@ class LogisticsTask(AgentTask[None]):
               verbal response before calling it. Do not say "great", "got it", "that's helpful",
               or anything else. Call the function silently — the next phase will handle the next response.
             """,
+            tools=[capture_user_insight],
         )
 
     async def on_enter(self) -> None:
@@ -108,6 +121,11 @@ class IndustryTask(AgentTask[None]):
             - If switching, what's drawing them to the new field
 
             Rules:
+            - ⚠️ CRITICAL — HIGHEST PRIORITY: Whenever the candidate shares ANYTHING
+              relevant to their job search, you MUST call capture_user_insight immediately
+              with a concise insight string, before composing your reply. This is the most
+              important action in every phase — do not skip it. It doesn't need to relate
+              to this specific phase — capture everything.
             - Ask ONE question per turn. Wait for their answer before moving on.
             - React genuinely to what they say before moving to the next question — like a
               real person, not a form. A few natural sentences of smalltalk is encouraged.
@@ -125,6 +143,7 @@ class IndustryTask(AgentTask[None]):
               "that's helpful", or anything else. Call the function silently — the next phase will
               handle the next response.
             """,
+            tools=[capture_user_insight],
         )
 
     async def on_enter(self) -> None:
@@ -154,6 +173,11 @@ class LocationTask(AgentTask[None]):
             Be practical — you need this to filter jobs accurately on their behalf.
 
             Rules:
+            - ⚠️ CRITICAL — HIGHEST PRIORITY: Whenever the candidate shares ANYTHING
+              relevant to their job search, you MUST call capture_user_insight immediately
+              with a concise insight string, before composing your reply. This is the most
+              important action in every phase — do not skip it. It doesn't need to relate
+              to this specific phase — capture everything.
             - Ask ONE question per turn. Wait for their answer before moving on.
             - React genuinely to what they say before moving to the next question — like a
               real person, not a form. A few natural sentences of smalltalk is encouraged.
@@ -170,6 +194,7 @@ class LocationTask(AgentTask[None]):
               calling it. Do not say "great", "got it", "that's helpful", or anything else.
               Call the function silently — the next phase will handle the next response.
             """,
+            tools=[capture_user_insight],
         )
 
     async def on_enter(self) -> None:
@@ -200,6 +225,11 @@ class BackgroundTask(AgentTask[None]):
             Be specific where they are specific. Speak their professional language, not generic corporate jargon.
 
             Rules:
+            - ⚠️ CRITICAL — HIGHEST PRIORITY: Whenever the candidate shares ANYTHING
+              relevant to their job search, you MUST call capture_user_insight immediately
+              with a concise insight string, before composing your reply. This is the most
+              important action in every phase — do not skip it. It doesn't need to relate
+              to this specific phase — capture everything.
             - Ask ONE question per turn. Wait for their answer before moving on.
             - React genuinely to what they say before moving to the next question — like a
               real person, not a form. A few natural sentences of smalltalk is encouraged.
@@ -216,6 +246,7 @@ class BackgroundTask(AgentTask[None]):
               verbal response before calling it. Do not say "great", "got it", "that's helpful",
               or anything else. Call the function silently — the next phase will handle the next response.
             """,
+            tools=[capture_user_insight],
         )
 
     async def on_enter(self) -> None:
@@ -243,6 +274,11 @@ class CultureTask(AgentTask[None]):
             Reference earlier answers where relevant to avoid repetition.
 
             Rules:
+            - ⚠️ CRITICAL — HIGHEST PRIORITY: Whenever the candidate shares ANYTHING
+              relevant to their job search, you MUST call capture_user_insight immediately
+              with a concise insight string, before composing your reply. This is the most
+              important action in every phase — do not skip it. It doesn't need to relate
+              to this specific phase — capture everything.
             - Ask ONE question per turn. Wait for their answer before moving on.
             - React genuinely to what they say before moving to the next question — like a
               real person, not a form. A few natural sentences of smalltalk is encouraged.
@@ -259,6 +295,7 @@ class CultureTask(AgentTask[None]):
               calling it. Do not say "great", "got it", "that's helpful", or anything else.
               Call the function silently — the next phase will handle the next response.
             """,
+            tools=[capture_user_insight],
         )
 
     async def on_enter(self) -> None:
@@ -286,6 +323,11 @@ class ValueVisionTask(AgentTask[None]):
             Be warm and direct. Frame this as you working on their behalf, not an interrogation.
 
             Rules:
+            - ⚠️ CRITICAL — HIGHEST PRIORITY: Whenever the candidate shares ANYTHING
+              relevant to their job search, you MUST call capture_user_insight immediately
+              with a concise insight string, before composing your reply. This is the most
+              important action in every phase — do not skip it. It doesn't need to relate
+              to this specific phase — capture everything.
             - Ask ONE question per turn. Wait for their answer before moving on.
             - React genuinely to what they say before moving to the next question — like a
               real person, not a form. A few natural sentences of smalltalk is encouraged.
@@ -302,6 +344,7 @@ class ValueVisionTask(AgentTask[None]):
               before calling it. Do not say "great", "got it", "that's helpful", or anything else.
               Call the function silently — the next phase will handle the next response.
             """,
+            tools=[capture_user_insight],
         )
 
     async def on_enter(self) -> None:
@@ -330,6 +373,7 @@ class AlignmentTask(AgentTask[None]):
               and that you will use this to match them with the best opportunities
             Call alignment_complete once they have confirmed and you have said goodbye.
             """,
+            tools=[capture_user_insight],
         )
 
     async def on_enter(self) -> None:

@@ -9,6 +9,7 @@ from livekit.agents.beta.workflows import TaskGroup
 from livekit.plugins import elevenlabs, google, silero
 from livekit.plugins.elevenlabs import TTS, VoiceSettings
 
+from tools import capture_user_insight
 from tasks import (
     OpeningTask,
     LogisticsTask,
@@ -46,7 +47,9 @@ class CareerAssistant(Agent):
             You are on their side. Make them feel heard.
             Speak conversationally. Reference earlier answers to avoid repeating questions.
             Be concise — this is a voice conversation, not a written form.
+            Use the capture_user_insight tool to generate insights for the user based on their responses to the career conversation questions.
             """,
+            tools=[capture_user_insight],
         )
 
     async def on_enter(self) -> None:
