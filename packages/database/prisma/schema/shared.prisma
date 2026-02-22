@@ -99,8 +99,6 @@ model ConversationMessage {
   questionContext Json?         @db.JsonB
   createdAt       DateTime      @default(now())
   user            User          @relation(fields: [userId], references: [id])
-  learnedFrom     Boolean       @default(false)
-  learnings       Learning[]
 
   @@index([userId])
 }
@@ -109,10 +107,11 @@ model Learning {
   id        String                @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
   userId    String                @db.Uuid
   summary   String
+  embedding Unsupported("vector(768)")
   createdAt DateTime              @default(now())
   updatedAt DateTime              @updatedAt
   user      User                  @relation(fields: [userId], references: [id])
-  messages  ConversationMessage[]
+  messages  String[]
 
   @@index([userId])
 }

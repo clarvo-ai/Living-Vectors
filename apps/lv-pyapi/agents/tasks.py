@@ -25,6 +25,11 @@ class OpeningTask(AgentTask[None]):
               with a concise insight string, before composing your reply. This is the most
               important action in every phase — do not skip it. It doesn't need to relate
               to this specific phase — capture everything.
+              EXCEPTION: if the new information appears to contradict something you already
+              learned earlier in this conversation (e.g. they said remote earlier but now
+              say on-site), do NOT call capture_user_insight yet — instead ask the user
+              to clarify, then call it once you have the confirmed answer. When you do,
+              pass the old (wrong) insight text as the `replaces` argument so it is removed.
             - Ask ONE question per turn. Wait for their answer before moving on.
             - Before asking the next question, react genuinely to what they said — like a real
               person would. A few natural sentences is fine. Think warmth, not efficiency.
@@ -77,6 +82,11 @@ class LogisticsTask(AgentTask[None]):
               with a concise insight string, before composing your reply. This is the most
               important action in every phase — do not skip it. It doesn't need to relate
               to this specific phase — capture everything.
+              EXCEPTION: if the new information appears to contradict something you already
+              learned earlier in this conversation (e.g. they said remote earlier but now
+              say on-site), do NOT call capture_user_insight yet — instead ask the user
+              to clarify, then call it once you have the confirmed answer. When you do,
+              pass the old (wrong) insight text as the `replaces` argument so it is removed.
             - Ask ONE question per turn. Wait for their answer before moving on.
             - React genuinely to what they say before moving to the next question — like a
               real person, not a form. A few natural sentences of smalltalk is encouraged.
@@ -126,6 +136,11 @@ class IndustryTask(AgentTask[None]):
               with a concise insight string, before composing your reply. This is the most
               important action in every phase — do not skip it. It doesn't need to relate
               to this specific phase — capture everything.
+              EXCEPTION: if the new information appears to contradict something you already
+              learned earlier in this conversation (e.g. they said remote earlier but now
+              say on-site), do NOT call capture_user_insight yet — instead ask the user
+              to clarify, then call it once you have the confirmed answer. When you do,
+              pass the old (wrong) insight text as the `replaces` argument so it is removed.
             - Ask ONE question per turn. Wait for their answer before moving on.
             - React genuinely to what they say before moving to the next question — like a
               real person, not a form. A few natural sentences of smalltalk is encouraged.
@@ -178,6 +193,11 @@ class LocationTask(AgentTask[None]):
               with a concise insight string, before composing your reply. This is the most
               important action in every phase — do not skip it. It doesn't need to relate
               to this specific phase — capture everything.
+              EXCEPTION: if the new information appears to contradict something you already
+              learned earlier in this conversation (e.g. they said remote earlier but now
+              say on-site), do NOT call capture_user_insight yet — instead ask the user
+              to clarify, then call it once you have the confirmed answer. When you do,
+              pass the old (wrong) insight text as the `replaces` argument so it is removed.
             - Ask ONE question per turn. Wait for their answer before moving on.
             - React genuinely to what they say before moving to the next question — like a
               real person, not a form. A few natural sentences of smalltalk is encouraged.
@@ -230,6 +250,11 @@ class BackgroundTask(AgentTask[None]):
               with a concise insight string, before composing your reply. This is the most
               important action in every phase — do not skip it. It doesn't need to relate
               to this specific phase — capture everything.
+              EXCEPTION: if the new information appears to contradict something you already
+              learned earlier in this conversation (e.g. they said remote earlier but now
+              say on-site), do NOT call capture_user_insight yet — instead ask the user
+              to clarify, then call it once you have the confirmed answer. When you do,
+              pass the old (wrong) insight text as the `replaces` argument so it is removed.
             - Ask ONE question per turn. Wait for their answer before moving on.
             - React genuinely to what they say before moving to the next question — like a
               real person, not a form. A few natural sentences of smalltalk is encouraged.
@@ -279,6 +304,11 @@ class CultureTask(AgentTask[None]):
               with a concise insight string, before composing your reply. This is the most
               important action in every phase — do not skip it. It doesn't need to relate
               to this specific phase — capture everything.
+              EXCEPTION: if the new information appears to contradict something you already
+              learned earlier in this conversation (e.g. they said remote earlier but now
+              say on-site), do NOT call capture_user_insight yet — instead ask the user
+              to clarify, then call it once you have the confirmed answer. When you do,
+              pass the old (wrong) insight text as the `replaces` argument so it is removed.
             - Ask ONE question per turn. Wait for their answer before moving on.
             - React genuinely to what they say before moving to the next question — like a
               real person, not a form. A few natural sentences of smalltalk is encouraged.
@@ -328,6 +358,11 @@ class ValueVisionTask(AgentTask[None]):
               with a concise insight string, before composing your reply. This is the most
               important action in every phase — do not skip it. It doesn't need to relate
               to this specific phase — capture everything.
+              EXCEPTION: if the new information appears to contradict something you already
+              learned earlier in this conversation (e.g. they said remote earlier but now
+              say on-site), do NOT call capture_user_insight yet — instead ask the user
+              to clarify, then call it once you have the confirmed answer. When you do,
+              pass the old (wrong) insight text as the `replaces` argument so it is removed.
             - Ask ONE question per turn. Wait for their answer before moving on.
             - React genuinely to what they say before moving to the next question — like a
               real person, not a form. A few natural sentences of smalltalk is encouraged.

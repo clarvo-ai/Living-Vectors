@@ -40,3 +40,15 @@ def get_embedding(text: str) -> List[float]:
     # Extract embedding from response
     # result.embeddings is a list, we take the first one
     return result.embeddings[0].values
+
+def get_embedding_768(text: str) -> List[float]:
+    if not text or not text.strip():
+        raise ValueError("Text cannot be empty")
+    
+    result = client.models.embed_content(
+        model=EMBEDDING_MODEL,
+        contents=text,
+        config={"output_dimensionality": 768}
+    )
+    
+    return result.embeddings[0].values

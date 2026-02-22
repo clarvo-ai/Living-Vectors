@@ -9,7 +9,7 @@ from livekit.agents.beta.workflows import TaskGroup
 from livekit.plugins import elevenlabs, google, silero
 from livekit.plugins.elevenlabs import TTS, VoiceSettings
 
-from tools import capture_user_insight
+from tools import capture_user_insight, set_user_id
 from tasks import (
     OpeningTask,
     LogisticsTask,
@@ -93,6 +93,10 @@ async def my_agent(ctx: agents.JobContext):
         tts = liam_tts,
         allow_interruptions=True,
     )
+
+    user_id = ctx.room.name.removeprefix("interview-")
+    set_user_id(user_id)
+    logger.info(f"Session user: {user_id}")
 
     await session.start(
         room=ctx.room,
