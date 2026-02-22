@@ -1,0 +1,30 @@
+name: Deploy LiveKit Agent
+
+on:
+  pull_request:
+    types:
+      - closed
+    branches:
+      - dev
+  workflow_dispatch:
+
+jobs:
+  deploy:
+    if: github.event_name != 'pull_request' || github.event.pull_request.merged == true
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Deploy to LiveKit Cloud
+        uses: livekit/deploy-action@v2.12.1
+        with:
+          OPERATION: 'deploy'
+          WORKING_DIRECTORY: 'apps/lv-pyapi/agents'
+        env:
+          LIVEKIT_URL: ${{ secrets.LIVEKIT_URL }}
+          LIVEKIT_API_KEY: ${{ secrets.LIVEKIT_API_KEY }}
+          LIVEKIT_API_SECRET: ${{ secrets.LIVEKIT_API_SECRET }}
+          ELEVENLABS_API_KEY: ${{ secrets.ELEVENLABS_API_KEY }}
+          # The fix: Pass the KEY=VALUE pair directly into the SECRET_LIST string
+          SECRET_LIST: 'GEMINI_API_KEY=${{ secrets.GEMINI_API_KEY }}'

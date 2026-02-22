@@ -123,3 +123,6 @@ local/
 # Ignored workspace files
 0.code-workspace
 local.code-workspace
+
+#Agent configuration
+.vscode/mcp.json
