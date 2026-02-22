@@ -311,12 +311,11 @@ export function JobDetailView({ job, onClose }: JobDetailViewProps) {
             )}
 
             {/* Source Link */}
-            {(job.apply_link || job.source_url) && (
+            {job.source_url && (
               <div className="pt-4 text-center pb-4">
                 <button
                   onClick={() => {
-                    const url = job.apply_link || job.source_url;
-                    if (url) window.open(url, '_blank', 'noopener,noreferrer');
+                    if (job.source_url) window.open(job.source_url, '_blank', 'noopener,noreferrer');
                   }}
                   className="inline-flex items-center gap-1.5 text-sm text-gray-500 hover:text-blue-600 transition-colors"
                 >
