@@ -136,7 +136,7 @@ def generate_missing_embeddings():
                 try:
                     results[job_id] = future.result()
                 except Exception:
-                    logging.exception(f"Failed embedding for job {job_id}")
+                    logging.exception(f"Failed embedding for job in generate_missing_embeddings")
 
         # Apply all results and commit once
         for job in jobs:
