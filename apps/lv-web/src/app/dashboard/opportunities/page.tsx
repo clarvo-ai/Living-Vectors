@@ -1,8 +1,8 @@
 'use client';
 
-import { getAllJobs, getJobRecommendations, triggerJobRecommendations } from '@/lib/services/pyapi';
+import { getMatchedJobs } from '@/lib/services/pyapi';
 import { Job } from '@/types/job';
-import { Dialog, DialogContent } from '@repo/ui/components/dialog';
+import { Dialog, DialogContent, DialogTitle } from '@repo/ui/components/dialog';
 import { Sparkles } from 'lucide-react';
 import { useSession } from 'next-auth/react';
 import { useRouter } from 'next/navigation';
@@ -13,7 +13,6 @@ export default function OpportunitiesPage() {
   const { data: session, status } = useSession();
   const router = useRouter();
   const [jobs, setJobs] = useState<Job[]>([]);
-  const [isFallbackToAllJobs, setIsFallbackToAllJobs] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
   const [isGenerating, setIsGenerating] = useState(false);
   const [selectedJob, setSelectedJob] = useState<Job | null>(null);
@@ -34,28 +33,23 @@ export default function OpportunitiesPage() {
     setError(null);
 
     try {
-      const recommendationsResponse = await getJobRecommendations(session.user.id);
-
-      if (recommendationsResponse.jobs.length > 0) {
-        setJobs(recommendationsResponse.jobs);
-        setIsFallbackToAllJobs(false);
-      } else {
-        const allJobsResponse = await getAllJobs();
-        setJobs(allJobsResponse.jobs);
-        setIsFallbackToAllJobs(true);
-      }
-    } catch (err) {
-      console.error('Error fetching job recommendations:', err);
-
+      // Primary: pyapi vector-similarity matches
       try {
-        const allJobsResponse = await getAllJobs();
-        setJobs(allJobsResponse.jobs);
-        setIsFallbackToAllJobs(true);
-      } catch (allJobsError) {
-        console.error('Error fetching all jobs:', allJobsError);
-        setError('Failed to load opportunities');
-        setJobs([]);
+        const matchResponse = await getMatchedJobs(session.user.id);
+        if (matchResponse.jobs.length > 0) {
+          setJobs(matchResponse.jobs);
+          return;
+        }
+      } catch {
+        // No embedding yet
       }
+
+      // No recommendations found — show empty state
+      setJobs([]);
+    } catch (err) {
+      console.error('Error fetching recommendations:', err);
+      setError('Failed to load opportunities');
+      setJobs([]);
     } finally {
       setIsLoading(false);
     }
@@ -75,27 +69,11 @@ export default function OpportunitiesPage() {
     setError(null);
 
     try {
-      const response = await triggerJobRecommendations(session.user.id);
-
-      if (response.jobs.length > 0) {
-        setJobs(response.jobs);
-        setIsFallbackToAllJobs(false);
-      } else {
-        const allJobsResponse = await getAllJobs();
-        setJobs(allJobsResponse.jobs);
-        setIsFallbackToAllJobs(true);
-      }
+      const response = await getMatchedJobs(session.user.id);
+      setJobs(response.jobs);
     } catch (err) {
-      console.error('Error generating job recommendations:', err);
-
-      try {
-        const allJobsResponse = await getAllJobs();
-        setJobs(allJobsResponse.jobs);
-        setIsFallbackToAllJobs(true);
-      } catch (allJobsError) {
-        console.error('Error fetching all jobs:', allJobsError);
-        setError('Failed to load opportunities');
-      }
+      console.error('Error fetching matched jobs:', err);
+      setError('Failed to generate recommendations');
     } finally {
       setIsGenerating(false);
     }
@@ -130,15 +108,13 @@ export default function OpportunitiesPage() {
         {/* Header Section */}
         <div className="mb-8">
           <div className="flex items-center gap-3 mb-2">
-            <div className="p-2 rounded-lg bg-gradient-to-br from-blue-500 to-purple-600 shadow-lg shadow-blue-500/25">
-              <Sparkles className="w-5 h-5 text-white" />
+            <div className="p-2 rounded-lg bg-white border border-gray-200">
+              <Sparkles className="w-5 h-5 text-gray-900" />
             </div>
             <h1 className="text-2xl font-bold text-gray-900">Recommended for You</h1>
           </div>
           <p className="text-gray-600 ml-12">
-            {isFallbackToAllJobs
-              ? 'Showing all active jobs because no personal recommendations are available yet'
-              : 'Jobs matched to your skills and preferences based on your profile'}
+            Jobs matched to your skills and preferences based on your profile
           </p>
         </div>
 
@@ -168,6 +144,7 @@ export default function OpportunitiesPage() {
         {/* Job Detail Modal */}
         <Dialog open={!!selectedJob} onOpenChange={() => handleCloseDetail()}>
           <DialogContent className="max-w-4xl p-0 bg-transparent border-0 shadow-none [&>button]:hidden">
+            <DialogTitle className="sr-only">Job Details</DialogTitle>
             {selectedJob && <JobDetailView job={selectedJob} onClose={handleCloseDetail} />}
           </DialogContent>
         </Dialog>

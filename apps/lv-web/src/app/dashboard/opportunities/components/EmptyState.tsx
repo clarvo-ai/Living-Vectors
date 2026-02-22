@@ -14,17 +14,8 @@ export function EmptyState({ onRetry, isLoading }: EmptyStateProps) {
 
   return (
     <div className="flex flex-col items-center justify-center min-h-[60vh] px-6 py-12">
-      <div className="relative mb-8">
-        {/* Animated background circles */}
-        <div className="absolute inset-0 flex items-center justify-center">
-          <div className="w-32 h-32 rounded-full bg-gradient-to-r from-blue-500/20 to-purple-500/20 animate-pulse" />
-        </div>
-        <div className="absolute inset-0 flex items-center justify-center">
-          <div className="w-24 h-24 rounded-full bg-gradient-to-r from-purple-500/30 to-pink-500/30 animate-pulse delay-75" />
-        </div>
-
-        {/* Icon */}
-        <div className="relative z-10 w-20 h-20 rounded-2xl bg-gradient-to-br from-gray-100 to-gray-200 flex items-center justify-center shadow-lg">
+      <div className="mb-8">
+        <div className="w-20 h-20 rounded-2xl bg-gray-100 flex items-center justify-center">
           <Briefcase className="w-10 h-10 text-gray-400" />
         </div>
       </div>
@@ -34,8 +25,8 @@ export function EmptyState({ onRetry, isLoading }: EmptyStateProps) {
       </h2>
 
       <p className="text-gray-600 text-center max-w-md mb-8 leading-relaxed">
-        We don&apos;t have any job recommendations for you at the moment. Complete your profile or
-        have a conversation with our AI to help us understand your preferences better.
+        We don&apos;t have any job recommendations for you at the moment. Have a conversation with
+        our AI to help us understand your preferences better.
       </p>
 
       <div className="flex flex-col sm:flex-row gap-3 w-full max-w-md">

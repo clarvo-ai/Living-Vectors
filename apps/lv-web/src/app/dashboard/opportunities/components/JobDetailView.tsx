@@ -13,12 +13,12 @@ import {
   CircleDollarSign,
   ExternalLink,
   FileText,
+  Gift,
   HeartHandshake,
   Languages,
   Layers,
   MapPin,
   ScrollText,
-  Sparkles,
   Target,
   X,
 } from 'lucide-react';
@@ -84,7 +84,6 @@ function JobSalary({ job }: { job: Job }) {
             variant="outline"
             className="ml-2 text-xs bg-violet-50 text-violet-700 border-violet-200"
           >
-            <Sparkles className="h-3 w-3 mr-1" />
             Estimate
           </Badge>
         )}
@@ -263,7 +262,7 @@ export function JobDetailView({ job, onClose }: JobDetailViewProps) {
             {job.deprecated_perks && job.deprecated_perks.length > 0 && (
               <div className="space-y-3">
                 <div className="flex items-center gap-2">
-                  <Sparkles className="h-4 w-4 text-teal-500" />
+                  <Gift className="h-4 w-4 text-teal-500" />
                   <h3 className="font-semibold text-gray-900">Perks & Benefits</h3>
                 </div>
                 <ul className="list-disc list-inside space-y-2 text-gray-600 text-sm pl-4">
