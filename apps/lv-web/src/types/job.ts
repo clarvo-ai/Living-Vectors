@@ -31,6 +31,7 @@ export interface Job {
   source_url?: string | null;
   posted_at?: string | null;
   expires_at?: string | null;
+  summer_job_internship?: boolean | null;
 }
 
 export interface JobRecommendationsResponse {
@@ -61,6 +62,8 @@ export const displayMaps = {
     temporary: 'Temporary',
     contract: 'Contract',
     freelance: 'Freelance',
+    'fixed-term': 'Fixed-term',
+    'self-employed': 'Self-employed',
   } as Record<string, string>,
   job_level: {
     junior: 'Junior',
@@ -74,5 +77,6 @@ export const displayMaps = {
     director: 'Director',
     vp: 'VP',
     'c-level': 'C-Level',
+    entry: 'Entry',
   } as Record<string, string>,
 };

@@ -118,9 +118,14 @@ export function JobDetailView({ job, onClose }: JobDetailViewProps) {
                   {job.role_industry}
                 </Badge>
               )}
+              {job.summer_job_internship && (
+                <Badge variant="secondary" className="bg-amber-50 text-amber-700 border-amber-300">
+                  ☀️ Summer Internship
+                </Badge>
+              )}
             </div>
 
-            {/* Company, Industry, Location, Work Mode */}
+            {/* Company, Industry, Location, Work Mode, Dates */}
             <div className="flex flex-wrap items-center gap-x-4 gap-y-2">
               <div className="flex items-center gap-2 text-gray-600">
                 <Building2 className="h-4 w-4 shrink-0" />
@@ -142,6 +147,32 @@ export function JobDetailView({ job, onClose }: JobDetailViewProps) {
                   <span className="text-sm">{formatWorkingMode(job.working_mode)}</span>
                 </div>
               )}
+              {job.posted_at && (
+                <div className="flex items-center gap-2 text-gray-600">
+                  <Calendar className="h-4 w-4" />
+                  <span className="text-sm">
+                    Published{' '}
+                    {new Date(job.posted_at).toLocaleDateString(undefined, {
+                      year: 'numeric',
+                      month: 'short',
+                      day: 'numeric',
+                    })}
+                  </span>
+                </div>
+              )}
+              {job.expires_at && (
+                <div className="flex items-center gap-2 text-gray-600">
+                  <Calendar className="h-4 w-4" />
+                  <span className="text-sm">
+                    Apply by{' '}
+                    {new Date(job.expires_at).toLocaleDateString(undefined, {
+                      year: 'numeric',
+                      month: 'short',
+                      day: 'numeric',
+                    })}
+                  </span>
+                </div>
+              )}
             </div>
 
             {/* Employment Type, Contract, Level, Salary */}
@@ -149,7 +180,6 @@ export function JobDetailView({ job, onClose }: JobDetailViewProps) {
               {job.employment_type && (
                 <div className="flex items-center gap-2">
                   <Calendar className="h-4 w-4" />
-
                   <span>{formatEmploymentType(job.employment_type)}</span>
                 </div>
               )}
@@ -315,7 +345,8 @@ export function JobDetailView({ job, onClose }: JobDetailViewProps) {
               <div className="pt-4 text-center pb-4">
                 <button
                   onClick={() => {
-                    if (job.source_url) window.open(job.source_url, '_blank', 'noopener,noreferrer');
+                    if (job.source_url)
+                      window.open(job.source_url, '_blank', 'noopener,noreferrer');
                   }}
                   className="inline-flex items-center gap-1.5 text-sm text-gray-500 hover:text-blue-600 transition-colors"
                 >

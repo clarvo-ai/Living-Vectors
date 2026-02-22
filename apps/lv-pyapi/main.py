@@ -372,6 +372,7 @@ async def match_jobs(
                 "source_url": j.source_url,
                 "posted_at": j.published_date.isoformat() if j.published_date else None,
                 "expires_at": j.last_day_to_apply.isoformat() if j.last_day_to_apply else None,
+                "summer_job_internship": j.summer_job_internship,
                 "similarity": round(float(sim), 3) if sim is not None else 0,
             }
             for j, sim in rows
