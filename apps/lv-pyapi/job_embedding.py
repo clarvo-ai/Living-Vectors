@@ -114,6 +114,8 @@ def generate_job_embedding(job_id: str, db: Session) -> Job:
 
 def generate_missing_embeddings():
     """Background task: generate embeddings for all jobs missing one."""
+    from concurrent.futures import ThreadPoolExecutor, as_completed
+
     db = SessionLocal()
     try:
         jobs = db.query(Job).filter(Job.job_embedding.is_(None)).all()
@@ -121,11 +123,29 @@ def generate_missing_embeddings():
             logging.info("No jobs missing embeddings.")
             return
 
-        for job in jobs:
-            generate_job_embedding(str(job.id), db)
+        logging.info(f"Generating embeddings for {len(jobs)} jobs concurrently...")
 
-        logging.info(f"Generated embeddings for {len(jobs)} jobs")
-    except Exception as e:
+        # Build texts up front (no I/O), then fire Gemini calls in parallel
+        texts = {job.id: _build_job_text(job) for job in jobs}
+
+        results: dict = {}
+        with ThreadPoolExecutor(max_workers=10) as pool:
+            future_to_id = {pool.submit(get_embedding, text): job_id for job_id, text in texts.items()}
+            for future in as_completed(future_to_id):
+                job_id = future_to_id[future]
+                try:
+                    results[job_id] = future.result()
+                except Exception:
+                    logging.exception(f"Failed embedding for job {job_id}")
+
+        # Apply all results and commit once
+        for job in jobs:
+            if job.id in results:
+                job.job_embedding = results[job.id]
+        db.commit()
+
+        logging.info(f"Generated embeddings for {len(results)}/{len(jobs)} jobs")
+    except Exception:
         db.rollback()
         logging.exception("Error generating missing job embeddings")
     finally:
