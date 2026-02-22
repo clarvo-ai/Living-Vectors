@@ -9,7 +9,7 @@ from livekit.agents.beta.workflows import TaskGroup
 from livekit.plugins import elevenlabs, google, silero
 from livekit.plugins.elevenlabs import TTS, VoiceSettings
 
-from tools import capture_user_insight, set_user_id
+from tools import set_user_id
 from tasks import (
     OpeningTask,
     LogisticsTask,
@@ -47,9 +47,8 @@ class CareerAssistant(Agent):
             You are on their side. Make them feel heard.
             Speak conversationally. Reference earlier answers to avoid repeating questions.
             Be concise — this is a voice conversation, not a written form.
-            Use the capture_user_insight tool to generate insights for the user based on their responses to the career conversation questions.
             """,
-            tools=[capture_user_insight],
+            tools=[],
         )
 
     async def on_enter(self) -> None:
@@ -78,10 +77,10 @@ async def my_agent(ctx: agents.JobContext):
         voice_id="TX3LPaxmHKxFdv7VOQHJ",
         model="eleven_multilingual_v2",
         voice_settings=VoiceSettings(
-        stability=0.25,           # Slight bump for consistency
-        similarity_boost=0.6,     # High "Roger-ness"
-        style=0.2,                # 0.0 is best for low-latency
-        use_speaker_boost=True    # Clearer vocal presence
+            stability=0.25,           # Slight bump for consistency
+            similarity_boost=0.6,     # High "Roger-ness"
+            style=0.2,                # 0.0 is best for low-latency
+            use_speaker_boost=True    # Clearer vocal presence
         )
     )
 
@@ -89,11 +88,11 @@ async def my_agent(ctx: agents.JobContext):
     session = AgentSession(
         vad=ctx.proc.userdata["vad"],
         stt=elevenlabs.STT(api_key=ELEVENLABS_API_KEY),
-        llm=google.LLM(model="gemini-2.0-flash", api_key=GOOGLE_API_KEY),
+        llm=google.LLM(model="gemini-2.5-flash", api_key=GOOGLE_API_KEY),
         tts = liam_tts,
         allow_interruptions=True,
     )
-
+    
     user_id = ctx.room.name.removeprefix("interview-")
     set_user_id(user_id)
     logger.info(f"Session user: {user_id}")

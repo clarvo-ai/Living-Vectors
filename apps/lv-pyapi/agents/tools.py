@@ -1,5 +1,6 @@
 import logging
 import contextvars
+import asyncio
 
 from livekit.agents import function_tool
 from embedding_service import get_embedding_768
@@ -19,13 +20,12 @@ def set_user_id(user_id: str) -> None:
 
 @function_tool
 async def capture_user_insight(insight: str, replaces: str = ""):
-    """Call this immediately whenever the candidate reveals something meaningful — a goal, a preference,
-    a constraint, a motivation, or anything worth remembering. Pass a short, specific insight string
+    """Call this tool whenever the candidate reveals something meaningful — a goal, a preference,
+    a constraint, a motivation, or anything worth remembering in terms of their job search. Pass a short, specific insight string
     (e.g. 'Wants to move into product management', 'Prefers remote work', 'Open to relocating to Berlin').
     Call it as many times as needed throughout the conversation — once per new piece of information.
     If this insight corrects or replaces something you captured earlier, pass the old insight text
     in `replaces` so it can be removed before saving the new one.
-    THIS TOOL IS FOR SAVING THE USER'S INSIGHTS TO THE DATABASE.
     """
     logger.info(f"[INSIGHT] {insight}" + (f" (replaces: '{replaces}')" if replaces else ""))
 
@@ -47,8 +47,9 @@ async def capture_user_insight(insight: str, replaces: str = ""):
 
     db.add(Learning(userId=user_id, embedding=embedding, summary=insight, createdAt=datetime.utcnow(), updatedAt=datetime.utcnow()))
     db.commit()
+
     db.close()
 
-    return "Insight captured."
+    return f"Insight '{insight}' captured."
 
 
