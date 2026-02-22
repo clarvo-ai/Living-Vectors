@@ -1,6 +1,5 @@
 import os
 import uuid
-import json
 import pytest
 from datetime import datetime
 from unittest.mock import patch
@@ -30,11 +29,6 @@ JOB_VEC_MID   = [0.7] + [0.7] + [0.0] * (DIM - 2)  # cosine sim ≈ 0.7
 JOB_VEC_FAR   = [0.0] + [1.0] + [0.0] * (DIM - 2)  # cosine sim ≈ 0.0
 
 
-def _vec_to_pgtext(vec: list) -> str:
-    """Format a Python list as a pgvector literal string."""
-    return "[" + ",".join(str(float(v)) for v in vec) + "]"
-
-
 @pytest.fixture
 def db_session():
     engine = create_engine(TEST_DATABASE_URL)
@@ -60,7 +54,7 @@ def create_test_user(db: Session) -> User:
 def create_user_embedding(db: Session, user_id: str, vec: list) -> UserEmbedding:
     emb = UserEmbedding(
         userId=user_id,
-        embedding=json.dumps(vec),
+        embedding=vec,
         updatedAt=datetime.now(),
     )
     db.add(emb)
@@ -82,7 +76,7 @@ def create_test_job(db: Session, vec: list | None = None) -> Job:
         source="test",
         summer_job_internship=False,
         updated_at=datetime.now(),
-        job_embedding=_vec_to_pgtext(vec) if vec is not None else None,
+        job_embedding=vec,
     )
     db.add(job)
     db.commit()

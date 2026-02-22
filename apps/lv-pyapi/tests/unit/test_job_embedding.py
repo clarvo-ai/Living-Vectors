@@ -1,6 +1,5 @@
 import os
 import uuid
-import json
 import pytest
 from datetime import datetime
 from unittest.mock import patch
@@ -72,9 +71,7 @@ def create_test_job(
 
 
 def parse_embedding(value) -> list:
-    """Normalize embedding from DB (may be a string or list) to a list of floats."""
-    if isinstance(value, str):
-        return json.loads(value)
+    """Normalize embedding from DB to a list of Python floats."""
     return list(value)
 
 
@@ -87,7 +84,7 @@ def test_generate_job_embedding_creates_embedding(mock_embed, db_session: Sessio
 
     assert result is not None
     assert str(result.id) == str(job.id)
-    assert parse_embedding(result.job_embedding) == FAKE_EMBEDDING
+    assert parse_embedding(result.job_embedding) == pytest.approx(FAKE_EMBEDDING, rel=1e-5)
     mock_embed.assert_called_once()
 
 
@@ -152,11 +149,11 @@ def test_generate_job_embedding_overwrites_existing(mock_embed, db_session: Sess
     job = create_test_job(db_session)
 
     first = generate_job_embedding(str(job.id), db_session)
-    assert parse_embedding(first.job_embedding) == FAKE_EMBEDDING
+    assert parse_embedding(first.job_embedding) == pytest.approx(FAKE_EMBEDDING, rel=1e-5)
 
     mock_embed.return_value = UPDATED_EMBEDDING
     second = generate_job_embedding(str(job.id), db_session)
 
     assert str(second.id) == str(first.id)
-    assert parse_embedding(second.job_embedding) == UPDATED_EMBEDDING
+    assert parse_embedding(second.job_embedding) == pytest.approx(UPDATED_EMBEDDING, rel=1e-5)
     assert mock_embed.call_count == 2
