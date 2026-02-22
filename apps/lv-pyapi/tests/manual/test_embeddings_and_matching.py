@@ -202,7 +202,8 @@ def test_job_matching(user_id: str):
             for i, job in enumerate(jobs, 1):
                 sim = job.get('similarity', 0)
                 bar = '█' * int(sim * 10) + '░' * (10 - int(sim * 10))
-                title = job['title'][:35] + "..." if len(job['title']) > 35 else job['title']
+                title = job.get('job_title', job.get('title', 'N/A'))
+                title = title[:35] + "..." if len(title) > 35 else title
                 print(f"   {i:4} | {bar} {sim:.1%} | {title}")
             
             # Verify ordering (should be descending by similarity)
@@ -249,8 +250,8 @@ def test_pagination(user_id: str):
             data1 = resp1.json()
             data2 = resp2.json()
             
-            jobs1 = [j['id'] for j in data1.get('jobs', [])]
-            jobs2 = [j['id'] for j in data2.get('jobs', [])]
+            jobs1 = [j.get('id') for j in data1.get('jobs', [])]
+            jobs2 = [j.get('id') for j in data2.get('jobs', [])]
             
             # Check no overlap
             overlap = set(jobs1) & set(jobs2)
