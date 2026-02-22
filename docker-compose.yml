@@ -282,7 +282,7 @@ services:
       - GOOGLE_APPLICATION_CREDENTIALS=/app/apps/lv-pyapi/credentials/google-credentials.json
     volumes:
       - .:/app
-    command: pytest tests --asyncio-mode=auto
+    command: pytest tests --ignore=tests/manual --asyncio-mode=auto
 
   livekit:
     profiles: ['lv-web', 'livekit']

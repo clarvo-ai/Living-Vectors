@@ -25,6 +25,7 @@ model User {
   Authenticator Authenticator[]
   messages      ConversationMessage[]
   learnings     Learning[]
+  userEmbedding UserEmbedding?
   jobRecommendations JobRecommendation[]
 
   @@index([id])
@@ -91,15 +92,15 @@ model Authenticator {
 }
 
 model ConversationMessage {
-  messageId String        @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
-  userId    String        @db.Uuid
-  sender    MessageSender
-  content   String
-  questionContext Json?   @db.JsonB
-  createdAt DateTime      @default(now())
-  user      User          @relation(fields: [userId], references: [id])
-  learnedFrom Boolean     @default(false)
-  learnings Learning[]
+  messageId       String        @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  userId          String        @db.Uuid
+  sender          MessageSender
+  content         String
+  questionContext Json?         @db.JsonB
+  createdAt       DateTime      @default(now())
+  user            User          @relation(fields: [userId], references: [id])
+  learnedFrom     Boolean       @default(false)
+  learnings       Learning[]
 
   @@index([userId])
 }
@@ -116,6 +117,16 @@ model Learning {
   @@index([userId])
 }
 
+model UserEmbedding {
+  id        String                      @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  userId    String                      @unique @db.Uuid
+  embedding Unsupported("vector(1536)")
+  updatedAt DateTime                    @updatedAt
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+}
 model JobRecommendation {
   id        String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
   userId    String   @db.Uuid
