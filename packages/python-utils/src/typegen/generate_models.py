@@ -29,12 +29,16 @@ class Vector(TypeDecorator):
     def process_bind_param(self, value, dialect):
         if value is None:
             return None
+        if isinstance(value, (list, tuple)):
+            return '[' + ','.join(str(v) for v in value) + ']'
         return str(value)
 
     def process_result_value(self, value, dialect):
         if value is None:
             return None
-        return value
+        if isinstance(value, list):
+            return value
+        return [float(x) for x in str(value).strip('[]').split(',')]
 
 class Base(DeclarativeBase):
     pass
@@ -274,34 +278,40 @@ def generate_models_manually(db_url, output_file):
     except Exception as e:
         print(f"Warning: Could not extract enum types: {e}")
     
+    # Query vector columns and their dimensions from the database
+    # (SQLAlchemy reflects pgvector columns as NullType, so str(column.type) == 'NULL')
+    vector_columns = {}  # {"table.column": dimensions_int_or_None}
+    try:
+        vec_query = text("""
+            SELECT
+                c.relname AS table_name,
+                a.attname AS column_name,
+                a.atttypmod AS dims
+            FROM pg_attribute a
+            JOIN pg_class c ON a.attrelid = c.oid
+            JOIN pg_namespace n ON c.relnamespace = n.oid
+            JOIN pg_type t ON a.atttypid = t.oid
+            WHERE t.typname = 'vector'
+              AND n.nspname = 'public'
+              AND a.attnum > 0
+              AND NOT a.attisdropped
+        """)
+        with engine.connect() as conn:
+            for row in conn.execute(vec_query):
+                tbl, col, dims = row
+                vector_columns[f"{tbl.lower()}.{col.lower()}"] = dims if dims and dims > 0 else None
+    except Exception as e:
+        print(f"Warning: Could not extract vector columns: {e}")
+
     # Generate the header with all necessary imports
     header = '''from sqlalchemy import String, DateTime, Boolean, Integer, BigInteger, ForeignKey, ForeignKeyConstraint, Table, ARRAY, Text, Float, Enum, text, func, event
 from sqlalchemy.dialects.postgresql import UUID as PostgresUUID, TIMESTAMP, DOUBLE_PRECISION, ENUM
 from sqlalchemy.orm import DeclarativeBase, relationship, Mapped, mapped_column, Mapper
-from sqlalchemy.types import TypeDecorator
+from pgvector.sqlalchemy import Vector
 from uuid import UUID
 from typing import Optional, List, Any, Sequence
 from datetime import datetime
 import enum
-
-class Vector(TypeDecorator):
-    """Custom type for PostgreSQL vector type"""
-    impl = String
-    cache_ok = True
-
-    def __init__(self, dimensions=None):
-        super().__init__()
-        self.dimensions = dimensions
-
-    def process_bind_param(self, value, dialect):
-        if value is None:
-            return None
-        return str(value)
-
-    def process_result_value(self, value, dialect):
-        if value is None:
-            return None
-        return value
 
 class Base(DeclarativeBase):
     pass
@@ -543,18 +553,21 @@ class {class_name}(Base):
             # Check if this column uses an enum type
             enum_key = f"{clean_table_name.lower()}.{column.name.lower()}"
             enum_type_name = enum_columns.get(enum_key)
-            
+            vec_key = f"{clean_table_name.lower()}.{column.name.lower()}"
+
             if enum_type_name and enum_type_name in enums:
                 python_type = enum_type_name
                 sql_type = f'Enum({enum_type_name})'
+            # Handle vector type (must come before the NULL/Text fallback because
+            # SQLAlchemy reflects pgvector columns as NullType -> str() == 'NULL')
+            elif vec_key in vector_columns:
+                dims = vector_columns[vec_key]
+                python_type = 'list[float]'
+                sql_type = f'Vector({dims})' if dims else 'Vector()'
             # Handle array types
             elif col_type.startswith('ARRAY'):
                 python_type = 'List[str]'
                 sql_type = 'ARRAY(Text)'
-            # Handle vector type
-            elif 'vector' in col_type.lower():
-                python_type = 'str'
-                sql_type = 'Vector()'
             # Handle UUID type
             elif 'UUID' in col_type:
                 python_type = 'UUID'

@@ -64,6 +64,9 @@ jobs:
           node-version: 18
           cache: npm
 
+      - name: Enable Corepack
+        run: corepack enable
+
       - name: Install dependencies
         run: npm install
 
@@ -101,6 +104,9 @@ jobs:
         with:
           node-version: 18
           cache: npm
+
+      - name: Enable Corepack
+        run: corepack enable
 
       - name: Install Node dependencies
         run: npm install
@@ -143,7 +149,7 @@ jobs:
           DATABASE_URL: postgresql://postgres:postgres@localhost:5432/postgres
           TEST_DATABASE_URL: ${{ env.TEST_DATABASE_URL }}
         working-directory: ./apps/lv-pyapi
-        run: pytest tests --asyncio-mode=auto --cov=. --cov-report=term --cov-report=html
+        run: pytest tests --ignore=tests/manual --asyncio-mode=auto --cov=. --cov-report=term --cov-report=html
 
       - name: Upload Pytest coverage report
         uses: actions/upload-artifact@v4

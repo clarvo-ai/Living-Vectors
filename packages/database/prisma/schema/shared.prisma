@@ -25,6 +25,8 @@ model User {
   Authenticator Authenticator[]
   messages      ConversationMessage[]
   learnings     Learning[]
+  userEmbedding UserEmbedding?
+  jobRecommendations JobRecommendation[]
 
   @@index([id])
   @@index([email])
@@ -90,15 +92,15 @@ model Authenticator {
 }
 
 model ConversationMessage {
-  messageId String        @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
-  userId    String        @db.Uuid
-  sender    MessageSender
-  content   String
-  questionContext Json?   @db.JsonB
-  createdAt DateTime      @default(now())
-  user      User          @relation(fields: [userId], references: [id])
-  learnedFrom Boolean     @default(false)
-  learnings Learning[]
+  messageId       String        @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  userId          String        @db.Uuid
+  sender          MessageSender
+  content         String
+  questionContext Json?         @db.JsonB
+  createdAt       DateTime      @default(now())
+  user            User          @relation(fields: [userId], references: [id])
+  learnedFrom     Boolean       @default(false)
+  learnings       Learning[]
 
   @@index([userId])
 }
@@ -113,6 +115,32 @@ model Learning {
   messages  ConversationMessage[]
 
   @@index([userId])
+}
+
+model UserEmbedding {
+  id        String                      @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  userId    String                      @unique @db.Uuid
+  embedding Unsupported("vector(1536)")
+  updatedAt DateTime                    @updatedAt
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+}
+model JobRecommendation {
+  id        String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  userId    String   @db.Uuid
+  jobId     String
+  score     Float?
+  timestamp DateTime? @default(now())
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  
+  @@index([userId])
+  @@index([jobId])
+  @@index([userId, timestamp])
 }
 
 enum MessageSender {
