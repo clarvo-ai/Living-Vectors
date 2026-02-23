@@ -16,6 +16,9 @@ services:
       - NEXT_PUBLIC_PYAPI_URL=http://localhost:8091
       - NEXT_PUBLIC_APP_SOURCE_NAME=living-vectors
       - NEXT_PUBLIC_APP_NAME=LivingVectors
+      - NEXT_PUBLIC_LIVEKIT_URL=ws://localhost:7880
+      - LIVEKIT_API_KEY=devkey
+      - LIVEKIT_API_SECRET=secret
     volumes:
       - .:/app
     # volumes:
@@ -28,6 +31,7 @@ services:
     depends_on:
       - db
       - lv-pyapi
+      - livekit
     command: sh -c "./scripts/init-db.sh && npm run dev:lv-web"
 
   lv-web-build:
@@ -60,17 +64,49 @@ services:
     build:
       context: .
       dockerfile: ./apps/lv-pyapi/Dockerfile
+    env_file:
+      - ./apps/lv-pyapi/.env.local
     ports:
       - '8091:8080'
     environment:
       - DATABASE_URL=postgresql://postgres:postgres@db:5432/postgres
       - PYTHONPATH=/app:/app/packages/python-utils/src
       - GOOGLE_APPLICATION_CREDENTIALS=/app/apps/lv-pyapi/credentials/google-credentials.json
+      - LIVEKIT_URL=ws://livekit:7880
+      - LIVEKIT_API_KEY=devkey
+      - LIVEKIT_API_SECRET=secret
+      - LIVEKIT_AGENT_NAME=lv-voice-agent
     volumes:
       - ./apps/lv-pyapi:/app/apps/lv-pyapi
       - ./packages/python-utils:/app/packages/python-utils
     depends_on:
       - db
+      - livekit
+    restart: always
+
+  lv-agent:
+    profiles: ['lv-web', 'lv-agent']
+    container_name: lv-agent
+    image: lv-pyapi
+    build:
+      context: .
+      dockerfile: ./apps/lv-pyapi/Dockerfile
+    env_file:
+      - ./apps/lv-pyapi/.env.local
+    environment:
+      - LIVEKIT_URL=ws://livekit:7880
+      - LIVEKIT_API_KEY=devkey
+      - LIVEKIT_API_SECRET=secret
+      - LIVEKIT_AGENT_NAME=lv-voice-agent
+      # Ensure both the pyapi root (tasks.py) and python-utils are importable
+      - PYTHONPATH=/app:/app/apps/lv-pyapi:/app/packages/python-utils/src
+    volumes:
+      - ./apps/lv-pyapi:/app/apps/lv-pyapi
+      - ./packages/python-utils:/app/packages/python-utils
+    depends_on:
+      - livekit
+    # agent.py lives in agents/ subdirectory; run from the pyapi WORKDIR
+    command: python agents/agent.py
     restart: always
 
   # lv-pyapi-tests:
@@ -246,14 +282,18 @@ services:
       - GOOGLE_APPLICATION_CREDENTIALS=/app/apps/lv-pyapi/credentials/google-credentials.json
     volumes:
       - .:/app
-    command: pytest tests --asyncio-mode=auto
-  
+    command: pytest tests --ignore=tests/manual --asyncio-mode=auto
+
   livekit:
+    profiles: ['lv-web', 'livekit']
+    container_name: livekit
     image: livekit/livekit-server:latest
-    command: ["--dev"]
+    command: --dev --bind 0.0.0.0
     ports:
-      - "7880:7880"
-      
+      - '7880:7880'
+      - '7881:7881'
+      - '7882:7882/udp'
+    restart: always
 volumes:
   postgres_data:
   postgres_test_data:

@@ -1,4 +1,5 @@
 import { PYAPI_URL } from '@/config';
+import { JobRecommendationsResponse } from '@/types/job';
 
 export interface PyAPIHealthResponse {
   status: string;
@@ -39,76 +40,82 @@ export async function getUser(userId: string): Promise<PyAPIUser> {
   return response.json();
 }
 
-export async function getGeminiResponse(
+export async function uploadJobs(filename: string): Promise<{ message: string; status: number }> {
+  const response = await fetch(`${getBaseUrl()}/api/upload-jobs`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ filename: filename }),
+  });
+
+  const data = await response.json();
+
+  if (!response.ok) {
+    // Extract the error message from the response body
+    throw new Error(data.message || `Failed to upload jobs: ${response.statusText}`);
+  }
+
+  return data;
+}
+
+interface PyAPIMatchJob {
+  id: string;
+  job_title: string;
+  company_name: string;
+  company_industry?: string | null;
+  role_industry?: string | null;
+  city?: string | null;
+  country?: string | null;
+  working_mode?: string | null;
+  employment_type?: string | null;
+  contract_type?: string | null;
+  job_level?: string | null;
+  salary_min?: number | null;
+  salary_max?: number | null;
+  guessed_salary?: number | null;
+  guessed_salary_min?: number | null;
+  guessed_salary_max?: number | null;
+  required_skills: string[];
+  required_languages: string[];
+  language_summary?: string | null;
+  requirements: string[];
+  job_description?: string | null;
+  job_description_summary?: string | null;
+  deprecated_perks?: string[] | null;
+  company_description?: string | null;
+  company_culture?: string | null;
+  company_values?: string[] | null;
+  apply_link?: string | null;
+  source_url?: string | null;
+  posted_at?: string | null;
+  expires_at?: string | null;
+  similarity: number;
+}
+
+interface PyAPIMatchResponse {
+  jobs: PyAPIMatchJob[];
+  total: number;
+  has_more: boolean;
+}
+
+export async function getMatchedJobs(
   userId: string,
-  userMessage: string,
-  goalIndex: number,
-  questionIndex: number
+  perPage = 20
+): Promise<JobRecommendationsResponse> {
+  const pyapiBaseUrl = getBaseUrl();
+  if (!pyapiBaseUrl) throw new Error('PyAPI URL not configured');
 
-): Promise<{ message: string; nextQuestionId: { goalIndex: number; questionIndex: number; }; completed: boolean; status: number }> {
-  const response = await fetch(`${getBaseUrl()}/api/chat/answer`, {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-    },
-    body: JSON.stringify({ 
-      userId: userId, 
-      userAnswer: userMessage, 
-      questionId: 
-      {
-        "goalIndex": goalIndex,
-        "questionIndex": questionIndex
-      } 
-    }),
-  });
+  const url = `${pyapiBaseUrl}/api/jobs/match?user_id=${encodeURIComponent(userId)}&per_page=${perPage}`;
+  const response = await fetch(url);
+
   if (!response.ok) {
-    throw new Error(`Failed to get AI response: ${response.statusText}`);
+    throw new Error(`Failed to fetch matched jobs: ${response.status} ${response.statusText}`);
   }
 
-  return response.json();
-}
+  const data: PyAPIMatchResponse = await response.json();
 
-export async function startConversation(
-  /* userId: string, */
-): Promise<{ message: string; goalCategory: string; questionId: { goalIndex: number; questionIndex: number } }> {
-  const response = await fetch(`${getBaseUrl()}/api/chat/start`, {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-    },
-    body: JSON.stringify({ }),
-  });
-  if (!response.ok) {
-    throw new Error(`Failed to get AI response: ${response.statusText}`);
-  }
-
-  return response.json();
-}
-
-export async function getTTS(text: string): Promise<Blob> {
-  const response = await fetch(`${getBaseUrl()}/api/tts`, {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-    },
-    body: JSON.stringify({ text }),
-  });
-  if (!response.ok) {
-    throw new Error(`TTS failed: ${response.statusText}`);
-  }
-  return response.blob();
-}
-
-export async function getSTT(audioBlob: Blob): Promise<{ transcript: string }> {
-  const formData = new FormData();
-  formData.append('file', audioBlob);
-
-  const response = await fetch(`${getBaseUrl()}/api/stt`, {
-    method: 'POST',
-    body: formData,
-  });
-  if (!response.ok) {
-    throw new Error(`STT failed: ${response.statusText}`);
-  }
-  return response.json();
+  return {
+    jobs: data.jobs.map(({ similarity: _similarity, ...job }) => job),
+    total: data.total,
+    has_more: data.has_more,
+  };
 }
