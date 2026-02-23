@@ -11,7 +11,6 @@ from livekit.agents.beta.workflows import TaskGroup
 from livekit.plugins import elevenlabs, google, silero
 from livekit.plugins.elevenlabs import TTS, VoiceSettings
 
-from tools import set_user_id
 from tasks import (
     OpeningTask,
     LogisticsTask,

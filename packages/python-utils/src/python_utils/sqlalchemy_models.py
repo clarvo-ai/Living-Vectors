@@ -196,7 +196,6 @@ class Learning(Base):
     summary: Mapped[str] = mapped_column(Text, nullable=False)
     createdAt: Mapped[datetime] = mapped_column(TIMESTAMP, nullable=False, server_default=func.now())
     updatedAt: Mapped[datetime] = mapped_column(TIMESTAMP, nullable=False, server_default=func.now(), onupdate=func.now())
-    embedding: Mapped[list[float]] = mapped_column(Vector(768), nullable=False)
     messages: Mapped[Optional[List[str]]] = mapped_column(ARRAY(Text), nullable=True)
 
     # Relationships

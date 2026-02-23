@@ -6,30 +6,25 @@ from database import SessionLocal
 from google.genai import types
 from datetime import datetime
 from gemini_client import client
-from embedding_service import get_embedding_768
 
 # Function to save learnings to the database
-def save_learnings_to_db(user_id: str, learnings: List[str], removals: List[str], db: Session) -> None:
+def save_learnings_to_db(user_id: str, learnings: List[Dict[str, Any]], removals: List[str], db: Session) -> None:
     """Save generated learnings and remove outdated ones in the database"""
     try:
-        # 1. Remove outdated learnings
+        # 1. Remove outdated learnings by ID
         if removals:
-            for removal_text in removals:
-                # Find the closest matching learning or match by text exactly
-                # For simplicity, we match exactly against summary for deletion 
-                # (since Gemini is returning the exact text we fed it)
-                stmt = select(Learning).where(Learning.userId == user_id, Learning.summary == removal_text)
+            for removal_id in removals:
+                stmt = select(Learning).where(Learning.userId == user_id, Learning.id == removal_id)
                 learning_to_remove = db.execute(stmt).scalars().first()
                 if learning_to_remove:
                     db.delete(learning_to_remove)
 
         # 2. Add new learnings
-        for learning_text in learnings:
-            embedding = get_embedding_768(learning_text)
+        for learning in learnings:
             l = Learning(
                 userId=user_id,
-                summary=learning_text,
-                embedding=embedding,
+                summary=learning['text'],
+                messages=learning.get('messages', []),
                 createdAt=datetime.utcnow(),
                 updatedAt=datetime.utcnow()
             )
@@ -46,49 +41,57 @@ schema = {
     "properties": {
         "learnings_to_add": {
             "type": "array",
-            "items": {"type": "string"}
+            "items": {
+                "type": "object",
+                "properties": {
+                    "text": {
+                        "type": "string",
+                        "description": "The learning statement"
+                    },
+                    "messages": {
+                        "type": "array",
+                        "items": {"type": "string"},
+                        "minItems": 1,
+                        "description": "User messages/quotes from the transcript that support this learning (at least 1 required)"
+                    }
+                },
+                "required": ["text", "messages"]
+            }
         },
         "learnings_to_remove": {
             "type": "array",
-            "items": {"type": "string"}
+            "items": {"type": "string"},
+            "description": "List of learning IDs to remove"
         }
     },
     "required": ["learnings_to_add"]
 }
 
 # Function to generate learnings using Gemini API
-def learnings_from_transcript(transcript: str, current_learnings: List[str]):
+def learnings_from_transcript(transcript: str, current_learnings: List[Dict[str, str]]):
     """Generate learnings from a transcript using Gemini API, noting which old learnings to replace"""
     try:
-        current_learnings_text = "\n".join(f"- {l}" for l in current_learnings) if current_learnings else "None"
+        current_learnings_text = "\n".join(f"[ID: {l['id']}] - {l['summary']}" for l in current_learnings) if current_learnings else "None"
         prompt = (
-            "Extract learnings from this conversation about the user's career, skills, preferences, and goals.\n\n"
-            "Here are the current learnings we already have for this user:\n"
+            "You are a career development assistant analyzing a conversation transcript.\n\n"
+            "CURRENT LEARNINGS FOR THIS USER:\n"
             f"{current_learnings_text}\n\n"
-            "Example conversation:\n"
-            "USER: I've been really enjoying building web apps and seeing users interact with them.\n"
-            "AI: What kind of projects make you lose track of time?\n"
-            "USER: Anything involving UI design. I can spend hours tweaking interfaces.\n"
-            "AI: What do people usually come to you for?\n"
-            "USER: Frontend advice and debugging CSS issues.\n\n"
-            "GOOD learnings:\n"
-            "- 'Enjoys building web applications'\n"
-            "- 'Passionate about UI design'\n"
-            "- 'Specializes in debugging CSS issues'\n"
-            "- 'Likes coding'\n\n"
-            "BAD learnings (unhelpful context or meta-conversation):\n"
-            "- 'Needs a job' (obvious context)\n"
-            "- 'Is talking to a career assistant' (meta)\n\n"
-            "NEVER save any of the following regardless of context: racial or ethnic\n"
-            "origin, political opinions, religious beliefs, genetic data, health data,\n"
-            "biometric data, or data concerning sex life or sexual orientation.\n\n"
+            "IMPORTANT GUIDELINES:\n"
+            "- Extract ONLY learnings that are explicitly stated or strongly implied in the transcript below.\n"
+            "- CRITICAL: Each learning MUST be directly supported by at least 1 message/quote from a USER.\n"
+            "- Good learnings: 'Enjoys building web applications', 'Passionate about UI design', 'Specializes in CSS'\n"
+            "- Bad learnings: 'Needs a job', 'Talking to an assistant', or obvious context\n"
+            "- DO NOT extract: racial/ethnic origin, political opinions, religious beliefs, genetic data, health data, biometric data, sex life or sexual orientation\n"
+            "- If a learning cannot be traced back to a specific user message, REJECT it\n\n"
             "INSTRUCTIONS:\n"
-            "1. Output a list of NEW learnings found in the transcript.\n"
-            "2. If the user contradicts or updates an existing learning in the transcript (e.g. they say their salary expectation changed), output the exact text of the old learning in 'learnings_to_remove' and add the new updated text to 'learnings_to_add'.\n"
-            "3. If an existing learning is no longer true based on the transcript, add its exact text to 'learnings_to_remove'.\n\n"
-            "4. Don't add any duplicate learnings or obviously similar learnings like 'Enjoys coding' and 'Likes to code'.\n\n"
-            "Now extract learnings from this transcript:\n"
+            "1. Extract NEW learnings found in the transcript\n"
+            "2. For each learning, include at least 1 relevant user message/quote from the transcript that directly supports it\n"
+            "3. If user contradicts or updates an existing learning, add its ID to learnings_to_remove and the new text to learnings_to_add\n"
+            "4. If a learning is no longer true, add its ID to learnings_to_remove\n"
+            "5. Avoid duplicate or obviously similar learnings\n\n"
+            "TRANSCRIPT TO ANALYZE:\n"
             f"{transcript}\n\n"
+            "Extract learnings from the transcript above only."
         )
         
         generation_config = types.GenerateContentConfig(
@@ -112,15 +115,15 @@ def learnings_from_transcript(transcript: str, current_learnings: List[str]):
         return {"add": [], "remove": []}
 
 
-def get_current_insights_for_user(user_id: str, db: Session) -> List[str]:
+def get_current_insights_for_user(user_id: str, db: Session) -> List[Dict[str, str]]:
     """Fetch current insights for the given user from DB"""
     try:
         rows = db.execute(
-            select(Learning.summary)
+            select(Learning.id, Learning.summary)
             .where(Learning.userId == user_id)
             .order_by(Learning.createdAt)
-        ).scalars().all()
-        return list(rows)
+        ).all()
+        return [{'id': str(row[0]), 'summary': row[1]} for row in rows]
     except Exception as e:
         print(f"Error fetching existing learnings: {e}")
         return []
