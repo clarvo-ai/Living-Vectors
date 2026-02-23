@@ -311,13 +311,15 @@ async def match_jobs(
     Returns:
         Paginated list of jobs with similarity scores
     """
-    # Get user embedding
+    # Get user embedding, generating it on-the-fly if missing
     user_emb = db.query(UserEmbedding).filter_by(userId=user_id).first()
     if not user_emb:
-        raise HTTPException(
-            status_code=404,
-            detail="User embedding not found. Generate it first by calling POST /api/users/{user_id}/generate-embedding"
-        )
+        user_emb = generate_user_embedding(user_id, db)
+        if not user_emb:
+            raise HTTPException(
+                status_code=404,
+                detail="No learnings found for user. Complete a career discussion first."
+            )
 
     # Deserialize the stored embedding string into a Python list of floats.
     # The list is then passed as a *bind parameter* via pgvector's SQLAlchemy
@@ -340,10 +342,36 @@ async def match_jobs(
     result_jobs = [
             {
                 "id": str(j.id),
-                "title": j.job_title,
-                "company": j.company_name,
-                "description": j.job_description,
-                "location": ", ".join(filter(None, [j.city, j.country, j.working_mode])),
+                "job_title": j.job_title,
+                "company_name": j.company_name,
+                "company_industry": j.company_industry,
+                "role_industry": j.role_industry,
+                "city": j.city,
+                "country": j.country,
+                "working_mode": j.working_mode,
+                "employment_type": j.employment_type,
+                "contract_type": j.contract_type,
+                "job_level": j.job_level,
+                "salary_min": j.salary_min,
+                "salary_max": j.salary_max,
+                "guessed_salary": j.guessed_salary,
+                "guessed_salary_min": j.guessed_salary_min,
+                "guessed_salary_max": j.guessed_salary_max,
+                "required_skills": j.required_skills or [],
+                "required_languages": j.required_languages or [],
+                "language_summary": j.language_summary,
+                "requirements": j.requirements or [],
+                "job_description": j.job_description,
+                "job_description_summary": j.job_description_summary,
+                "deprecated_perks": j.deprecated_perks,
+                "company_description": j.company_description,
+                "company_culture": j.company_culture,
+                "company_values": j.company_values,
+                "apply_link": j.apply_link,
+                "source_url": j.source_url,
+                "posted_at": j.published_date.isoformat() if j.published_date else None,
+                "expires_at": j.last_day_to_apply.isoformat() if j.last_day_to_apply else None,
+                "summer_job_internship": j.summer_job_internship,
                 "similarity": round(float(sim), 3) if sim is not None else 0,
             }
             for j, sim in rows
