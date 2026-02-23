@@ -2,7 +2,7 @@ import logging
 
 from livekit.agents import AgentTask, function_tool
 
-from tools import capture_user_insight
+from tools import capture_user_insight, get_current_insights, _user_id
 
 logger = logging.getLogger("career-agent")
 
@@ -26,12 +26,13 @@ class OpeningTask(AgentTask[None]):
               compensation expectations, experience, skills, strengths, career goals,
               company size/stage preferences, and management/culture preferences.
               If it doesn't clearly fit one of these categories, do not save it.
-              DO NOT save: how they found Clarvo, how actively they are searching, their
-              search timeline, or any other administrative/conversational detail that does
+              DO NOT save: how they found Clarvo, how actively they are searching,
+              or any other administrative/conversational detail that does
               not help narrow down the right job for them. The tool response always returns
-              the full list of insights saved so far — check it before calling again to
-              avoid duplicates. If the same fact is already in the list, skip it. Do NOT
-              save a restatement or combination of facts already in the list.
+              "Called tool to save insight: '<insight>'" so you should look at the history
+              and not call the tool to save duplicates. If the same fact is already
+              in the history, skip it. Do NOT save a restatement or combination of facts
+              already saved.
               NEVER save any of the following regardless of context: racial or ethnic
               origin, political opinions, religious beliefs, genetic data, health data,
               biometric data, or data concerning sex life or sexual orientation.
@@ -67,7 +68,11 @@ class OpeningTask(AgentTask[None]):
 
     async def on_enter(self) -> None:
         await self.session.generate_reply(
-            instructions="Warmly welcome the candidate and introduce yourself briefly as their career consultant. Keep it natural and friendly — like you're genuinely glad they're here. Then ask just ONE question: what brought them here today. Nothing else."
+            instructions=(
+                "Warmly welcome the candidate and introduce yourself briefly as their career consultant. "
+                "Keep it natural and friendly — like you're genuinely glad they're here. "
+                "Then ask just ONE question: what brought them here today. Nothing else."
+            )
         )
 
     @function_tool
@@ -94,12 +99,13 @@ class LogisticsTask(AgentTask[None]):
               target industry, location preferences, work model (remote/hybrid/on-site),
               compensation expectations, experience, skills, strengths, career goals,
               company size/stage preferences, and management/culture preferences.
-              DO NOT save: how they found Clarvo, how actively they are searching, their
-              search timeline, or any other administrative/conversational detail that does
+              DO NOT save: how they found Clarvo, how actively they are searching,
+              or any other administrative/conversational detail that does
               not help narrow down the right job for them. The tool response always returns
-              the full list of insights saved so far — check it before calling again to
-              avoid duplicates. If the same fact is already in the list, skip it. Do NOT
-              save a restatement or combination of facts already in the list.
+              "Called tool to save insight: '<insight>'" so you should look at the history
+              and not call the tool to save duplicates. If the same fact is already
+              in the history, skip it. Do NOT save a restatement or combination of facts
+              already saved.
               NEVER save any of the following regardless of context: racial or ethnic
               origin, political opinions, religious beliefs, genetic data, health data,
               biometric data, or data concerning sex life or sexual orientation.
@@ -131,7 +137,11 @@ class LogisticsTask(AgentTask[None]):
     async def on_enter(self) -> None:
         logger.info("[TASK] Logistics — search intensity, timing, motivation")
         await self.session.generate_reply(
-            instructions="Transition naturally into understanding their job search situation. Briefly acknowledge what they just shared if there's a natural hook, then ask just ONE question: how actively they are searching right now."
+            instructions=(
+                "Transition naturally into understanding their job search situation. "
+                "Briefly acknowledge what they just shared if there's a natural hook, "
+                "then ask just ONE question: how actively they are searching right now."
+            )
         )
 
     @function_tool
@@ -159,12 +169,13 @@ class IndustryTask(AgentTask[None]):
               target industry, location preferences, work model (remote/hybrid/on-site),
               compensation expectations, experience, skills, strengths, career goals,
               company size/stage preferences, and management/culture preferences.
-              DO NOT save: how they found Clarvo, how actively they are searching, their
-              search timeline, or any other administrative/conversational detail that does
+              DO NOT save: how they found Clarvo, how actively they are searching,
+              or any other administrative/conversational detail that does
               not help narrow down the right job for them. The tool response always returns
-              the full list of insights saved so far — check it before calling again to
-              avoid duplicates. If the same fact is already in the list, skip it. Do NOT
-              save a restatement or combination of facts already in the list.
+              "Called tool to save insight: '<insight>'" so you should look at the history
+              and not call the tool to save duplicates. If the same fact is already
+              in the history, skip it. Do NOT save a restatement or combination of facts
+              already saved.
               NEVER save any of the following regardless of context: racial or ethnic
               origin, political opinions, religious beliefs, genetic data, health data,
               biometric data, or data concerning sex life or sexual orientation.
@@ -198,7 +209,12 @@ class IndustryTask(AgentTask[None]):
     async def on_enter(self) -> None:
         logger.info("[TASK] Industry — target field and sector")
         await self.session.generate_reply(
-            instructions="Transition naturally into understanding what kind of work they are looking for. Briefly acknowledge what they just shared if there's a natural hook, then ask just ONE question: what industry or field they are targeting. Keep it open and curious — there's no wrong answer."
+            instructions=(
+                "Transition naturally into understanding what kind of work they are looking for. "
+                "Briefly acknowledge what they just shared if there's a natural hook, "
+                "then ask just ONE question: what industry or field they are targeting. "
+                "Keep it open and curious — there's no wrong answer."
+            )
         )
 
     @function_tool
@@ -227,12 +243,13 @@ class LocationTask(AgentTask[None]):
               target industry, location preferences, work model (remote/hybrid/on-site),
               compensation expectations, experience, skills, strengths, career goals,
               company size/stage preferences, and management/culture preferences.
-              DO NOT save: how they found Clarvo, how actively they are searching, their
-              search timeline, or any other administrative/conversational detail that does
+              DO NOT save: how they found Clarvo, how actively they are searching,
+              or any other administrative/conversational detail that does
               not help narrow down the right job for them. The tool response always returns
-              the full list of insights saved so far — check it before calling again to
-              avoid duplicates. If the same fact is already in the list, skip it. Do NOT
-              save a restatement or combination of facts already in the list.
+              "Called tool to save insight: '<insight>'" so you should look at the history
+              and not call the tool to save duplicates. If the same fact is already
+              in the history, skip it. Do NOT save a restatement or combination of facts
+              already saved.
               NEVER save any of the following regardless of context: racial or ethnic
               origin, political opinions, religious beliefs, genetic data, health data,
               biometric data, or data concerning sex life or sexual orientation.
@@ -265,7 +282,11 @@ class LocationTask(AgentTask[None]):
     async def on_enter(self) -> None:
         logger.info("[TASK] Location — cities, relocation, remote/hybrid/onsite")
         await self.session.generate_reply(
-            instructions="Transition naturally into understanding their location preferences. Briefly acknowledge what they just shared if there's a natural hook, then ask just ONE question: which cities or regions they prefer."
+            instructions=(
+                "Transition naturally into understanding their location preferences. "
+                "Briefly acknowledge what they just shared if there's a natural hook, "
+                "then ask just ONE question: which cities or regions they prefer."
+            )
         )
 
     @function_tool
@@ -295,12 +316,13 @@ class BackgroundTask(AgentTask[None]):
               target industry, location preferences, work model (remote/hybrid/on-site),
               compensation expectations, experience, skills, strengths, career goals,
               company size/stage preferences, and management/culture preferences.
-              DO NOT save: how they found Clarvo, how actively they are searching, their
-              search timeline, or any other administrative/conversational detail that does
+              DO NOT save: how they found Clarvo, how actively they are searching,
+              or any other administrative/conversational detail that does
               not help narrow down the right job for them. The tool response always returns
-              the full list of insights saved so far — check it before calling again to
-              avoid duplicates. If the same fact is already in the list, skip it. Do NOT
-              save a restatement or combination of facts already in the list.
+              "Called tool to save insight: '<insight>'" so you should look at the history
+              and not call the tool to save duplicates. If the same fact is already
+              in the history, skip it. Do NOT save a restatement or combination of facts
+              already saved.
               NEVER save any of the following regardless of context: racial or ethnic
               origin, political opinions, religious beliefs, genetic data, health data,
               biometric data, or data concerning sex life or sexual orientation.
@@ -333,7 +355,11 @@ class BackgroundTask(AgentTask[None]):
     async def on_enter(self) -> None:
         logger.info("[TASK] Background — roles, strengths, tools/domain")
         await self.session.generate_reply(
-            instructions="Transition naturally into their professional background. Briefly acknowledge what they just shared if there's a natural hook, then ask just ONE question: what their most recent role was."
+            instructions=(
+                "Transition naturally into their professional background. "
+                "Briefly acknowledge what they just shared if there's a natural hook, "
+                "then ask just ONE question: what their most recent role was."
+            )
         )
 
     @function_tool
@@ -360,12 +386,13 @@ class CultureTask(AgentTask[None]):
               target industry, location preferences, work model (remote/hybrid/on-site),
               compensation expectations, experience, skills, strengths, career goals,
               company size/stage preferences, and management/culture preferences.
-              DO NOT save: how they found Clarvo, how actively they are searching, their
-              search timeline, or any other administrative/conversational detail that does
+              DO NOT save: how they found Clarvo, how actively they are searching,
+              or any other administrative/conversational detail that does
               not help narrow down the right job for them. The tool response always returns
-              the full list of insights saved so far — check it before calling again to
-              avoid duplicates. If the same fact is already in the list, skip it. Do NOT
-              save a restatement or combination of facts already in the list.
+              "Called tool to save insight: '<insight>'" so you should look at the history
+              and not call the tool to save duplicates. If the same fact is already
+              in the history, skip it. Do NOT save a restatement or combination of facts
+              already saved.
               NEVER save any of the following regardless of context: racial or ethnic
               origin, political opinions, religious beliefs, genetic data, health data,
               biometric data, or data concerning sex life or sexual orientation.
@@ -398,7 +425,11 @@ class CultureTask(AgentTask[None]):
     async def on_enter(self) -> None:
         logger.info("[TASK] Culture — management style, team size, startup vs corp")
         await self.session.generate_reply(
-            instructions="Transition naturally into culture fit. Briefly acknowledge what they just shared if there's a natural hook, then ask just ONE question: what kind of management style they thrive under."
+            instructions=(
+                "Transition naturally into culture fit. "
+                "Briefly acknowledge what they just shared if there's a natural hook, "
+                "then ask just ONE question: what kind of management style they thrive under."
+            )
         )
 
     @function_tool
@@ -425,12 +456,13 @@ class ValueVisionTask(AgentTask[None]):
               target industry, location preferences, work model (remote/hybrid/on-site),
               compensation expectations, experience, skills, strengths, career goals,
               company size/stage preferences, and management/culture preferences.
-              DO NOT save: how they found Clarvo, how actively they are searching, their
-              search timeline, or any other administrative/conversational detail that does
+              DO NOT save: how they found Clarvo, how actively they are searching,
+              or any other administrative/conversational detail that does
               not help narrow down the right job for them. The tool response always returns
-              the full list of insights saved so far — check it before calling again to
-              avoid duplicates. If the same fact is already in the list, skip it. Do NOT
-              save a restatement or combination of facts already in the list.
+              "Called tool to save insight: '<insight>'" so you should look at the history
+              and not call the tool to save duplicates. If the same fact is already
+              in the history, skip it. Do NOT save a restatement or combination of facts
+              already saved.
               NEVER save any of the following regardless of context: racial or ethnic
               origin, political opinions, religious beliefs, genetic data, health data,
               biometric data, or data concerning sex life or sexual orientation.
@@ -463,7 +495,12 @@ class ValueVisionTask(AgentTask[None]):
     async def on_enter(self) -> None:
         logger.info("[TASK] Value & Vision — compensation, career goals")
         await self.session.generate_reply(
-            instructions="Transition naturally into comp and career vision. Briefly acknowledge what they just shared if there's a natural hook, then frame it warmly — you need this to filter roles on their behalf. Ask just ONE question: what their compensation expectations are."
+            instructions=(
+                "Transition naturally into comp and career vision. "
+                "Briefly acknowledge what they just shared if there's a natural hook, "
+                "then frame it warmly — you need this to filter roles on their behalf. "
+                "Ask just ONE question: what their compensation expectations are."
+            )
         )
 
     @function_tool
@@ -484,7 +521,11 @@ class AlignmentTask(AgentTask[None]):
             - Ask if the summary sounds right or if they want to correct anything
             - Close warmly: tell them you now have a great picture of what they are looking for
               and that you will use this to match them with the best opportunities
-            - ⚠️ PRIORITY: If the user corrects you on anything, call capture_user_insight with the new, correct information and the old (wrong) information as the `replaces` argument. Also call capture_user_insight with any new information you learn during this phase.
+            - TOOL RULE: ONLY call capture_user_insight if the candidate explicitly
+              corrects something in the summary. Pass the corrected value as `insight`
+              and the wrong value as `replaces`. DO NOT call it to confirm, restate,
+              or re-save anything already captured — those are already stored.
+              DO NOT call it for acknowledgements or paraphrases of earlier answers.
             Call alignment_complete once they have confirmed and you have said goodbye.
             """,
             tools=[capture_user_insight],
@@ -492,8 +533,19 @@ class AlignmentTask(AgentTask[None]):
 
     async def on_enter(self) -> None:
         logger.info("[TASK] Alignment — summary, confirm, close")
+        existing = get_current_insights(_user_id.get())
+        already_saved = "\n".join(f"- {s}" for s in existing) if existing else "None yet."
         await self.session.generate_reply(
-            instructions="The discovery phase is complete. Deliver a warm, natural summary of everything you heard — their background, what they are great at, what they want next, and their hard constraints on location, comp, and work model. Then ask if the summary sounds right."
+            instructions=(
+                "The discovery phase is complete. Use ONLY the captured insights listed below "
+                "as the basis for your summary — do not invent or add anything not in the list. "
+                "Deliver a warm, natural summary covering their background, what they are great at, "
+                "what they want next, and their hard constraints on location, comp, and work model. "
+                "Then ask if the summary sounds right and if they want to add or correct anything.\n\n"
+                "IMPORTANT: Do NOT call capture_user_insight during this response. "
+                "Only call it later if the candidate explicitly corrects something or adds something new.\n\n"
+                f"Captured insights to summarise:\n{already_saved}"
+            )
         )
 
     @function_tool
