@@ -2,7 +2,9 @@ import logging
 import os
 import sys
 from dotenv import load_dotenv
+import asyncio
 
+from learnings import process_learnings
 from livekit import agents
 from livekit.agents import AgentServer, AgentSession, Agent, JobProcess, room_io
 from livekit.agents.beta.workflows import TaskGroup
@@ -94,7 +96,6 @@ async def my_agent(ctx: agents.JobContext):
     )
     
     user_id = ctx.room.name.removeprefix("interview-")
-    set_user_id(user_id)
     logger.info(f"Session user: {user_id}")
 
     await session.start(
@@ -106,6 +107,19 @@ async def my_agent(ctx: agents.JobContext):
         ),
     )
     logger.info("Agent started")
+
+    @session.on("close")
+    def on_close():
+        transcript = ""
+        for item in session.history.items:
+            if item.type == "message":
+                content = item.text_content.replace("\n", " ")
+                text = f"{item.role}: {content}\n"
+                transcript += text
+        
+        logger.info(f"Transcript: {transcript}")
+        # Run process_learnings in a background thread to avoid blocking the event loop
+        asyncio.get_event_loop().run_in_executor(None, process_learnings, user_id, transcript)
 
 
 if __name__ == "__main__":

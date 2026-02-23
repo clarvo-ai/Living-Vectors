@@ -2,8 +2,6 @@ import logging
 
 from livekit.agents import AgentTask, function_tool
 
-from tools import capture_user_insight, get_current_insights, _user_id
-
 logger = logging.getLogger("career-agent")
 
 
@@ -20,29 +18,6 @@ class OpeningTask(AgentTask[None]):
             warm, relaxed, and genuine, but focused and purposeful. Never stiff, never overly casual.
 
             Rules for this task:
-            - ⚠️ PRIORITY: Call capture_user_insight whenever the candidate shares
-              information relevant to MATCHING THEM WITH JOBS. This means: target role,
-              target industry, location preferences, work model (remote/hybrid/on-site),
-              compensation expectations, experience, skills, strengths, career goals,
-              company size/stage preferences, and management/culture preferences.
-              If it doesn't clearly fit one of these categories, do not save it.
-              DO NOT save: how they found Clarvo, how actively they are searching,
-              or any other administrative/conversational detail that does
-              not help narrow down the right job for them. The tool response always returns
-              "Called tool to save insight: '<insight>'" so you should look at the history
-              and not call the tool to save duplicates. If the same fact is already
-              in the history, skip it. Do NOT save a restatement or combination of facts
-              already saved.
-              NEVER save any of the following regardless of context: racial or ethnic
-              origin, political opinions, religious beliefs, genetic data, health data,
-              biometric data, or data concerning sex life or sexual orientation.
-              EXCEPTION: only pause and ask if the new information is MUTUALLY EXCLUSIVE
-              with something already captured — i.e. it cannot be true at the same time
-              (e.g. remote vs on-site, salary 3k vs salary 5k). Do NOT pause for
-              complementary or related details that can both be true simultaneously
-              (e.g. "Is interested in ML" and "Is interested in AI" are not contradictions).
-              When you do clarify a genuine conflict, call capture_user_insight with the
-              confirmed answer and the old (wrong) text as the `replaces` argument.
             - Ask ONE question per turn. Wait for their answer before moving on.
             - Before asking the next question, react genuinely to what they said — like a real
               person would. A few natural sentences is fine. Think warmth, not efficiency.
@@ -63,10 +38,10 @@ class OpeningTask(AgentTask[None]):
               Do not say "great", "got it", "that's helpful", or anything else. Call the function
               silently — the next phase will handle the next response.
             """,
-            tools=[capture_user_insight],
         )
 
     async def on_enter(self) -> None:
+        logger.info("[TASK] Opening — greeting and discovery")
         await self.session.generate_reply(
             instructions=(
                 "Warmly welcome the candidate and introduce yourself briefly as their career consultant. "
@@ -94,28 +69,6 @@ class LogisticsTask(AgentTask[None]):
             - What is driving them to consider a change (the "push" factor)
 
             Rules:
-            - ⚠️ PRIORITY: Call capture_user_insight whenever the candidate shares
-              information relevant to MATCHING THEM WITH JOBS. This means: target role,
-              target industry, location preferences, work model (remote/hybrid/on-site),
-              compensation expectations, experience, skills, strengths, career goals,
-              company size/stage preferences, and management/culture preferences.
-              DO NOT save: how they found Clarvo, how actively they are searching,
-              or any other administrative/conversational detail that does
-              not help narrow down the right job for them. The tool response always returns
-              "Called tool to save insight: '<insight>'" so you should look at the history
-              and not call the tool to save duplicates. If the same fact is already
-              in the history, skip it. Do NOT save a restatement or combination of facts
-              already saved.
-              NEVER save any of the following regardless of context: racial or ethnic
-              origin, political opinions, religious beliefs, genetic data, health data,
-              biometric data, or data concerning sex life or sexual orientation.
-              EXCEPTION: only pause and ask if the new information is MUTUALLY EXCLUSIVE
-              with something already captured — i.e. it cannot be true at the same time
-              (e.g. remote vs on-site, salary 3k vs salary 5k). Do NOT pause for
-              complementary or related details that can both be true simultaneously
-              (e.g. "Is interested in ML" and "Is interested in AI" are not contradictions).
-              When you do clarify a genuine conflict, call capture_user_insight with the
-              confirmed answer and the old (wrong) text as the `replaces` argument.
             - Ask ONE question per turn. Wait for their answer before moving on.
             - React genuinely to what they say before moving to the next question — like a
               real person, not a form. A few natural sentences of smalltalk is encouraged.
@@ -131,7 +84,6 @@ class LogisticsTask(AgentTask[None]):
               verbal response before calling it. Do not say "great", "got it", "that's helpful",
               or anything else. Call the function silently — the next phase will handle the next response.
             """,
-            tools=[capture_user_insight],
         )
 
     async def on_enter(self) -> None:
@@ -164,28 +116,6 @@ class IndustryTask(AgentTask[None]):
             - If switching, what's drawing them to the new field
 
             Rules:
-            - ⚠️ PRIORITY: Call capture_user_insight whenever the candidate shares
-              information relevant to MATCHING THEM WITH JOBS. This means: target role,
-              target industry, location preferences, work model (remote/hybrid/on-site),
-              compensation expectations, experience, skills, strengths, career goals,
-              company size/stage preferences, and management/culture preferences.
-              DO NOT save: how they found Clarvo, how actively they are searching,
-              or any other administrative/conversational detail that does
-              not help narrow down the right job for them. The tool response always returns
-              "Called tool to save insight: '<insight>'" so you should look at the history
-              and not call the tool to save duplicates. If the same fact is already
-              in the history, skip it. Do NOT save a restatement or combination of facts
-              already saved.
-              NEVER save any of the following regardless of context: racial or ethnic
-              origin, political opinions, religious beliefs, genetic data, health data,
-              biometric data, or data concerning sex life or sexual orientation.
-              EXCEPTION: only pause and ask if the new information is MUTUALLY EXCLUSIVE
-              with something already captured — i.e. it cannot be true at the same time
-              (e.g. remote vs on-site, salary 3k vs salary 5k). Do NOT pause for
-              complementary or related details that can both be true simultaneously
-              (e.g. "Is interested in ML" and "Is interested in AI" are not contradictions).
-              When you do clarify a genuine conflict, call capture_user_insight with the
-              confirmed answer and the old (wrong) text as the `replaces` argument.
             - Ask ONE question per turn. Wait for their answer before moving on.
             - React genuinely to what they say before moving to the next question — like a
               real person, not a form. A few natural sentences of smalltalk is encouraged.
@@ -203,7 +133,6 @@ class IndustryTask(AgentTask[None]):
               "that's helpful", or anything else. Call the function silently — the next phase will
               handle the next response.
             """,
-            tools=[capture_user_insight],
         )
 
     async def on_enter(self) -> None:
@@ -238,28 +167,6 @@ class LocationTask(AgentTask[None]):
             Be practical — you need this to filter jobs accurately on their behalf.
 
             Rules:
-            - ⚠️ PRIORITY: Call capture_user_insight whenever the candidate shares
-              information relevant to MATCHING THEM WITH JOBS. This means: target role,
-              target industry, location preferences, work model (remote/hybrid/on-site),
-              compensation expectations, experience, skills, strengths, career goals,
-              company size/stage preferences, and management/culture preferences.
-              DO NOT save: how they found Clarvo, how actively they are searching,
-              or any other administrative/conversational detail that does
-              not help narrow down the right job for them. The tool response always returns
-              "Called tool to save insight: '<insight>'" so you should look at the history
-              and not call the tool to save duplicates. If the same fact is already
-              in the history, skip it. Do NOT save a restatement or combination of facts
-              already saved.
-              NEVER save any of the following regardless of context: racial or ethnic
-              origin, political opinions, religious beliefs, genetic data, health data,
-              biometric data, or data concerning sex life or sexual orientation.
-              EXCEPTION: only pause and ask if the new information is MUTUALLY EXCLUSIVE
-              with something already captured — i.e. it cannot be true at the same time
-              (e.g. remote vs on-site, salary 3k vs salary 5k). Do NOT pause for
-              complementary or related details that can both be true simultaneously
-              (e.g. "Is interested in ML" and "Is interested in AI" are not contradictions).
-              When you do clarify a genuine conflict, call capture_user_insight with the
-              confirmed answer and the old (wrong) text as the `replaces` argument.
             - Ask ONE question per turn. Wait for their answer before moving on.
             - React genuinely to what they say before moving to the next question — like a
               real person, not a form. A few natural sentences of smalltalk is encouraged.
@@ -276,7 +183,6 @@ class LocationTask(AgentTask[None]):
               calling it. Do not say "great", "got it", "that's helpful", or anything else.
               Call the function silently — the next phase will handle the next response.
             """,
-            tools=[capture_user_insight],
         )
 
     async def on_enter(self) -> None:
@@ -311,28 +217,6 @@ class BackgroundTask(AgentTask[None]):
             Be specific where they are specific. Speak their professional language, not generic corporate jargon.
 
             Rules:
-            - ⚠️ PRIORITY: Call capture_user_insight whenever the candidate shares
-              information relevant to MATCHING THEM WITH JOBS. This means: target role,
-              target industry, location preferences, work model (remote/hybrid/on-site),
-              compensation expectations, experience, skills, strengths, career goals,
-              company size/stage preferences, and management/culture preferences.
-              DO NOT save: how they found Clarvo, how actively they are searching,
-              or any other administrative/conversational detail that does
-              not help narrow down the right job for them. The tool response always returns
-              "Called tool to save insight: '<insight>'" so you should look at the history
-              and not call the tool to save duplicates. If the same fact is already
-              in the history, skip it. Do NOT save a restatement or combination of facts
-              already saved.
-              NEVER save any of the following regardless of context: racial or ethnic
-              origin, political opinions, religious beliefs, genetic data, health data,
-              biometric data, or data concerning sex life or sexual orientation.
-              EXCEPTION: only pause and ask if the new information is MUTUALLY EXCLUSIVE
-              with something already captured — i.e. it cannot be true at the same time
-              (e.g. remote vs on-site, salary 3k vs salary 5k). Do NOT pause for
-              complementary or related details that can both be true simultaneously
-              (e.g. "Is interested in ML" and "Is interested in AI" are not contradictions).
-              When you do clarify a genuine conflict, call capture_user_insight with the
-              confirmed answer and the old (wrong) text as the `replaces` argument.
             - Ask ONE question per turn. Wait for their answer before moving on.
             - React genuinely to what they say before moving to the next question — like a
               real person, not a form. A few natural sentences of smalltalk is encouraged.
@@ -349,7 +233,6 @@ class BackgroundTask(AgentTask[None]):
               verbal response before calling it. Do not say "great", "got it", "that's helpful",
               or anything else. Call the function silently — the next phase will handle the next response.
             """,
-            tools=[capture_user_insight],
         )
 
     async def on_enter(self) -> None:
@@ -381,28 +264,6 @@ class CultureTask(AgentTask[None]):
             Reference earlier answers where relevant to avoid repetition.
 
             Rules:
-            - ⚠️ PRIORITY: Call capture_user_insight whenever the candidate shares
-              information relevant to MATCHING THEM WITH JOBS. This means: target role,
-              target industry, location preferences, work model (remote/hybrid/on-site),
-              compensation expectations, experience, skills, strengths, career goals,
-              company size/stage preferences, and management/culture preferences.
-              DO NOT save: how they found Clarvo, how actively they are searching,
-              or any other administrative/conversational detail that does
-              not help narrow down the right job for them. The tool response always returns
-              "Called tool to save insight: '<insight>'" so you should look at the history
-              and not call the tool to save duplicates. If the same fact is already
-              in the history, skip it. Do NOT save a restatement or combination of facts
-              already saved.
-              NEVER save any of the following regardless of context: racial or ethnic
-              origin, political opinions, religious beliefs, genetic data, health data,
-              biometric data, or data concerning sex life or sexual orientation.
-              EXCEPTION: only pause and ask if the new information is MUTUALLY EXCLUSIVE
-              with something already captured — i.e. it cannot be true at the same time
-              (e.g. remote vs on-site, salary 3k vs salary 5k). Do NOT pause for
-              complementary or related details that can both be true simultaneously
-              (e.g. "Is interested in ML" and "Is interested in AI" are not contradictions).
-              When you do clarify a genuine conflict, call capture_user_insight with the
-              confirmed answer and the old (wrong) text as the `replaces` argument.
             - Ask ONE question per turn. Wait for their answer before moving on.
             - React genuinely to what they say before moving to the next question — like a
               real person, not a form. A few natural sentences of smalltalk is encouraged.
@@ -419,7 +280,6 @@ class CultureTask(AgentTask[None]):
               calling it. Do not say "great", "got it", "that's helpful", or anything else.
               Call the function silently — the next phase will handle the next response.
             """,
-            tools=[capture_user_insight],
         )
 
     async def on_enter(self) -> None:
@@ -451,28 +311,6 @@ class ValueVisionTask(AgentTask[None]):
             Be warm and direct. Frame this as you working on their behalf, not an interrogation.
 
             Rules:
-            - ⚠️ PRIORITY: Call capture_user_insight whenever the candidate shares
-              information relevant to MATCHING THEM WITH JOBS. This means: target role,
-              target industry, location preferences, work model (remote/hybrid/on-site),
-              compensation expectations, experience, skills, strengths, career goals,
-              company size/stage preferences, and management/culture preferences.
-              DO NOT save: how they found Clarvo, how actively they are searching,
-              or any other administrative/conversational detail that does
-              not help narrow down the right job for them. The tool response always returns
-              "Called tool to save insight: '<insight>'" so you should look at the history
-              and not call the tool to save duplicates. If the same fact is already
-              in the history, skip it. Do NOT save a restatement or combination of facts
-              already saved.
-              NEVER save any of the following regardless of context: racial or ethnic
-              origin, political opinions, religious beliefs, genetic data, health data,
-              biometric data, or data concerning sex life or sexual orientation.
-              EXCEPTION: only pause and ask if the new information is MUTUALLY EXCLUSIVE
-              with something already captured — i.e. it cannot be true at the same time
-              (e.g. remote vs on-site, salary 3k vs salary 5k). Do NOT pause for
-              complementary or related details that can both be true simultaneously
-              (e.g. "Is interested in ML" and "Is interested in AI" are not contradictions).
-              When you do clarify a genuine conflict, call capture_user_insight with the
-              confirmed answer and the old (wrong) text as the `replaces` argument.
             - Ask ONE question per turn. Wait for their answer before moving on.
             - React genuinely to what they say before moving to the next question — like a
               real person, not a form. A few natural sentences of smalltalk is encouraged.
@@ -489,7 +327,6 @@ class ValueVisionTask(AgentTask[None]):
               before calling it. Do not say "great", "got it", "that's helpful", or anything else.
               Call the function silently — the next phase will handle the next response.
             """,
-            tools=[capture_user_insight],
         )
 
     async def on_enter(self) -> None:
@@ -521,20 +358,12 @@ class AlignmentTask(AgentTask[None]):
             - Ask if the summary sounds right or if they want to correct anything
             - Close warmly: tell them you now have a great picture of what they are looking for
               and that you will use this to match them with the best opportunities
-            - TOOL RULE: ONLY call capture_user_insight if the candidate explicitly
-              corrects something in the summary. Pass the corrected value as `insight`
-              and the wrong value as `replaces`. DO NOT call it to confirm, restate,
-              or re-save anything already captured — those are already stored.
-              DO NOT call it for acknowledgements or paraphrases of earlier answers.
             Call alignment_complete once they have confirmed and you have said goodbye.
             """,
-            tools=[capture_user_insight],
         )
 
     async def on_enter(self) -> None:
         logger.info("[TASK] Alignment — summary, confirm, close")
-        existing = get_current_insights(_user_id.get())
-        already_saved = "\n".join(f"- {s}" for s in existing) if existing else "None yet."
         await self.session.generate_reply(
             instructions=(
                 "The discovery phase is complete. Use ONLY the captured insights listed below "
@@ -542,9 +371,6 @@ class AlignmentTask(AgentTask[None]):
                 "Deliver a warm, natural summary covering their background, what they are great at, "
                 "what they want next, and their hard constraints on location, comp, and work model. "
                 "Then ask if the summary sounds right and if they want to add or correct anything.\n\n"
-                "IMPORTANT: Do NOT call capture_user_insight during this response. "
-                "Only call it later if the candidate explicitly corrects something or adds something new.\n\n"
-                f"Captured insights to summarise:\n{already_saved}"
             )
         )
 
