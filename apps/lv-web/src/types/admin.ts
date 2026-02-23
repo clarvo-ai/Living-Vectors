@@ -32,21 +32,11 @@ export interface AdminUserMessage {
 }
 
 /**
- * Message within a learning connection
- */
-export interface LearningConnectionMessage {
-  messageId: string;
-  sender: MessageSender;
-  content: string;
-  createdAt: string;
-}
-
-/**
  * Learning connection data returned by /api/admin/users/[userId]/learning-connections
  */
 export interface LearningConnection {
   id: string;
   summary: string;
   createdAt: string;
-  messages: LearningConnectionMessage[];
+  messages: string[];
 }
