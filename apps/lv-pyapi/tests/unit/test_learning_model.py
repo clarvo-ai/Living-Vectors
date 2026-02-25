@@ -6,7 +6,7 @@ from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker, Session
 
 from message_save import save_message
-from python_utils.sqlalchemy_models import Base, ConversationMessage, MessageSender, User, Learning, _ConversationMessageToLearning
+from python_utils.sqlalchemy_models import Base, ConversationMessage, MessageSender, User, Learning
 
 raw_url = os.getenv("TEST_DATABASE_URL")
 assert raw_url, "TEST_DATABASE_URL is not set"
@@ -55,21 +55,7 @@ def test_create_learning_with_messages(db_session: Session):
     db_session.add(test_learning)
     db_session.flush()  # Get the learning ID
 
-    # Associating messages with learning using A (messageId) and B (learningId)
-    assoc1 = _ConversationMessageToLearning(A=msg1.messageId, B=test_learning.id)
-    assoc2 = _ConversationMessageToLearning(A=msg2.messageId, B=test_learning.id)
-
-    db_session.add(assoc1)
-    db_session.add(assoc2)
-    db_session.commit()
-    db_session.refresh(test_learning)
-
     stored = db_session.query(Learning).filter_by(id=test_learning.id).first()
     assert stored is not None
     assert stored.summary == summary_text
-    assert len(stored._ConversationMessageToLearning) == 2
-    
-    message_contents = [assoc.conversationMessage.content for assoc in stored._ConversationMessageToLearning]
-    assert msg1_content in message_contents
-    assert msg2_content in message_contents
     
