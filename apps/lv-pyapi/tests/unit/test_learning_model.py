@@ -6,7 +6,7 @@ from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker, Session
 
 from message_save import save_message
-from python_utils.sqlalchemy_models import Base, ConversationMessage, MessageSender, User, Learning
+from python_utils.sqlalchemy_models import MessageSender, User, Learning
 
 raw_url = os.getenv("TEST_DATABASE_URL")
 assert raw_url, "TEST_DATABASE_URL is not set"
