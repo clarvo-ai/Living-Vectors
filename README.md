@@ -66,6 +66,12 @@ docker compose --profile tests run --rm test-migrate
 docker compose --profile tests run --rm test-runner
 ```
 
+(use `--no-cache` if you encounter import errors to avoid stale dependency layers)
+
+```bash
+docker compose --profile tests build --no-cache test-runner
+```
+
 ## Unit Testing - Frontend
 
 1. Navigate into the correct directory
@@ -232,6 +238,12 @@ cd packages/database/prisma && npx prisma generate
 cd ../../..
 ```
 
+If that does not work, try
+
+```bash
+npx turbo run db:generate
+```
+
 **Important:** You must run `npx prisma generate` in `packages/database/prisma` whenever you switch between Docker-run and npm-run environments, as Prisma needs to generate the client for your specific platform.
 
 ### Running
@@ -266,7 +278,8 @@ TIP: use Docker/Containers extension in Cursor to manage containers and see logs
 
 1. Clone repository or pull latest changes
 
-2. Create .env files (`apps/lv-web/.env` and `apps/lv-pyapi/.env`)
+2. Create .env.local files (`apps/lv-web/.env.local` and `apps/lv-pyapi/.env.local`)
+   For Docker, you may have to additionally create .env files with same vars `apps/lv-web/.env` and `apps/lv-pyapi/.env`)
 
 3. (May be temporary) Set up Google Cloud Credentials for voice features, see [Voice Interface Setup](#10-voice-interface-setup)
 
@@ -340,6 +353,83 @@ Inside the LV-WEB app folder:
 ```bash
 npx shadcn@latest add [COMPONENT]
 ```
+
+## Vector Embeddings & Job Matching
+
+The project includes a vector embedding system for matching users to jobs based on their learnings.
+
+### How It Works
+
+1. **User Learnings** → Extracted from career conversations and stored in the `Learning` table
+2. **User Embedding** → All learnings concatenated and converted to a 768-dimensional vector using Gemini API
+3. **Job Embeddings** → Job descriptions converted to vectors when jobs are created
+4. **Job Matching** → Cosine similarity between user and job vectors, ranked by match score
+
+### API Endpoints
+
+| Endpoint                                           | Method | Description                              |
+| -------------------------------------------------- | ------ | ---------------------------------------- |
+| `POST /api/users/{user_id}/generate-embedding`     | POST   | Generate embedding from user's learnings |
+| `GET /api/jobs/match?user_id=X&page=1&per_page=20` | GET    | Get jobs matched to user by similarity   |
+| `POST /api/jobs`                                   | POST   | Create a job with automatic embedding    |
+| `GET /api/jobs`                                    | GET    | List all jobs                            |
+| `POST /api/upload-jobs`                            | POST   | Upload jobs from a GCS CSV file          |
+| `POST /api/jobs/generate-embeddings`               | POST   | Generate embeddings for jobs missing one |
+
+### Uploading Jobs from CSV
+
+Job data is stored in Google Cloud Storage. To upload jobs:
+
+1. **Set your account role to `ADMIN`** in the database — the job upload/download tab in the UI is only visible to admins:
+
+   ```sql
+   UPDATE "User" SET role = 'ADMIN' WHERE email = 'your@email.com';
+   ```
+
+2. **Get the CSV filename** from the GCS bucket:
+   [Browse job CSV files in GCS](<https://console.cloud.google.com/storage/browser/lv-storage/job-data;tab=objects?project=swp-livingvectors&pageState=(%22StorageObjectListTable%22:(%22f%22:%22%255B%255D%22))&prefix=&forceOnObjectsSortingFiltering=false>)
+
+3. Use the filename in the upload tab.
+
+   After upload, embeddings are generated automatically in the background for any jobs missing them.
+
+### Testing the Matching Algorithm
+
+Run the manual test script to verify embeddings and job matching:
+
+```bash
+cd apps/lv-pyapi
+python3 tests/manual/test_embeddings_and_matching.py
+```
+
+Options:
+
+- `--keep-jobs` - Keep test jobs after running (for inspection)
+- `--no-cleanup` - Don't cleanup any test data
+
+### Example: Testing via curl
+
+```bash
+# Create a job
+curl -X POST http://localhost:8091/api/jobs \
+  -H "Content-Type: application/json" \
+  -d '{"title": "Frontend Developer", "company": "TechCorp", "description": "React and TypeScript skills required", "location": "Remote"}'
+
+# Generate user embedding (after user has learnings)
+curl -X POST http://localhost:8091/api/users/{USER_ID}/generate-embedding
+
+# Get matched jobs
+curl "http://localhost:8091/api/jobs/match?user_id={USER_ID}&page=1&per_page=20"
+```
+
+### Database Schema
+
+- `UserEmbedding` - One embedding per user (768-dim vector from all learnings combined)
+- `Job` - Job postings with embedding vectors for matching
+
+Uses PostgreSQL's `pgvector` extension for efficient cosine similarity queries.
+
+---
 
 ## Seed Mock Database with Test Data
 
