@@ -34,15 +34,7 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
         id: true,
         summary: true,
         createdAt: true,
-        messages: {
-          select: {
-            messageId: true,
-            sender: true,
-            content: true,
-            createdAt: true,
-          },
-          orderBy: { createdAt: 'asc' },
-        },
+        messages: true,
       },
       orderBy: { createdAt: 'desc' },
     });

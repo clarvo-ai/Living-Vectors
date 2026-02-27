@@ -2,7 +2,9 @@ import logging
 import os
 import sys
 from dotenv import load_dotenv
+import asyncio
 
+from learnings import process_learnings
 from livekit import agents
 from livekit.agents import AgentServer, AgentSession, Agent, JobProcess, room_io
 from livekit.agents.beta.workflows import TaskGroup
@@ -47,6 +49,7 @@ class CareerAssistant(Agent):
             Speak conversationally. Reference earlier answers to avoid repeating questions.
             Be concise — this is a voice conversation, not a written form.
             """,
+            tools=[],
         )
 
     async def on_enter(self) -> None:
@@ -75,10 +78,10 @@ async def my_agent(ctx: agents.JobContext):
         voice_id="TX3LPaxmHKxFdv7VOQHJ",
         model="eleven_multilingual_v2",
         voice_settings=VoiceSettings(
-        stability=0.25,           # Slight bump for consistency
-        similarity_boost=0.6,     # High "Roger-ness"
-        style=0.2,                # 0.0 is best for low-latency
-        use_speaker_boost=True    # Clearer vocal presence
+            stability=0.25,           # Slight bump for consistency
+            similarity_boost=0.6,     # High "Roger-ness"
+            style=0.2,                # 0.0 is best for low-latency
+            use_speaker_boost=True    # Clearer vocal presence
         )
     )
 
@@ -90,6 +93,9 @@ async def my_agent(ctx: agents.JobContext):
         tts = liam_tts,
         allow_interruptions=True,
     )
+    
+    user_id = ctx.room.name.removeprefix("interview-")
+    logger.info(f"Session user: {user_id}")
 
     await session.start(
         room=ctx.room,
@@ -100,6 +106,19 @@ async def my_agent(ctx: agents.JobContext):
         ),
     )
     logger.info("Agent started")
+
+    @session.on("close")
+    def on_close():
+        transcript = ""
+        for item in session.history.items:
+            if item.type == "message":
+                content = item.text_content.replace("\n", " ")
+                text = f"{item.role}: {content}\n"
+                transcript += text
+        
+        logger.info(f"Transcript: {transcript}")
+        # Run process_learnings in a background thread to avoid blocking the event loop
+        asyncio.get_event_loop().run_in_executor(None, process_learnings, user_id, transcript)
 
 
 if __name__ == "__main__":

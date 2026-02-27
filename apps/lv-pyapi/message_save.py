@@ -6,8 +6,7 @@ def save_message(db: Session, user_id: str, sender: MessageSender, content: str,
         userId=user_id,
         sender=sender,
         content=content,
-        questionContext=question_context,
-        learnedFrom=False
+        questionContext=question_context
     )
     db.add(message)
     db.commit()

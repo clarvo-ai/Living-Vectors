@@ -17,9 +17,13 @@ if not os.environ.get("GEMINI_API_KEY"):
 # This is needed to import the python_utils models into the tests
 ROOT = os.path.abspath(os.path.join(os.path.dirname(__file__), "../../.."))
 UTILS_PATH = os.path.join(ROOT, "packages/python-utils/src")
+AGENTS_PATH = os.path.join(ROOT, "apps/lv-pyapi/agents")
 
 if UTILS_PATH not in sys.path:
     sys.path.insert(0, UTILS_PATH)
+
+if AGENTS_PATH not in sys.path:
+    sys.path.insert(0, AGENTS_PATH)
 
 # Shared DB override for unit tests (avoids repeating override_get_db + cleanup in each test)
 
