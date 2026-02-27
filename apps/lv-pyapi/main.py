@@ -1,4 +1,4 @@
-from fastapi import FastAPI, Depends, HTTPException, Body, BackgroundTasks, UploadFile, File, Response
+from fastapi import FastAPI, Depends, HTTPException, Body, BackgroundTasks, UploadFile, File, Response, Header
 from sqlalchemy.orm import Session
 from sqlalchemy import select, func
 from typing import List, Optional
@@ -20,6 +20,7 @@ from job_embedding import generate_missing_embeddings
 from job_recommendations import save_job_recommendations, get_job_recommendations, recompute_recommendations, query_job_matches
 from pydantic import BaseModel
 from store_jobs import process_file
+from learnings import process_learnings
 
 import json
 from pathlib import Path
@@ -298,6 +299,27 @@ async def batch_generate_job_embeddings(background_tasks: BackgroundTasks):
     """
     background_tasks.add_task(generate_missing_embeddings)
     return {"status": 200, "message": "Embedding generation started in background"}
+
+#Pydantic model for agent <-> backend communication
+class TranscriptPayload(BaseModel):
+    user_id: str
+    transcript: str
+
+@app.post("/internal/process-transcript")
+async def internal_process_transcript(
+    payload: TranscriptPayload,
+    background_tasks: BackgroundTasks,
+    x_internal_secret: str = Header(...),
+):
+    """
+    Called by the LiveKit voice agent after a session closes.
+    Processes the transcript to extract and save user learnings.
+    The agent cannot reach Cloud SQL directly (no Auth Proxy), so it delegates here.
+    """
+    if x_internal_secret != os.getenv("INTERNAL_API_SECRET"):
+        raise HTTPException(status_code=403, detail="Forbidden")
+    background_tasks.add_task(process_learnings, payload.user_id, payload.transcript)
+    return {"status": "accepted"}
 
 
 if __name__ == "__main__":

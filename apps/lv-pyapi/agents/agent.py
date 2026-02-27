@@ -4,7 +4,7 @@ import sys
 from dotenv import load_dotenv
 import asyncio
 
-from learnings import process_learnings
+import requests
 from livekit import agents
 from livekit.agents import AgentServer, AgentSession, Agent, JobProcess, room_io
 from livekit.agents.beta.workflows import TaskGroup
@@ -28,6 +28,8 @@ ELEVENLABS_API_KEY = os.environ.get("ELEVENLABS_API_KEY")
 GOOGLE_API_KEY = os.environ.get("GEMINI_API_KEY")
 AGENT_NAME = os.environ.get("LIVEKIT_AGENT_NAME", "lv-voice-agent")
 LIVEKIT_URL = os.environ.get("LIVEKIT_URL", "ws://127.0.0.1:7880")
+BACKEND_URL = os.environ.get("BACKEND_URL", "")
+INTERNAL_API_SECRET = os.environ.get("INTERNAL_API_SECRET", "")
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger("voice-agent")
@@ -117,8 +119,22 @@ async def my_agent(ctx: agents.JobContext):
                 transcript += text
         
         logger.info(f"Transcript: {transcript}")
-        # Run process_learnings in a background thread to avoid blocking the event loop
-        asyncio.get_event_loop().run_in_executor(None, process_learnings, user_id, transcript)
+
+        # POST transcript to the Cloud Run backend because it holds the Cloud SQL Auth Proxy
+        def post_transcript():
+            try:
+                resp = requests.post(
+                    f"{BACKEND_URL}/internal/process-transcript",
+                    json={"user_id": user_id, "transcript": transcript},
+                    headers={"x-internal-secret": INTERNAL_API_SECRET},
+                    timeout=30,
+                )
+                resp.raise_for_status()
+                logger.info(f"Transcript posted to backend for user {user_id}: {resp.status_code}")
+            except Exception as e:
+                logger.error(f"Failed to post transcript for user {user_id}: {e}")
+
+        asyncio.get_event_loop().run_in_executor(None, post_transcript)
 
 
 if __name__ == "__main__":
