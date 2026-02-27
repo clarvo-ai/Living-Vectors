@@ -1,0 +1,5 @@
+# Files injected by CI (agent-deployment.yml) before the Docker build.
+# These are copies of files from elsewhere in the monorepo and must NOT be committed.
+database.py
+gemini_client.py
+python_utils/

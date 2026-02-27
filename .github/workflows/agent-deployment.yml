@@ -16,6 +16,14 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v4
 
+      - name: Inject shared modules into agent build context
+        # Copies files that live outside agents/ into agents/ so Docker can reach them.
+        # These paths are .gitignored — nothing is committed to the repo.
+        run: |
+          cp apps/lv-pyapi/database.py      apps/lv-pyapi/agents/database.py
+          cp apps/lv-pyapi/gemini_client.py  apps/lv-pyapi/agents/gemini_client.py
+          cp -r packages/python-utils/src/python_utils apps/lv-pyapi/agents/python_utils
+
       - name: Deploy to LiveKit Cloud
         uses: livekit/deploy-action@v2.12.1
         with:
