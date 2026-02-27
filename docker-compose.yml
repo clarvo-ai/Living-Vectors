@@ -76,6 +76,7 @@ services:
       - LIVEKIT_API_KEY=devkey
       - LIVEKIT_API_SECRET=secret
       - LIVEKIT_AGENT_NAME=lv-voice-agent
+      - INTERNAL_API_SECRET=localdev
     volumes:
       - ./apps/lv-pyapi:/app/apps/lv-pyapi
       - ./packages/python-utils:/app/packages/python-utils
@@ -100,6 +101,8 @@ services:
       - LIVEKIT_AGENT_NAME=lv-voice-agent
       # Ensure both the pyapi root (tasks.py) and python-utils are importable
       - PYTHONPATH=/app:/app/apps/lv-pyapi:/app/packages/python-utils/src
+      - BACKEND_URL=http://lv-pyapi:8080
+      - INTERNAL_API_SECRET=localdev
     volumes:
       - ./apps/lv-pyapi:/app/apps/lv-pyapi
       - ./packages/python-utils:/app/packages/python-utils
