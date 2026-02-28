@@ -119,10 +119,16 @@ class LogisticsTask(AgentTask[None]):
             Cover:
             - How actively they are searching right now
             - When they are looking to make a move
-            - Work authorization status if relevant
+            - Work authorization only when you already know their country or region (e.g. from context).
+              Ask in a neutral way (e.g. "Do you have the right to work where you're looking?"). Do NOT
+              assume they are in the US or any specific country — if you do not yet know their location,
+              skip work authorization here; the location phase will cover geography.
             - What is driving them to consider a change (the "push" factor)
 
             Rules:
+            - Do NOT assume the candidate is in the US or any other country. Never ask about "US work
+              authorization" or country-specific authorization unless they have already said which
+              country or region they are in or targeting.
             - Ask ONE question per turn. Wait for their answer before moving on.
             - React genuinely to what they say before moving to the next question — like a
               real person, not a form. A few natural sentences of smalltalk is encouraged.
