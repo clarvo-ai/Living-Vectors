@@ -1,6 +1,8 @@
+import json
 import logging
 import os
 import sys
+from pathlib import Path
 from dotenv import load_dotenv
 import asyncio
 
@@ -23,6 +25,41 @@ from tasks import (
 )
 
 load_dotenv(".env.local")
+
+# Career conversation questions (shared with backend)
+# Repo root: agents/ -> lv-pyapi/ -> apps/ -> repo root
+QUESTIONS_PATH = Path(__file__).resolve().parent.parent.parent.parent / "packages" / "shared-data" / "career-conversation-questions.json"
+CAREER_QUESTIONS: dict = {}
+try:
+    with open(QUESTIONS_PATH, encoding="utf-8") as f:
+        CAREER_QUESTIONS = json.load(f)
+except FileNotFoundError:
+    logging.warning(
+        "Career conversation questions not found at %s; tasks will run without suggested questions.",
+        QUESTIONS_PATH,
+    )
+
+OPENING_GOALS = ["Build Trust & Explore Current Motivation"]
+BACKGROUND_GOALS = [
+    "Identify Core Motivation",
+    "Surface Skill Strengths",
+    "Uncover Challenges or Constraints",
+]
+CULTURE_GOALS = [
+    "Understand Environment Preference",
+    "Identify Leadership & Influence Style",
+]
+VALUE_VISION_GOALS = [
+    "Explore Future Direction",
+    "Reveal Core Values & Priorities",
+]
+
+
+def get_questions_for_goals(goal_names: list[str]) -> list[dict]:
+    """Return list of {goal, questions} for the given goal names from career-conversation-questions.json."""
+    goals_data = CAREER_QUESTIONS.get("goals", [])
+    return [{"goal": g["goal"], "questions": g["questions"]} for g in goals_data if g["goal"] in goal_names]
+
 
 ELEVENLABS_API_KEY = os.environ.get("ELEVENLABS_API_KEY")
 GOOGLE_API_KEY = os.environ.get("GEMINI_API_KEY")
@@ -56,14 +93,30 @@ class CareerAssistant(Agent):
 
     async def on_enter(self) -> None:
         task_group = TaskGroup(chat_ctx=self.chat_ctx)
-        task_group.add(lambda: OpeningTask(),      id="opening",      description="Why the candidate is here and how they found Clarvo")
-        task_group.add(lambda: LogisticsTask(),    id="logistics",    description="Job search logistics, timing, and motivation to leave")
-        task_group.add(lambda: IndustryTask(),     id="industry",     description="Target industry or field the candidate wants to work in")
-        task_group.add(lambda: LocationTask(),     id="location",     description="Preferred cities and remote/hybrid/onsite preferences")
-        task_group.add(lambda: BackgroundTask(),   id="background",   description="Work experience, strengths, and domain knowledge")
-        task_group.add(lambda: CultureTask(),      id="culture",      description="Team size, management style, and company culture fit")
-        task_group.add(lambda: ValueVisionTask(),  id="value_vision", description="Compensation expectations and career vision")
-        task_group.add(lambda: AlignmentTask(),    id="alignment",    description="Summary confirmation and closing")
+        task_group.add(
+            lambda: OpeningTask(suggested_questions=get_questions_for_goals(OPENING_GOALS)),
+            id="opening",
+            description="Why the candidate is here and how they found Clarvo",
+        )
+        task_group.add(lambda: LogisticsTask(), id="logistics", description="Job search logistics, timing, and motivation to leave")
+        task_group.add(lambda: IndustryTask(), id="industry", description="Target industry or field the candidate wants to work in")
+        task_group.add(lambda: LocationTask(), id="location", description="Preferred cities and remote/hybrid/onsite preferences")
+        task_group.add(
+            lambda: BackgroundTask(suggested_questions=get_questions_for_goals(BACKGROUND_GOALS)),
+            id="background",
+            description="Work experience, strengths, and domain knowledge",
+        )
+        task_group.add(
+            lambda: CultureTask(suggested_questions=get_questions_for_goals(CULTURE_GOALS)),
+            id="culture",
+            description="Team size, management style, and company culture fit",
+        )
+        task_group.add(
+            lambda: ValueVisionTask(suggested_questions=get_questions_for_goals(VALUE_VISION_GOALS)),
+            id="value_vision",
+            description="Compensation expectations and career vision",
+        )
+        task_group.add(lambda: AlignmentTask(), id="alignment", description="Summary confirmation and closing")
         await task_group
 
 

@@ -1,18 +1,43 @@
 import logging
+from typing import Any, Optional
 
 from livekit.agents import AgentTask, function_tool
 
 logger = logging.getLogger("career-agent")
 
 
+def _format_suggested_questions(suggested_questions: list[dict[str, Any]]) -> str:
+    """Format career-conversation questions for inclusion in task instructions."""
+    lines = [
+        "Questions for this phase — ask from this list (one per turn). Prefer these exact questions; "
+        "you may soften or shorten wording slightly for natural flow, but do not replace them with "
+        "your own. Only skip a question if the candidate has already clearly answered it. "
+        "Use the insights to guide brief follow-ups.",
+        "When moving to a new theme or set of questions within this phase, use a brief signpost first "
+        "(e.g. 'In terms of location,…' or 'Let\'s talk about the kind of environment where you do your best work…') "
+        "then ask the question. One short phrase or sentence is enough — keep it natural, not scripted.",
+        "",
+    ]
+    for g in suggested_questions:
+        for q in g.get("questions", []):
+            question = q.get("question", "")
+            insight = q.get("potentialInsight", "")
+            if insight:
+                lines.append(f'- "{question}" (Insight: {insight})')
+            else:
+                lines.append(f'- "{question}"')
+    return "\n".join(lines)
+
+
 class OpeningTask(AgentTask[None]):
-    def __init__(self) -> None:
-        super().__init__(
-            instructions="""
+    def __init__(self, suggested_questions: Optional[list[dict[str, Any]]] = None) -> None:
+        base = """
             Your name is the "Clarvo career assistant".
             You are a career consultant in the opening phase of a discovery call.
-            Your goals: understand why the candidate is here, what they hope to get out of this,
-            and after getting a good sense of those earlier questions ask "on the side" where they heard about Clarvo.
+            Your goals: explore their current motivation and direction using the questions from the list below;
+            understand why they are here and what they hope to get out of this; then ask where they heard about Clarvo.
+
+            When asking where they heard about Clarvo, lead in briefly so it doesn't feel abrupt — e.g. "Quick thing — where did you hear about us?" or "On the side, I'm curious — how did you first hear about Clarvo?" Then ask the question. Do not jump straight to "Where did you hear about Clarvo?" with no lead-in.
 
             Tone: sit right at the border between a professional recruiter and a trusted friend —
             warm, relaxed, and genuine, but focused and purposeful. Never stiff, never overly casual.
@@ -37,8 +62,9 @@ class OpeningTask(AgentTask[None]):
               call opening_complete. Do NOT generate any verbal response before calling it.
               Do not say "great", "got it", "that's helpful", or anything else. Call the function
               silently — the next phase will handle the next response.
-            """,
-        )
+            """
+        extra = "\n\n" + _format_suggested_questions(suggested_questions) if suggested_questions else ""
+        super().__init__(instructions=base.strip() + extra)
 
     async def on_enter(self) -> None:
         logger.info("[TASK] Opening — greeting and discovery")
@@ -46,7 +72,9 @@ class OpeningTask(AgentTask[None]):
             instructions=(
                 "Warmly welcome the candidate and introduce yourself briefly as their career consultant. "
                 "Keep it natural and friendly — like you're genuinely glad they're here. "
-                "Then ask just ONE question: what brought them here today. Nothing else."
+                "Then ask just ONE question from the career conversation list for this phase (e.g. what's been "
+                "exciting or interesting lately, what led them to their current direction, or what brought them here today). "
+                "Do not invent a different question — use one from the list (or a close paraphrase). Nothing else."
             )
         )
 
@@ -90,9 +118,8 @@ class LogisticsTask(AgentTask[None]):
         logger.info("[TASK] Logistics — search intensity, timing, motivation")
         await self.session.generate_reply(
             instructions=(
-                "Transition naturally into understanding their job search situation. "
-                "Briefly acknowledge what they just shared if there's a natural hook, "
-                "then ask just ONE question: how actively they are searching right now."
+                "Transition with a brief signpost for the new topic (e.g. 'In terms of your job search,…' or 'To understand your situation better,…'). "
+                "Then ask just ONE question: how actively they are searching right now."
             )
         )
 
@@ -139,10 +166,8 @@ class IndustryTask(AgentTask[None]):
         logger.info("[TASK] Industry — target field and sector")
         await self.session.generate_reply(
             instructions=(
-                "Transition naturally into understanding what kind of work they are looking for. "
-                "Briefly acknowledge what they just shared if there's a natural hook, "
-                "then ask just ONE question: what industry or field they are targeting. "
-                "Keep it open and curious — there's no wrong answer."
+                "Transition with a brief signpost (e.g. 'In terms of the kind of work you want,…' or 'Zooming out a bit — what field or industry…'). "
+                "Then ask just ONE question: what industry or field they are targeting. Keep it open and curious."
             )
         )
 
@@ -189,9 +214,8 @@ class LocationTask(AgentTask[None]):
         logger.info("[TASK] Location — cities, relocation, remote/hybrid/onsite")
         await self.session.generate_reply(
             instructions=(
-                "Transition naturally into understanding their location preferences. "
-                "Briefly acknowledge what they just shared if there's a natural hook, "
-                "then ask just ONE question: which cities or regions they prefer."
+                "Transition with a brief signpost (e.g. 'In terms of location,…' or 'Where are you looking to work?'). "
+                "Then ask just ONE question: which cities or regions they prefer."
             )
         )
 
@@ -202,9 +226,8 @@ class LocationTask(AgentTask[None]):
 
 
 class BackgroundTask(AgentTask[None]):
-    def __init__(self) -> None:
-        super().__init__(
-            instructions="""
+    def __init__(self, suggested_questions: Optional[list[dict[str, Any]]] = None) -> None:
+        base = """
             You are a career consultant doing a deep professional background assessment.
             The better you understand their background, the better the roles you can surface.
             This can be any field — engineering, design, marketing, finance, sales, operations,
@@ -214,6 +237,7 @@ class BackgroundTask(AgentTask[None]):
             - The skills and areas where they truly excel (their "superpowers")
             - Areas they want to grow into — important for finding stretch roles
             - Key tools, methods, or domain knowledge relevant to their field
+            - What situations make work harder for them or drain their energy; what would make the next step easier
             Be specific where they are specific. Speak their professional language, not generic corporate jargon.
 
             Rules:
@@ -232,16 +256,16 @@ class BackgroundTask(AgentTask[None]):
             - When you have a solid picture, call background_complete. Do NOT generate any
               verbal response before calling it. Do not say "great", "got it", "that's helpful",
               or anything else. Call the function silently — the next phase will handle the next response.
-            """,
-        )
+            """
+        extra = "\n\n" + _format_suggested_questions(suggested_questions) if suggested_questions else ""
+        super().__init__(instructions=base.strip() + extra)
 
     async def on_enter(self) -> None:
         logger.info("[TASK] Background — roles, strengths, tools/domain")
         await self.session.generate_reply(
             instructions=(
-                "Transition naturally into their professional background. "
-                "Briefly acknowledge what they just shared if there's a natural hook, "
-                "then ask just ONE question: what their most recent role was."
+                "Transition with a brief signpost (e.g. 'Let\'s talk about your background and what you\'re great at…' or 'To find the right fit, I\'d love to understand your experience…'). "
+                "Then ask just ONE question from the list for this phase (e.g. what their most recent role was, or what gives them energy in their work)."
             )
         )
 
@@ -252,15 +276,15 @@ class BackgroundTask(AgentTask[None]):
 
 
 class CultureTask(AgentTask[None]):
-    def __init__(self) -> None:
-        super().__init__(
-            instructions="""
+    def __init__(self, suggested_questions: Optional[list[dict[str, Any]]] = None) -> None:
+        base = """
             You are a career consultant. Culture fit is one of the biggest reasons
             placements succeed or fail — this matters as much as the skills match.
             Cover:
             - Management style they thrive under
             - Preferred team size
             - Where they fall on the startup vs established company spectrum
+            - How they like to support or guide others; how they contribute to team decisions
             Reference earlier answers where relevant to avoid repetition.
 
             Rules:
@@ -279,16 +303,16 @@ class CultureTask(AgentTask[None]):
             - When covered, call culture_complete. Do NOT generate any verbal response before
               calling it. Do not say "great", "got it", "that's helpful", or anything else.
               Call the function silently — the next phase will handle the next response.
-            """,
-        )
+            """
+        extra = "\n\n" + _format_suggested_questions(suggested_questions) if suggested_questions else ""
+        super().__init__(instructions=base.strip() + extra)
 
     async def on_enter(self) -> None:
         logger.info("[TASK] Culture — management style, team size, startup vs corp")
         await self.session.generate_reply(
             instructions=(
-                "Transition naturally into culture fit. "
-                "Briefly acknowledge what they just shared if there's a natural hook, "
-                "then ask just ONE question: what kind of management style they thrive under."
+                "Transition with a brief signpost (e.g. 'Let\'s talk about the kind of environment where you do your best work…' or 'In terms of culture and how you like to work…'). "
+                "Then ask just ONE question from the list for this phase (e.g. what kind of teamwork makes them feel at their best, or what management style they thrive under)."
             )
         )
 
@@ -299,15 +323,15 @@ class CultureTask(AgentTask[None]):
 
 
 class ValueVisionTask(AgentTask[None]):
-    def __init__(self) -> None:
-        super().__init__(
-            instructions="""
+    def __init__(self, suggested_questions: Optional[list[dict[str, Any]]] = None) -> None:
+        base = """
             You are a career consultant. You need comp and vision data to make sure
             you only surface roles worth their time — and to advocate for them in negotiations.
             Cover:
             - Their compensation expectations (a range is fine — reassure them this helps you filter)
             - Flexibility on comp vs other factors like equity, benefits, or role scope
             - Where they see themselves in three to five years — important for finding roles with growth
+            - What matters most to them in how they work; what makes work meaningful
             Be warm and direct. Frame this as you working on their behalf, not an interrogation.
 
             Rules:
@@ -326,17 +350,16 @@ class ValueVisionTask(AgentTask[None]):
             - When covered, call value_vision_complete. Do NOT generate any verbal response
               before calling it. Do not say "great", "got it", "that's helpful", or anything else.
               Call the function silently — the next phase will handle the next response.
-            """,
-        )
+            """
+        extra = "\n\n" + _format_suggested_questions(suggested_questions) if suggested_questions else ""
+        super().__init__(instructions=base.strip() + extra)
 
     async def on_enter(self) -> None:
         logger.info("[TASK] Value & Vision — compensation, career goals")
         await self.session.generate_reply(
             instructions=(
-                "Transition naturally into comp and career vision. "
-                "Briefly acknowledge what they just shared if there's a natural hook, "
-                "then frame it warmly — you need this to filter roles on their behalf. "
-                "Ask just ONE question: what their compensation expectations are."
+                "Transition with a brief signpost (e.g. 'To make sure I only surface roles worth your time…' or 'In terms of compensation and where you see yourself…'). "
+                "Then ask just ONE question from the list for this phase (e.g. compensation expectations, or what matters most to them in how they work)."
             )
         )
 
