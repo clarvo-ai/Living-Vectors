@@ -6,6 +6,27 @@ from livekit.agents import AgentTask, function_tool
 logger = logging.getLogger("career-agent")
 
 
+def _last_message_was_from_user(session: Any) -> bool:
+    """
+    Return True if the last message in session history is from the user, or if history is empty.
+    Used in on_enter to avoid sending two agent messages in a row when multiple tasks are
+    entered in the same turn (e.g. logistics_complete then industry_complete without user reply).
+    We only generate a reply when we are actually responding to something the user said.
+    """
+    try:
+        items = getattr(session.history, "items", None) or []
+    except Exception:
+        return True  # If we can't read history, allow reply (e.g. start of session)
+    if not items:
+        return True  # Start of conversation — we may send the opening greeting
+    last = items[-1]
+    role = getattr(last, "role", None)
+    if role is None:
+        return True
+    # Compare as string in case role is an enum
+    return str(role).lower() == "user"
+
+
 def _format_suggested_questions(suggested_questions: list[dict[str, Any]]) -> str:
     """Format career-conversation questions for inclusion in task instructions."""
     lines = [
@@ -68,6 +89,8 @@ class OpeningTask(AgentTask[None]):
 
     async def on_enter(self) -> None:
         logger.info("[TASK] Opening — greeting and discovery")
+        if not _last_message_was_from_user(self.session):
+            return
         await self.session.generate_reply(
             instructions=(
                 "Warmly welcome the candidate and introduce yourself briefly as their career consultant. "
@@ -116,6 +139,8 @@ class LogisticsTask(AgentTask[None]):
 
     async def on_enter(self) -> None:
         logger.info("[TASK] Logistics — search intensity, timing, motivation")
+        if not _last_message_was_from_user(self.session):
+            return
         await self.session.generate_reply(
             instructions=(
                 "Transition with a brief signpost for the new topic (e.g. 'In terms of your job search,…' or 'To understand your situation better,…'). "
@@ -164,6 +189,8 @@ class IndustryTask(AgentTask[None]):
 
     async def on_enter(self) -> None:
         logger.info("[TASK] Industry — target field and sector")
+        if not _last_message_was_from_user(self.session):
+            return
         await self.session.generate_reply(
             instructions=(
                 "Transition with a brief signpost (e.g. 'In terms of the kind of work you want,…' or 'Zooming out a bit — what field or industry…'). "
@@ -212,6 +239,8 @@ class LocationTask(AgentTask[None]):
 
     async def on_enter(self) -> None:
         logger.info("[TASK] Location — cities, relocation, remote/hybrid/onsite")
+        if not _last_message_was_from_user(self.session):
+            return
         await self.session.generate_reply(
             instructions=(
                 "Transition with a brief signpost (e.g. 'In terms of location,…' or 'Where are you looking to work?'). "
@@ -262,6 +291,8 @@ class BackgroundTask(AgentTask[None]):
 
     async def on_enter(self) -> None:
         logger.info("[TASK] Background — roles, strengths, tools/domain")
+        if not _last_message_was_from_user(self.session):
+            return
         await self.session.generate_reply(
             instructions=(
                 "Transition with a brief signpost (e.g. 'Let\'s talk about your background and what you\'re great at…' or 'To find the right fit, I\'d love to understand your experience…'). "
@@ -309,6 +340,8 @@ class CultureTask(AgentTask[None]):
 
     async def on_enter(self) -> None:
         logger.info("[TASK] Culture — management style, team size, startup vs corp")
+        if not _last_message_was_from_user(self.session):
+            return
         await self.session.generate_reply(
             instructions=(
                 "Transition with a brief signpost (e.g. 'Let\'s talk about the kind of environment where you do your best work…' or 'In terms of culture and how you like to work…'). "
@@ -356,6 +389,8 @@ class ValueVisionTask(AgentTask[None]):
 
     async def on_enter(self) -> None:
         logger.info("[TASK] Value & Vision — compensation, career goals")
+        if not _last_message_was_from_user(self.session):
+            return
         await self.session.generate_reply(
             instructions=(
                 "Transition with a brief signpost (e.g. 'To make sure I only surface roles worth your time…' or 'In terms of compensation and where you see yourself…'). "
@@ -387,6 +422,8 @@ class AlignmentTask(AgentTask[None]):
 
     async def on_enter(self) -> None:
         logger.info("[TASK] Alignment — summary, confirm, close")
+        if not _last_message_was_from_user(self.session):
+            return
         await self.session.generate_reply(
             instructions=(
                 "The discovery phase is complete. Use ONLY the captured insights listed below "
