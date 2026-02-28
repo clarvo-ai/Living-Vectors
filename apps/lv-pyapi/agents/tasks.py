@@ -34,9 +34,12 @@ def _format_suggested_questions(suggested_questions: list[dict[str, Any]]) -> st
         "you may soften or shorten wording slightly for natural flow, but do not replace them with "
         "your own. Only skip a question if the candidate has already clearly answered it. "
         "Use the insights to guide brief follow-ups.",
-        "When moving to a new theme or set of questions within this phase, use a brief signpost first "
-        "(e.g. 'In terms of location,…' or 'Let\'s talk about the kind of environment where you do your best work…') "
-        "then ask the question. One short phrase or sentence is enough — keep it natural, not scripted.",
+        "The list below is grouped by goal (theme). When you move to a new goal — i.e. the next group of questions — "
+        "use a one-sentence bridge that signals the new topic (e.g. 'Another thing I'm curious about…', "
+        "'Let\'s talk about the kind of environment where you do your best work…', 'Quick shift — …', "
+        "'On a different note…', 'One more angle — …') before asking the question. "
+        "Avoid generic acknowledgments like 'Okay, great.' when changing topic; use those only for the next question "
+        "within the same goal. Keep the bridge to one short sentence so the question stays the focus.",
         "",
     ]
     for g in suggested_questions:
@@ -53,9 +56,9 @@ def _format_suggested_questions(suggested_questions: list[dict[str, Any]]) -> st
 class OpeningTask(AgentTask[None]):
     def __init__(self, suggested_questions: Optional[list[dict[str, Any]]] = None) -> None:
         base = """
-            Your name is the "Clarvo career assistant".
-            You are a career consultant in the opening phase of a discovery call.
-            Your goals: explore their current motivation and direction using the questions from the list below;
+            Your name is the "Clarvo career assistant" — you help people explore their goals and get
+            matched to the right job opportunities through this conversation.
+            In the opening phase of this discovery call, your goals are: explore their current motivation and direction using the questions from the list below;
             understand why they are here and what they hope to get out of this; then ask where they heard about Clarvo.
 
             When asking where they heard about Clarvo, lead in briefly so it doesn't feel abrupt — e.g. "Quick thing — where did you hear about us?" or "On the side, I'm curious — how did you first hear about Clarvo?" Then ask the question. Do not jump straight to "Where did you hear about Clarvo?" with no lead-in.
@@ -93,7 +96,7 @@ class OpeningTask(AgentTask[None]):
             return
         await self.session.generate_reply(
             instructions=(
-                "Warmly welcome the candidate and introduce yourself briefly as their career consultant. "
+                "Warmly welcome the candidate and introduce yourself briefly as their career guidance assistant — you'll help them explore what they want and surface matching opportunities. "
                 "Keep it natural and friendly — like you're genuinely glad they're here. "
                 "Then ask just ONE question from the career conversation list for this phase (e.g. what's been "
                 "exciting or interesting lately, what led them to their current direction, or what brought them here today). "
@@ -111,7 +114,7 @@ class LogisticsTask(AgentTask[None]):
     def __init__(self) -> None:
         super().__init__(
             instructions="""
-            You are a career consultant. Your goal is to understand the candidate's
+            Your name is the "Clarvo career assistant". In this phase you are tasked with helping the candidate explore their
             job search situation so you know how urgently and actively to work on their behalf.
             Cover:
             - How actively they are searching right now
@@ -158,7 +161,7 @@ class IndustryTask(AgentTask[None]):
     def __init__(self) -> None:
         super().__init__(
             instructions="""
-            You are a career consultant. Before diving into specifics, you need to understand
+            Your name is the "Clarvo career assistant". Before diving into specifics, you need to understand
             what industry or field the candidate wants to work in. This shapes everything —
             location constraints, work model, compensation benchmarks, and what "a great role"
             even looks like for them. Cover:
@@ -208,7 +211,7 @@ class LocationTask(AgentTask[None]):
     def __init__(self) -> None:
         super().__init__(
             instructions="""
-            You are a career consultant. Understanding location constraints is critical
+            Understanding location constraints is critical
             for narrowing down the right opportunities for this candidate. Cover:
             - Which cities or regions they prefer
             - Openness to relocation
@@ -257,7 +260,7 @@ class LocationTask(AgentTask[None]):
 class BackgroundTask(AgentTask[None]):
     def __init__(self, suggested_questions: Optional[list[dict[str, Any]]] = None) -> None:
         base = """
-            You are a career consultant doing a deep professional background assessment.
+            Your name is the "Clarvo career assistant". In this phase you are doing a deep professional background assessment.
             The better you understand their background, the better the roles you can surface.
             This can be any field — engineering, design, marketing, finance, sales, operations,
             creative, legal, healthcare, or anything else. Adapt your language and questions to
@@ -309,7 +312,7 @@ class BackgroundTask(AgentTask[None]):
 class CultureTask(AgentTask[None]):
     def __init__(self, suggested_questions: Optional[list[dict[str, Any]]] = None) -> None:
         base = """
-            You are a career consultant. Culture fit is one of the biggest reasons
+            Your name is the "Clarvo career assistant". Culture fit is one of the biggest reasons
             placements succeed or fail — this matters as much as the skills match.
             Cover:
             - Management style they thrive under
@@ -358,7 +361,7 @@ class CultureTask(AgentTask[None]):
 class ValueVisionTask(AgentTask[None]):
     def __init__(self, suggested_questions: Optional[list[dict[str, Any]]] = None) -> None:
         base = """
-            You are a career consultant. You need comp and vision data to make sure
+            Your name is the "Clarvo career assistant". You need comp and vision data to make sure
             you only surface roles worth their time — and to advocate for them in negotiations.
             Cover:
             - Their compensation expectations (a range is fine — reassure them this helps you filter)
@@ -408,7 +411,7 @@ class AlignmentTask(AgentTask[None]):
     def __init__(self) -> None:
         super().__init__(
             instructions="""
-            You are a career consultant wrapping up this discovery session.
+            Your name is the "Clarvo career assistant". You are wrapping up this discovery session.
             Your job now is to confirm you have what you need to go and find them the right roles.
             Cover:
             - A warm, natural summary of what you heard — their background, priorities, and constraints
