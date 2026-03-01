@@ -8,7 +8,7 @@ import requests
 from livekit import agents
 from livekit.agents import AgentServer, AgentSession, Agent, JobProcess, room_io
 from livekit.agents.beta.workflows import TaskGroup
-from livekit.plugins import elevenlabs, google, silero
+from livekit.plugins import elevenlabs, google, silero, noise_cancellation
 from livekit.plugins.elevenlabs import TTS, VoiceSettings
 
 from tasks import (
@@ -103,8 +103,11 @@ async def my_agent(ctx: agents.JobContext):
         room=ctx.room,
         agent=CareerAssistant(),
         room_options=room_io.RoomOptions(
-            audio_input=room_io.AudioInputOptions(),
-            close_on_disconnect=False,
+            audio_input=room_io.AudioInputOptions(
+                noise_cancellation=noise_cancellation.NC(),
+            ),
+            close_on_disconnect=True,
+            delete_room_on_close=True,
         ),
     )
     logger.info("Agent started")
