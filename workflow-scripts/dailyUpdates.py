@@ -18,17 +18,16 @@ telegram_bot_token = sys.argv[3]
 telegram_chat_id = sys.argv[4]
 
 SEP = "────────────"
-MAX_SUMMARY_LEN = 80
+MAX_SUMMARY_LEN = 100
 
 
 def get_repo_history(repo_name, github_token):
     """Branches with commits in last 24h. Returns (legacy_message, active_branches, branches_data)."""
     g = Github(github_token)
     repo = g.get_repo(repo_name)
-    since = datetime.now(timezone.utc) - timedelta(days=1)
+    since = datetime.now(timezone.utc) - timedelta(hours=72)
 
     active_branches = []
-    message = ""
     branches_data = []
 
     for branch in repo.get_branches():
@@ -39,7 +38,6 @@ def get_repo_history(repo_name, github_token):
         author = commit.commit.author.name
         msg_text = commit.commit.message or ""
         active_branches.append(branch.name)
-        message += f"Branch: {branch.name}\nAuthor: {author}\nMessage: {msg_text}\n\n----------\n"
 
         code_changes = []
         try:
@@ -56,7 +54,7 @@ def get_repo_history(repo_name, github_token):
             "code_changes": code_changes,
         })
 
-    return message, active_branches, branches_data
+    return active_branches, branches_data
 
 
 def _fallback_summary(b):
@@ -114,17 +112,17 @@ async def send_telegram_message(token, chat_id, message):
 def build_message(repo_name, branches_data, summaries):
     """Build the Telegram body (with or without activity)."""
     if not branches_data:
-        return f"Daily Update — {repo_name}\n\nThere was no activity in the last 24 hours."
+        return f"Daily Update — {repo_name}\n\nThere was no activity in the last 72 hours."
 
     details = ""
     for i, b in enumerate(branches_data):
         summary = summaries[i] if i < len(summaries) else _fallback_summary(b)
         details += f"{SEP}\nBranch: {b['branch']}\nAuthor: {b['author']}\nMessage: {b['message']}\n\nSummary: {summary}\n\n"
-    return f"Daily Update — {repo_name}\n\nActive branches (last 24h)\n\nDetails\n{details}{SEP}"
+    return f"Daily Update — {repo_name}\n\nActive branches (last 72h)\n\nDetails\n{details}{SEP}"
 
 
 async def main():
-    _, active_branches, branches_data = get_repo_history(repo_name, github_token)
+    active_branches, branches_data = get_repo_history(repo_name, github_token)
     summaries = format_branch_history(branches_data) if branches_data else []
     formatted_message = build_message(repo_name, branches_data, summaries)
     await send_telegram_message(telegram_bot_token, telegram_chat_id, formatted_message)
