@@ -88,10 +88,10 @@ def format_branch_history(branches_data):
 
         prompt = (
             "Below are the files changed per branch (filename, status, +additions -deletions). "
-            "For each branch output exactly one short line (plain English, max 80 chars) that says WHAT HAPPENED so someone understands the change. "
-            "Use a standup/release-note level: e.g. 'Summary now based on changed files', 'Added end call button that saves session details', 'Fixed login redirect'. "
-            "Concrete and clear, no vague words like 'enhanced' or 'improved' without saying what. "
-            "Same order. Do NOT include 'Branch N' or any branch number — only the summary text.\n\n"
+            "For each branch output exactly one short line (plain English, max 80 chars) that says WHAT HAPPENED. "
+            "Good: 'Agent and task logic improved for prompt handling in lv-pyapi', 'Added end call button that saves session details'. "
+            "Bad: do NOT start with 'Daily update script' or 'Summary' or 'script'; no redundant labels or colons inside the line. "
+            "Concrete and clear. Same order. Do NOT include 'Branch N' or any branch number — only the summary text.\n\n"
             + "\n\n".join(parts)
         )
         response = client.models.generate_content(model="gemini-2.0-flash", contents=prompt)
