@@ -17,7 +17,7 @@ github_token = sys.argv[2]
 telegram_bot_token = sys.argv[3]
 telegram_chat_id = sys.argv[4]
 
-SEP = "────────────────────"
+SEP = "────────────"
 MAX_SUMMARY_LEN = 80
 
 
@@ -88,7 +88,9 @@ def format_branch_history(branches_data):
 
         prompt = (
             "Below are the files changed per branch (filename, status, +additions -deletions). "
-            "For each branch output exactly one short line summarizing what code changed (plain English, max 80 chars). "
+            "For each branch output exactly one short line (plain English, max 80 chars) that says WHAT HAPPENED so someone understands the change. "
+            "Use a standup/release-note level: e.g. 'Summary now based on changed files', 'Added end call button that saves session details', 'Fixed login redirect'. "
+            "Concrete and clear, no vague words like 'enhanced' or 'improved' without saying what. "
             "Same order. Do NOT include 'Branch N' or any branch number — only the summary text.\n\n"
             + "\n\n".join(parts)
         )
@@ -127,6 +129,7 @@ async def main():
     formatted_message = build_message(repo_name, branches_data, summaries)
     await send_telegram_message(telegram_bot_token, telegram_chat_id, formatted_message)
     print("Message sent successfully.")
+
 
 
 if __name__ == "__main__":
