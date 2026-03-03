@@ -22,10 +22,10 @@ MAX_SUMMARY_LEN = 100
 
 
 def get_repo_history(repo_name, github_token):
-    """Branches with commits in last 24h. Returns (legacy_message, active_branches, branches_data)."""
+    """Branches with commits in last 24h. Returns (active_branches, branches_data)."""
     g = Github(github_token)
     repo = g.get_repo(repo_name)
-    since = datetime.now(timezone.utc) - timedelta(hours=72)
+    since = datetime.now(timezone.utc) - timedelta(hours=24)
 
     active_branches = []
     branches_data = []
@@ -112,13 +112,13 @@ async def send_telegram_message(token, chat_id, message):
 def build_message(repo_name, branches_data, summaries):
     """Build the Telegram body (with or without activity)."""
     if not branches_data:
-        return f"Daily Update — {repo_name}\n\nThere was no activity in the last 72 hours."
+        return f"Daily Update — {repo_name}\n\nThere was no activity in the last 24 hours."
 
     details = ""
     for i, b in enumerate(branches_data):
         summary = summaries[i] if i < len(summaries) else _fallback_summary(b)
         details += f"{SEP}\nBranch: {b['branch']}\nAuthor: {b['author']}\nMessage: {b['message']}\n\nSummary: {summary}\n\n"
-    return f"Daily Update — {repo_name}\n\nActive branches (last 72h)\n\nDetails\n{details}{SEP}"
+    return f"Daily Update — {repo_name}\n\nActive branches (last 24h)\n\nDetails\n{details}{SEP}"
 
 
 async def main():

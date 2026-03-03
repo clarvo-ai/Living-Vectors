@@ -1,13 +1,10 @@
 name: Daily Update
 
 on:
-  push:
-    branches:
-      - 'aari/automate-daily-status'
-      - 'daily-update-code-summary'
   schedule:
-    - cron: '0 0 * * *'
-  workflow_dispatch: # added for testing manual triggers
+    # 18:00 Helsinki (16:00 UTC in winter; 19:00 Helsinki in summer)
+    - cron: '0 16 * * *'
+  workflow_dispatch:
 
 jobs:
   dailyUpdate:
