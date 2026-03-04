@@ -1,34 +1,35 @@
 from typing import List, cast, Dict, Any
-from fastapi import Depends, BackgroundTasks, HTTPException
 from sqlalchemy.orm import Session
 from sqlalchemy import select
-from python_utils.sqlalchemy_models import ConversationMessage, Learning, _ConversationMessageToLearning
-from database import get_db, SessionLocal
+from python_utils.sqlalchemy_models import Learning
+from database import SessionLocal
 from google.genai import types
 from datetime import datetime
 from gemini_client import client
 
-
 # Function to save learnings to the database
-def save_learnings_to_db(user_id: str, learnings: List[str], message_ids: List[str], db: Session):
-    """Save generated learnings to the database"""
+def save_learnings_to_db(user_id: str, learnings: List[Dict[str, Any]], removals: List[str], db: Session) -> None:
+    """Save generated learnings and remove outdated ones in the database"""
     try:
-        rows = []
-        for learning_text in learnings:
+        # 1. Remove outdated learnings by ID
+        if removals:
+            for removal_id in removals:
+                stmt = select(Learning).where(Learning.userId == user_id, Learning.id == removal_id)
+                learning_to_remove = db.execute(stmt).scalars().first()
+                if learning_to_remove:
+                    db.delete(learning_to_remove)
+
+        # 2. Add new learnings
+        for learning in learnings:
             l = Learning(
                 userId=user_id,
-                summary=learning_text,
-                updatedAt=datetime.utcnow())
+                summary=learning['text'],
+                messages=learning.get('messages', []),
+                createdAt=datetime.utcnow(),
+                updatedAt=datetime.utcnow()
+            )
             db.add(l)
-            db.flush()  # To get the learning ID
-
-            for msg_id in message_ids:
-                association = _ConversationMessageToLearning(
-                    A=msg_id,
-                    B=l.id
-                )
-                db.add(association)
-            rows.append(l)
+        
         db.commit()
     except Exception as e:
         db.rollback()
@@ -38,36 +39,59 @@ def save_learnings_to_db(user_id: str, learnings: List[str], message_ids: List[s
 schema = {
     "type": "object",
     "properties": {
-        "learnings": {
+        "learnings_to_add": {
             "type": "array",
-            "items": {"type": "string"}
+            "items": {
+                "type": "object",
+                "properties": {
+                    "text": {
+                        "type": "string",
+                        "description": "The learning statement"
+                    },
+                    "messages": {
+                        "type": "array",
+                        "items": {"type": "string"},
+                        "minItems": 1,
+                        "description": "User messages/quotes from the transcript that support this learning (at least 1 required)"
+                    }
+                },
+                "required": ["text", "messages"]
+            }
+        },
+        "learnings_to_remove": {
+            "type": "array",
+            "items": {"type": "string"},
+            "description": "List of learning IDs to remove"
         }
     },
-    "required": ["learnings"]
+    "required": ["learnings_to_add"]
 }
 
 # Function to generate learnings using Gemini API
-def learnings_from_messages(messages: List[str]):
-    """Generate learnings from messages using Gemini API"""
+def learnings_from_transcript(transcript: str, current_learnings: List[Dict[str, str]]):
+    """Generate learnings from a transcript using Gemini API, noting which old learnings to replace"""
     try:
+        current_learnings_text = "\n".join(f"[ID: {l['id']}] - {l['summary']}" for l in current_learnings) if current_learnings else "None"
         prompt = (
-            "Extract SPECIFIC, DETAILED learnings from this conversation. Capture concrete details, not generic summaries.\n\n"
-            "Example conversation:\n"
-            "- 'I've been really enjoying building web apps and seeing users interact with them.'\n"
-            "- 'What kind of projects make you lose track of time?'\n"
-            "- 'Anything involving UI design. I can spend hours tweaking interfaces.'\n"
-            "- 'What do people usually come to you for?'\n"
-            "- 'Frontend advice and debugging CSS issues.'\n\n"
-            "GOOD learnings (specific and detailed):\n"
-            "- 'Enjoys building web applications and observing user interactions'\n"
-            "- 'Passionate about UI design and spends hours tweaking interfaces'\n"
-            "- 'Provides frontend advice and specializes in debugging CSS issues'\n\n"
-            "BAD learnings (too generic, avoid these):\n"
-            "- 'Enjoys building web applications' (too vague, missing UI focus)\n"
-            "- 'Likes coding' (not specific enough)\n\n"
-            "Now extract learnings from:\n"
-            + "\n".join(f"- {msg}" for msg in messages) +
-            "\n\nReturn a JSON array of specific, detailed learning statements. Each statement should capture a distinct, concrete skill, interest, or expertise mentioned in the conversation."
+            "You are a career development assistant analyzing a conversation transcript.\n\n"
+            "CURRENT LEARNINGS FOR THIS USER:\n"
+            f"{current_learnings_text}\n\n"
+            "IMPORTANT GUIDELINES:\n"
+            "- Extract ONLY learnings that are explicitly stated or strongly implied in the transcript below.\n"
+            "- CRITICAL: Each learning MUST be directly supported by at least 1 message/quote from a USER.\n"
+            "- Good learnings: 'Enjoys building web applications', 'Passionate about UI design', 'Specializes in CSS'\n"
+            "- Bad learnings: 'Needs a job', 'Talking to an assistant', or obvious context\n"
+            "- DO NOT extract: racial/ethnic origin, political opinions, religious beliefs, genetic data, health data, biometric data, sex life or sexual orientation\n"
+            "- If a learning cannot be traced back to a specific user message, REJECT it\n\n"
+            "INSTRUCTIONS:\n"
+            "1. Extract NEW learnings found in the transcript\n"
+            "2. For each learning, include at least 1 relevant user message/quote from the transcript that directly supports it\n"
+            "3. If user contradicts or updates an existing learning, add its ID to learnings_to_remove and the new text to learnings_to_add\n"
+            "4. If a learning is no longer true, add its ID to learnings_to_remove\n"
+            "5. Avoid duplicate or obviously similar learnings\n\n"
+            "TRANSCRIPT TO ANALYZE:\n"
+            f"{transcript}\n\n"
+            "Extract learnings from the transcript above only."
         )
         
         generation_config = types.GenerateContentConfig(
@@ -81,87 +105,44 @@ def learnings_from_messages(messages: List[str]):
             config=generation_config
         )
 
-        # response.parsed is a dict when using JSON schema, cast to satisfy type checker
         parsed = cast(Dict[str, Any], response.parsed)
-        return parsed["learnings"]
+        return {
+            "add": parsed.get("learnings_to_add", []),
+            "remove": parsed.get("learnings_to_remove", [])
+        }
     except Exception as e:
         print(f"Error generating learnings: {str(e)}")
+        return {"add": [], "remove": []}
+
+
+def get_current_insights_for_user(user_id: str, db: Session) -> List[Dict[str, str]]:
+    """Fetch current insights for the given user from DB"""
+    try:
+        rows = db.execute(
+            select(Learning.id, Learning.summary)
+            .where(Learning.userId == user_id)
+            .order_by(Learning.createdAt)
+        ).all()
+        return [{'id': str(row[0]), 'summary': row[1]} for row in rows]
+    except Exception as e:
+        print(f"Error fetching existing learnings: {e}")
         return []
 
 # Background task to process learnings
-def process_learnings(user_id: str, message_contents: List[str], message_ids: List[str], db_session_factory):
-    """Process messages to generate and save learnings"""
-    db = db_session_factory()
-    try :
-        learnings = learnings_from_messages(message_contents)
-        save_learnings_to_db(user_id, learnings, message_ids, db)
+def process_learnings(user_id: str, transcript: str) -> None:
+    """Process transcript to generate and save learnings"""
+    db = SessionLocal()
+    try:
+        existing_learnings = get_current_insights_for_user(user_id, db)
+        changes = learnings_from_transcript(transcript, existing_learnings)
+        additions = changes.get("add", [])
+        removals = changes.get("remove", [])
+        
+        if additions or removals:
+            save_learnings_to_db(user_id, additions, removals, db)
     except Exception as e:
         db.rollback()
         print(f"Error processing learnings: {str(e)}")
-    finally:
-        db.close()
-
-
-# Should be triggered when every fifth message is added
-def get_messages_for_learnings(user_id: str, message_id: str, db_session_factory):
-    """Fetch messages for new learnings"""
-    print("Fetching messages for learnings...")
-    db = db_session_factory()
-    try:
-        # Get the timestamp of the message with message_id
-        anchor_timestamp = db.execute(
-            select(ConversationMessage.createdAt).where(ConversationMessage.messageId == message_id)
-        ).scalar_one()
-
-        # Query the last 6 messages from the user before the anchor timestamp
-        stmt = (
-            select(ConversationMessage)
-            .where(
-                ConversationMessage.userId == user_id,
-                ConversationMessage.createdAt <= anchor_timestamp
-            )
-            .order_by(ConversationMessage.createdAt.desc())
-            .limit(20)
-        )
-
-        result = db.execute(stmt)
-        messages = result.scalars().all()
-        contents = [message.content for message in messages]
-        ids = [message.messageId for message in messages]
-        ids.reverse()
-        contents.reverse()
-    except Exception as e:
-        print(f"Error fetching messages for learnings: {str(e)}")
-        contents = []
-        ids = []
-    finally:
-        db.close()
-
-    if contents:
-        process_learnings(user_id, contents, ids, db_session_factory)
-
-
-# Function to check message count and trigger learnings generation if needed
-def check_and_trigger_learnings(user_id: str, db_session_factory):
-    """Check message count and trigger learnings generation if needed"""
-    db = db_session_factory()
-    try:
-        # Use a limited query to avoid a full table count; fetch up to 16 ids
-        rows = db.query(ConversationMessage.messageId).filter(
-            ConversationMessage.userId == user_id
-        ).limit(16).all()
-
-        if len(rows) > 15:
-            # Get the most recent message ID to use as anchor
-            latest_message = db.query(ConversationMessage).filter(
-                ConversationMessage.userId == user_id
-            ).order_by(ConversationMessage.createdAt.desc()).first()
-            
-            if latest_message:
-                get_messages_for_learnings(user_id, latest_message.messageId, db_session_factory)
-
-    except Exception as e:
-        print(f"Error checking message count for learnings: {str(e)}")
     finally:
         db.close()
 

@@ -45,14 +45,8 @@ export default function AdminUserDetailPage({ params }: AdminUserDetailPageProps
   } = useAdminUserData(userId || '');
 
   // Expansion state management
-  const {
-    expandedMessages,
-    expandedLearnings,
-    expandedLearningMessages,
-    toggleMessage,
-    toggleLearning,
-    toggleLearningMessage,
-  } = useExpansionState();
+  const { expandedMessages, expandedLearnings, toggleMessage, toggleLearning } =
+    useExpansionState();
 
   // Visual mode logic
   const {
@@ -123,9 +117,7 @@ export default function AdminUserDetailPage({ params }: AdminUserDetailPageProps
             learningConnections={learningConnections}
             learningConnectionsLoading={learningConnectionsLoading}
             expandedLearnings={expandedLearnings}
-            expandedLearningMessages={expandedLearningMessages}
             onToggleLearning={toggleLearning}
-            onToggleLearningMessage={toggleLearningMessage}
           />
 
           <LearningEvaluationsSection

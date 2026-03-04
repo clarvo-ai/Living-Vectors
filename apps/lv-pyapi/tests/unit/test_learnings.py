@@ -2,12 +2,12 @@ import os
 import pytest
 import uuid
 from datetime import datetime
+from typing import Dict, Any, List
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker, Session
 
-from message_save import save_message
 import learnings
-from python_utils.sqlalchemy_models import User, ConversationMessage, Learning, _ConversationMessageToLearning, MessageSender
+from python_utils.sqlalchemy_models import User, Learning
 
 raw_url = os.getenv("TEST_DATABASE_URL")
 assert raw_url, "TEST_DATABASE_URL is not set"
@@ -39,112 +39,89 @@ def create_test_user(db_session: Session):
     return test_user
 
 
-def test_get_messages_for_learnings_fetches_messages(db_session: Session):
-    """Test that get_messages_for_learnings fetches messages correctly"""
-    user = create_test_user(db_session)
-    sender = MessageSender.USER
-
-    m1 = save_message(db_session, str(user.id), sender, "one")
-    m2 = save_message(db_session, str(user.id), sender, "two")
-    m3 = save_message(db_session, str(user.id), sender, "three")
-
-    # Create a session factory for the function
-    def session_factory():
-        return db_session
-
-    # Use the latest message as anchor
-    learnings.get_messages_for_learnings(str(user.id), str(m3.messageId), session_factory)
-
-    # Check that learnings were created (if process_learnings was called)
-    stored = db_session.query(Learning).filter_by(userId=user.id).all()
-    # The function should have processed messages and created learnings
-    assert len(stored) >= 0  # May be 0 if no learnings generated
-
-
 def test_save_learnings_to_db(db_session: Session):
     """Test saving learnings to database"""
     user = create_test_user(db_session)
-    sender = MessageSender.USER
 
-    msg1 = save_message(db_session, str(user.id), sender, "alpha")
-    msg2 = save_message(db_session, str(user.id), sender, "beta")
+    # Create learnings in the format expected by save_learnings_to_db
+    learnings_list: List[Dict[str, Any]] = [
+        {
+            'text': 'User likes cats',
+            'messages': ['I like cats']
+        },
+        {
+            'text': 'User enjoys coding',
+            'messages': ['I enjoy coding']
+        }
+    ]
 
-    # Your branch uses List[str] for learnings
-    learnings_list = ["likes cats", "enjoys coding"]
-    message_ids = [str(msg1.messageId), str(msg2.messageId)]
-
-    learnings.save_learnings_to_db(str(user.id), learnings_list, message_ids, db_session)
+    learnings.save_learnings_to_db(str(user.id), learnings_list, [], db_session)
 
     stored = db_session.query(Learning).filter_by(userId=user.id).all()
     assert len(stored) == 2
     
     summaries = {l.summary for l in stored}
-    assert "likes cats" in summaries
-    assert "enjoys coding" in summaries
-
-    # Check associations
-    for l in stored:
-        assoc_rows = db_session.query(_ConversationMessageToLearning).filter_by(B=l.id).all()
-        assoc_ids = {a.A for a in assoc_rows}
-        assert msg1.messageId in assoc_ids or msg2.messageId in assoc_ids
+    assert 'User likes cats' in summaries
+    assert 'User enjoys coding' in summaries
 
 
-def test_process_learnings_creates_learnings(db_session: Session, monkeypatch):
-    """Test that process_learnings creates learnings"""
+def test_get_current_insights_for_user(db_session: Session):
+    """Test fetching current learnings for a user"""
     user = create_test_user(db_session)
-    sender = MessageSender.USER
 
-    msg1 = save_message(db_session, str(user.id), sender, "one")
-    msg2 = save_message(db_session, str(user.id), sender, "two")
-    
-    # Save IDs as strings before process_learnings closes the session
-    user_id = str(user.id)
-    msg1_id = str(msg1.messageId)
-    msg2_id = str(msg2.messageId)
+    # Add some learnings
+    learnings_list: List[Dict[str, Any]] = [
+        {
+            'text': 'First learning',
+            'messages': ['Message 1']
+        },
+        {
+            'text': 'Second learning',
+            'messages': ['Message 2']
+        }
+    ]
+    learnings.save_learnings_to_db(str(user.id), learnings_list, [], db_session)
 
-    # monkeypatch the generation function to return expected learnings
-    def fake_generate(messages):
-        return ["insight about user", "another insight"]
+    # Fetch current insights
+    insights = learnings.get_current_insights_for_user(str(user.id), db_session)
 
-    monkeypatch.setattr(learnings, 'learnings_from_messages', fake_generate)
-
-    # Create a session factory that creates a new session from the same engine
-    # This way when process_learnings closes its session, it doesn't affect our test session
-    from sqlalchemy import create_engine
-    from sqlalchemy.orm import sessionmaker
-    test_db_url = os.getenv("TEST_DATABASE_URL")
-    assert test_db_url, "TEST_DATABASE_URL is not set"
-    engine = create_engine(test_db_url)
-    SessionLocal = sessionmaker(bind=engine)
-    
-    def session_factory():
-        return SessionLocal()
-
-    # Call process_learnings with your branch's signature
-    message_contents = ["one", "two"]
-    message_ids = [msg1_id, msg2_id]
-    learnings.process_learnings(user_id, message_contents, message_ids, session_factory)
-
-    # Query using a fresh session since process_learnings closed its session
-    stored = db_session.query(Learning).filter_by(userId=user_id).all()
-    assert len(stored) == 2
+    assert len(insights) == 2
+    summaries = {i['summary'] for i in insights}
+    assert 'First learning' in summaries
+    assert 'Second learning' in summaries
+    # Each insight should have an id and summary
+    assert all('id' in i and 'summary' in i for i in insights)
 
 
-def test_check_and_trigger_learnings_calls_process_when_over_threshold(db_session: Session, monkeypatch):
-    """Test that check_and_trigger_learnings calls process when threshold is met"""
+def test_save_learnings_to_db_with_removals(db_session: Session):
+    """Test saving learnings with removal of old ones"""
     user = create_test_user(db_session)
-    sender = MessageSender.USER
 
-    # create 16 messages
-    msgs = [save_message(db_session, str(user.id), sender, f"m{i}") for i in range(16)]
+    # Create initial learning
+    initial_learnings: List[Dict[str, Any]] = [
+        {
+            'text': 'Old learning',
+            'messages': ['Old message']
+        }
+    ]
+    learnings.save_learnings_to_db(str(user.id), initial_learnings, [], db_session)
 
-    called = {"count": 0}
+    # Get the learning ID
+    stored = db_session.query(Learning).filter_by(userId=user.id).all()
+    assert len(stored) == 1
+    old_id = stored[0].id
 
-    def fake_process(u_id, message_contents, message_ids, db_session_factory):
-        called["count"] += 1
+    # Now save new learning and remove the old one
+    new_learnings: List[Dict[str, Any]] = [
+        {
+            'text': 'New learning',
+            'messages': ['New message']
+        }
+    ]
+    learnings.save_learnings_to_db(str(user.id), new_learnings, [old_id], db_session)
 
-    monkeypatch.setattr(learnings, 'process_learnings', fake_process)
+    # Verify old was removed and new was added
+    stored = db_session.query(Learning).filter_by(userId=user.id).all()
+    assert len(stored) == 1
+    assert stored[0].summary == 'New learning'
 
-    # pass a factory that returns our session
-    learnings.check_and_trigger_learnings(str(user.id), lambda: db_session)
-    assert called["count"] == 1

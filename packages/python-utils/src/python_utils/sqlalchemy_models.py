@@ -1,7 +1,6 @@
 from sqlalchemy import String, DateTime, Boolean, Integer, BigInteger, ForeignKey, ForeignKeyConstraint, Table, ARRAY, Text, Float, Enum, text, func, event
-from sqlalchemy.dialects.postgresql import UUID as PostgresUUID, TIMESTAMP, DOUBLE_PRECISION, ENUM, JSONB
+from sqlalchemy.dialects.postgresql import UUID as PostgresUUID, TIMESTAMP, DOUBLE_PRECISION, ENUM
 from sqlalchemy.orm import DeclarativeBase, relationship, Mapped, mapped_column, Mapper
-from sqlalchemy.types import TypeDecorator
 from pgvector.sqlalchemy import Vector
 from uuid import UUID
 from typing import Optional, List, Any, Sequence
@@ -19,6 +18,8 @@ class UserRole(enum.Enum):
     """Enum type for UserRole"""
     USER = 'USER'
     ADMIN = 'ADMIN'
+
+
 
 # Base Class
 class Base(DeclarativeBase):
@@ -92,28 +93,11 @@ class ConversationMessage(Base):
     sender: Mapped[MessageSender] = mapped_column(Enum(MessageSender), nullable=False)
     content: Mapped[str] = mapped_column(Text, nullable=False)
     createdAt: Mapped[datetime] = mapped_column(TIMESTAMP, nullable=False, server_default=func.now())
-    questionContext: Mapped[Optional[dict]] = mapped_column(JSONB, nullable=True)
-    learnedFrom: Mapped[bool] = mapped_column(Boolean, nullable=False, server_default=text('false'))
+    questionContext: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
 
     # Relationships
-    _ConversationMessageToLearning: Mapped[List["_ConversationMessageToLearning"]] = relationship("_ConversationMessageToLearning", back_populates="conversationMessage")
     user: Mapped["User"] = relationship("User", back_populates="conversationMessage", uselist=False)
 
-
-class JobRecommendation(Base):
-    __tablename__ = "JobRecommendation"
-    __table_args__ = {'schema': 'public'}
-
-    id: Mapped[UUID] = mapped_column(PostgresUUID(as_uuid=True), primary_key=True, nullable=False, server_default=text("gen_random_uuid()"))
-    userId: Mapped[UUID] = mapped_column(PostgresUUID(as_uuid=True), ForeignKey("public.User.id"), nullable=False)
-    jobId: Mapped[str] = mapped_column(Text, nullable=False)
-    score: Mapped[Optional[float]] = mapped_column(DOUBLE_PRECISION, nullable=True)
-    timestamp: Mapped[Optional[datetime]] = mapped_column(TIMESTAMP, nullable=True)
-    createdAt: Mapped[datetime] = mapped_column(TIMESTAMP, nullable=False, server_default=func.now())
-    updatedAt: Mapped[datetime] = mapped_column(TIMESTAMP, nullable=False, server_default=func.now(), onupdate=func.now())
-
-    # Relationships
-    user: Mapped["User"] = relationship("User", back_populates="jobRecommendation", uselist=False)
 
 class Job(Base):
     __tablename__ = "Job"
@@ -187,6 +171,22 @@ class Job(Base):
     titleId: Mapped[Optional[UUID]] = mapped_column(PostgresUUID(as_uuid=True), nullable=True)
     organizationId: Mapped[Optional[UUID]] = mapped_column(PostgresUUID(as_uuid=True), nullable=True)
 
+class JobRecommendation(Base):
+    __tablename__ = "JobRecommendation"
+    __table_args__ = {'schema': 'public'}
+
+    id: Mapped[UUID] = mapped_column(PostgresUUID(as_uuid=True), primary_key=True, nullable=False, server_default=text("gen_random_uuid()"))
+    userId: Mapped[UUID] = mapped_column(PostgresUUID(as_uuid=True), ForeignKey("public.User.id"), nullable=False)
+    jobId: Mapped[str] = mapped_column(Text, nullable=False)
+    score: Mapped[Optional[float]] = mapped_column(DOUBLE_PRECISION, nullable=True)
+    timestamp: Mapped[Optional[datetime]] = mapped_column(TIMESTAMP, nullable=True)
+    createdAt: Mapped[datetime] = mapped_column(TIMESTAMP, nullable=False, server_default=func.now())
+    updatedAt: Mapped[datetime] = mapped_column(TIMESTAMP, nullable=False, server_default=func.now(), onupdate=func.now())
+
+    # Relationships
+    user: Mapped["User"] = relationship("User", back_populates="jobRecommendation", uselist=False)
+
+
 class Learning(Base):
     __tablename__ = "Learning"
     __table_args__ = {'schema': 'public'}
@@ -196,9 +196,9 @@ class Learning(Base):
     summary: Mapped[str] = mapped_column(Text, nullable=False)
     createdAt: Mapped[datetime] = mapped_column(TIMESTAMP, nullable=False, server_default=func.now())
     updatedAt: Mapped[datetime] = mapped_column(TIMESTAMP, nullable=False, server_default=func.now(), onupdate=func.now())
+    messages: Mapped[Optional[List[str]]] = mapped_column(ARRAY(Text), nullable=True)
 
     # Relationships
-    _ConversationMessageToLearning: Mapped[List["_ConversationMessageToLearning"]] = relationship("_ConversationMessageToLearning", back_populates="learning")
     user: Mapped["User"] = relationship("User", back_populates="learning", uselist=False)
 
 
@@ -240,8 +240,23 @@ class User(Base):
     session: Mapped[List["Session"]] = relationship("Session", back_populates="user")
     authenticator: Mapped[List["Authenticator"]] = relationship("Authenticator", back_populates="user")
     conversationMessage: Mapped[List["ConversationMessage"]] = relationship("ConversationMessage", back_populates="user")
-    learning: Mapped[List["Learning"]] = relationship("Learning", back_populates="user")
     jobRecommendation: Mapped[List["JobRecommendation"]] = relationship("JobRecommendation", back_populates="user")
+    learning: Mapped[List["Learning"]] = relationship("Learning", back_populates="user")
+    userEmbedding: Mapped["UserEmbedding"] = relationship("UserEmbedding", back_populates="user", uselist=False)
+
+
+class UserEmbedding(Base):
+    __tablename__ = "UserEmbedding"
+    __table_args__ = {'schema': 'public'}
+
+    id: Mapped[UUID] = mapped_column(PostgresUUID(as_uuid=True), primary_key=True, nullable=False, server_default=text("gen_random_uuid()"))
+    userId: Mapped[UUID] = mapped_column(PostgresUUID(as_uuid=True), ForeignKey("public.User.id"), nullable=False)
+    updatedAt: Mapped[datetime] = mapped_column(TIMESTAMP, nullable=False, server_default=func.now(), onupdate=func.now())
+    embedding: Mapped[list[float]] = mapped_column(Vector(1536), nullable=False)
+
+    # Relationships
+    user: Mapped["User"] = relationship("User", back_populates="userEmbedding", uselist=False)
+
 
 class VerificationToken(Base):
     __tablename__ = "VerificationToken"
@@ -250,18 +265,6 @@ class VerificationToken(Base):
     identifier: Mapped[str] = mapped_column(Text, primary_key=True, nullable=False)
     token: Mapped[str] = mapped_column(Text, primary_key=True, nullable=False)
     expires: Mapped[datetime] = mapped_column(TIMESTAMP, nullable=False)
-
-
-class _ConversationMessageToLearning(Base):
-    __tablename__ = "_ConversationMessageToLearning"
-    __table_args__ = {'schema': 'public'}
-
-    A: Mapped[UUID] = mapped_column(PostgresUUID(as_uuid=True), ForeignKey("public.ConversationMessage.messageId"), primary_key=True, nullable=False, server_default=text("gen_random_uuid()"))
-    B: Mapped[UUID] = mapped_column(PostgresUUID(as_uuid=True), ForeignKey("public.Learning.id"), primary_key=True, nullable=False, server_default=text("gen_random_uuid()"))
-
-    # Relationships
-    conversationMessage: Mapped["ConversationMessage"] = relationship("ConversationMessage", back_populates="_ConversationMessageToLearning", uselist=False)
-    learning: Mapped["Learning"] = relationship("Learning", back_populates="_ConversationMessageToLearning", uselist=False)
 
 
 class _prisma_migrations(Base):

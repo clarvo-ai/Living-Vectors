@@ -25,6 +25,7 @@ jobs:
           LIVEKIT_URL: ${{ secrets.LIVEKIT_URL }}
           LIVEKIT_API_KEY: ${{ secrets.LIVEKIT_API_KEY }}
           LIVEKIT_API_SECRET: ${{ secrets.LIVEKIT_API_SECRET }}
-          ELEVENLABS_API_KEY: ${{ secrets.ELEVENLABS_API_KEY }}
-          # The fix: Pass the KEY=VALUE pair directly into the SECRET_LIST string
-          SECRET_LIST: 'GEMINI_API_KEY=${{ secrets.GEMINI_API_KEY }}'
+          # SECRET_LIST is what livekit/deploy-action actually deploys to LiveKit Cloud as
+          # runtime env secrets. Any key NOT in SECRET_LIST gets wiped on every redeploy.
+          # Plain env: vars above are only available to the GitHub Actions runner, not the agent.
+          SECRET_LIST: 'GEMINI_API_KEY=${{ secrets.GEMINI_API_KEY }},ELEVENLABS_API_KEY=${{ secrets.ELEVENLABS_API_KEY }},BACKEND_URL=${{ secrets.BACKEND_URL }},INTERNAL_API_SECRET=${{ secrets.INTERNAL_API_SECRET }}'

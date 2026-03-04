@@ -60,6 +60,5 @@ export interface LearningConnection {
   id: string;
   summary: string;
   createdAt: string;
-  messages: LearningConnectionMessage[];
-  evaluation?: LearningEvaluation;
+  messages: string[];
 }

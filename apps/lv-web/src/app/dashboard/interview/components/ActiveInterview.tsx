@@ -43,7 +43,7 @@ export function ActiveInterview({
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
             roomName: `interview-${session?.user?.id}`,
-            participantName: session?.user?.email || 'user',
+            participantName: session?.user?.id || 'userid',
           }),
         });
 
