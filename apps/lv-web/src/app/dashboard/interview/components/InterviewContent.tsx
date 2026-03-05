@@ -25,6 +25,13 @@ interface InterviewContentProps {
   hasStarted: boolean;
 }
 
+type DisplayMessage = {
+  id?: string;
+  timestamp: number | string | Date;
+  from?: { isLocal?: boolean };
+  message?: string;
+};
+
 export function InterviewContent({
   input,
   setInput,
@@ -84,8 +91,8 @@ export function InterviewContent({
   const displayMessages: Message[] = useMemo(() => {
     const result: Message[] = [];
 
-    for (const receivedMessage of messages as any[]) {
-      const { id, timestamp, from, message } = receivedMessage as any;
+    for (const receivedMessage of messages as DisplayMessage[]) {
+      const { id, timestamp, from, message } = receivedMessage;
       if (!message) continue;
 
       const trimmed = (message as string).trim();
