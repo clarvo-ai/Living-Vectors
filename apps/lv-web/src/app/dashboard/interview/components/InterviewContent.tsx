@@ -7,7 +7,7 @@ import {
   useSessionMessages,
 } from '@livekit/components-react';
 import { Mic, MicOff } from 'lucide-react';
-import { useEffect, useRef } from 'react';
+import { useEffect, useMemo, useRef } from 'react';
 import { ChatHeader } from './ChatHeader';
 import { ChatInput } from './ChatInput';
 import { ChatMessage, type Message } from './ChatMessage';
@@ -81,6 +81,36 @@ export function InterviewContent({
     }
   };
 
+  const displayMessages: Message[] = useMemo(() => {
+    const result: Message[] = [];
+
+    for (const receivedMessage of messages as any[]) {
+      const { id, timestamp, from, message } = receivedMessage as any;
+      if (!message) continue;
+
+      const trimmed = (message as string).trim();
+      const messageOrigin = from?.isLocal ? 'local' : 'remote';
+
+      const nextMessage: Message = {
+        id: id || `msg-${timestamp}`,
+        role: messageOrigin === 'local' ? 'user' : 'ai',
+        content: trimmed,
+        timestamp: new Date(timestamp),
+      };
+
+      // If this message is identical to the last one we decided to display,
+      // skip it to avoid duplicate bubbles.
+      const last = result[result.length - 1];
+      if (last && last.content === nextMessage.content && last.role === nextMessage.role) {
+        continue;
+      }
+
+      result.push(nextMessage);
+    }
+
+    return result;
+  }, [messages]);
+
   return (
     <>
       {!voiceOnlyMode && (
@@ -102,19 +132,9 @@ export function InterviewContent({
         ) : (
           <>
             <div className="flex-1 overflow-auto px-6 pt-6 space-y-4">
-              {messages.map((receivedMessage) => {
-                const { id, timestamp, from, message } = receivedMessage;
-                const messageOrigin = from?.isLocal ? 'local' : 'remote';
-
-                const displayMessage: Message = {
-                  id: id || `msg-${timestamp}`,
-                  role: messageOrigin === 'local' ? 'user' : 'ai',
-                  content: message,
-                  timestamp: new Date(timestamp),
-                };
-
-                return <ChatMessage key={displayMessage.id} message={displayMessage} />;
-              })}
+              {displayMessages.map((message) => (
+                <ChatMessage key={message.id} message={message} />
+              ))}
               <div ref={messagesEndRef} />
             </div>
             <div

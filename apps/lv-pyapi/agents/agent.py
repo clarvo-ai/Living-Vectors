@@ -86,11 +86,17 @@ async def my_agent(ctx: agents.JobContext):
             use_speaker_boost=True    # Clearer vocal presence
         )
     )
+    
+    stt = elevenlabs.STT(
+        api_key=ELEVENLABS_API_KEY,
+        model_id="scribe_v2_realtime",
+        tag_audio_events=False
+    )
 
 
     session = AgentSession(
         vad=ctx.proc.userdata["vad"],
-        stt=elevenlabs.STT(api_key=ELEVENLABS_API_KEY),
+        stt=stt,
         llm=google.LLM(model="gemini-2.0-flash", api_key=GOOGLE_API_KEY),
         tts = liam_tts,
         allow_interruptions=True,
