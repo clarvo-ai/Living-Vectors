@@ -7,9 +7,11 @@ import { MapPin } from 'lucide-react';
 interface JobGridCardProps {
   job: Job;
   onClick: () => void;
+  /** When true, shows a small "Seen" pill on the card */
+  isViewed?: boolean;
 }
 
-export function JobGridCard({ job, onClick }: JobGridCardProps) {
+export function JobGridCard({ job, onClick, isViewed = false }: JobGridCardProps) {
   const location = job.city
     ? job.country
       ? `${job.city}, ${job.country}`
@@ -59,10 +61,17 @@ export function JobGridCard({ job, onClick }: JobGridCardProps) {
       onClick={onClick}
       className="group bg-white border border-gray-200 rounded-xl p-5 cursor-pointer hover:shadow-lg hover:border-blue-200 transition-all duration-200"
     >
-      {/* Company & Industry */}
-      <div className="mb-3">
-        <p className="font-medium text-gray-900">{job.company_name}</p>
-        {industry && <p className="text-sm text-gray-500 mt-0.5">{industry}</p>}
+      {/* Company & Industry + Seen pill */}
+      <div className="mb-3 flex items-start justify-between gap-2">
+        <div>
+          <p className="font-medium text-gray-900">{job.company_name}</p>
+          {industry && <p className="text-sm text-gray-500 mt-0.5">{industry}</p>}
+        </div>
+        {isViewed && (
+          <span className="shrink-0 text-[10px] font-medium text-gray-500 bg-gray-100 px-2 py-0.5 rounded-full">
+            Seen
+          </span>
+        )}
       </div>
 
       {/* Job Title */}
