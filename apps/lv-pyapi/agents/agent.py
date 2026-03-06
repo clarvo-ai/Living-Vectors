@@ -1,8 +1,6 @@
-import json
 import logging
 import os
 import sys
-from pathlib import Path
 from dotenv import load_dotenv
 import asyncio
 
@@ -26,41 +24,6 @@ from tasks import (
 
 load_dotenv(".env.local")
 
-# Career conversation questions (shared with backend)
-# Repo root: agents/ -> lv-pyapi/ -> apps/ -> repo root
-QUESTIONS_PATH = Path(__file__).resolve().parent.parent.parent.parent / "packages" / "shared-data" / "career-conversation-questions.json"
-CAREER_QUESTIONS: dict = {}
-try:
-    with open(QUESTIONS_PATH, encoding="utf-8") as f:
-        CAREER_QUESTIONS = json.load(f)
-except FileNotFoundError:
-    logging.warning(
-        "Career conversation questions not found at %s; tasks will run without suggested questions.",
-        QUESTIONS_PATH,
-    )
-
-OPENING_GOALS = ["Build Trust & Explore Current Motivation"]
-BACKGROUND_GOALS = [
-    "Identify Core Motivation",
-    "Surface Skill Strengths",
-    "Uncover Challenges or Constraints",
-]
-CULTURE_GOALS = [
-    "Understand Environment Preference",
-    "Identify Leadership & Influence Style",
-]
-VALUE_VISION_GOALS = [
-    "Explore Future Direction",
-    "Reveal Core Values & Priorities",
-]
-
-
-def get_questions_for_goals(goal_names: list[str]) -> list[dict]:
-    """Return list of {goal, questions} for the given goal names from career-conversation-questions.json."""
-    goals_data = CAREER_QUESTIONS.get("goals", [])
-    return [{"goal": g["goal"], "questions": g["questions"]} for g in goals_data if g["goal"] in goal_names]
-
-
 ELEVENLABS_API_KEY = os.environ.get("ELEVENLABS_API_KEY")
 GOOGLE_API_KEY = os.environ.get("GEMINI_API_KEY")
 AGENT_NAME = os.environ.get("LIVEKIT_AGENT_NAME", "lv-voice-agent")
@@ -80,20 +43,46 @@ class CareerAssistant(Agent):
     def __init__(self) -> None:
         super().__init__(
             instructions="""
-            You are an AI assistant for the Living Vectors platform, specializing in career guidance.
-            You help people explore their strengths, motivations, and what they want next, then use that
-            to surface matching job opportunities — guidance and matching, not applications or form-filling.
-            Your mission is to do this through thoughtful, structured conversations that are natural,
-            supportive, and coach-like.
+            You are an AI assistant for the Living Vectors platform,
+            specializing in career guidance.
+            You help people explore their strengths, motivations, and what they
+            want next, then use that to surface matching job opportunities —
+            guidance and matching, not applications or form-filling.
+            Your mission is to do this through thoughtful, structured
+            conversations that are natural, supportive, and coach-like.
 
-            In this conversation your job is to get to know this person deeply: their background, what they
-            are great at, what they want next, and what matters to them. After this conversation, you will
-            use what you learn to surface the best matching job opportunities for them from external sources.
-            You are on their side. Make them feel heard. Speak conversationally. Reference earlier answers to
-            avoid repeating questions. Be concise — this is a voice conversation, not a written form.
+            In this conversation your job is to get to know this person deeply:
+            their background, what they are great at, what they want next, and
+            what matters to them. After this conversation, you will use what
+            you learn to surface the best matching job opportunities for them
+            from external sources.
+            You are on their side. Make them feel heard. Speak conversationally.
+            Reference earlier answers to avoid repeating questions. Be concise —
+            this is a voice conversation, not a written form.
+            Stay friendly and conversational, but do not start messages with
+            "Okay", "Ok," or similar — open with something warm and direct
+            (e.g. "Hey there!", "This will be a quick discovery conversation…").
 
-            Do not assume the candidate is in any particular country (e.g. the US). Keep the conversation
-            location-neutral until they have told you where they are or where they want to work.
+            Before asking the next question, briefly show you heard them: one
+            short reflection, show curiosity, or connect their answer to why
+            you're asking next. Do not repeat their exact words back (e.g. avoid
+            saying the same thing two ways like "you contribute by thinking and
+            providing ideas" and "you like to think and provide your ideas").
+            One brief acknowledgment is enough, then ask the next question.
+            Avoid generic acknowledgments only (e.g. not just "Got it" or "Ok,
+            great"). When changing topic, bridge from what they said (e.g.
+            "Since you're staying in tech, what kind of role are you aiming
+            for?") instead of a generic signpost like "Let's talk about
+            location."
+
+            Do not assume the candidate is in any particular country (e.g. the
+            US). Keep the conversation location-neutral until they have told you
+            where they are or where they want to work.
+
+            Do not use "finally", "last question", "one last thing", or similar
+            closing language when asking a question unless you are in the final
+            phase (summary and closing). Every other phase is only one part of
+            a longer conversation.
             """,
             tools=[],
         )
@@ -101,29 +90,45 @@ class CareerAssistant(Agent):
     async def on_enter(self) -> None:
         task_group = TaskGroup(chat_ctx=self.chat_ctx)
         task_group.add(
-            lambda: OpeningTask(suggested_questions=get_questions_for_goals(OPENING_GOALS)),
+            lambda: OpeningTask(),
             id="opening",
             description="Why the candidate is here and how they found Clarvo",
         )
-        task_group.add(lambda: LogisticsTask(), id="logistics", description="Job search logistics, timing, and motivation to leave")
-        task_group.add(lambda: IndustryTask(), id="industry", description="Target industry or field the candidate wants to work in")
-        task_group.add(lambda: LocationTask(), id="location", description="Preferred cities and remote/hybrid/onsite preferences")
         task_group.add(
-            lambda: BackgroundTask(suggested_questions=get_questions_for_goals(BACKGROUND_GOALS)),
+            lambda: LogisticsTask(),
+            id="logistics",
+            description="Job search logistics, timing, and motivation to leave",
+        )
+        task_group.add(
+            lambda: IndustryTask(),
+            id="industry",
+            description="Target industry or field the candidate wants to work in",
+        )
+        task_group.add(
+            lambda: LocationTask(),
+            id="location",
+            description="Preferred cities and remote/hybrid/onsite preferences",
+        )
+        task_group.add(
+            lambda: BackgroundTask(),
             id="background",
             description="Work experience, strengths, and domain knowledge",
         )
         task_group.add(
-            lambda: CultureTask(suggested_questions=get_questions_for_goals(CULTURE_GOALS)),
+            lambda: CultureTask(),
             id="culture",
             description="Team size, management style, and company culture fit",
         )
         task_group.add(
-            lambda: ValueVisionTask(suggested_questions=get_questions_for_goals(VALUE_VISION_GOALS)),
+            lambda: ValueVisionTask(),
             id="value_vision",
             description="Compensation expectations and career vision",
         )
-        task_group.add(lambda: AlignmentTask(), id="alignment", description="Summary confirmation and closing")
+        task_group.add(
+            lambda: AlignmentTask(),
+            id="alignment",
+            description="Summary confirmation and closing",
+        )
         await task_group
 
 
@@ -180,7 +185,8 @@ async def my_agent(ctx: agents.JobContext):
         
         logger.info(f"Transcript: {transcript}")
 
-        # POST transcript to the Cloud Run backend because it holds the Cloud SQL Auth Proxy
+        # POST transcript to the Cloud Run backend because it holds
+        # the Cloud SQL Auth Proxy.
         def post_transcript():
             try:
                 resp = requests.post(
@@ -190,9 +196,14 @@ async def my_agent(ctx: agents.JobContext):
                     timeout=30,
                 )
                 resp.raise_for_status()
-                logger.info(f"Transcript posted to backend for user {user_id}: {resp.status_code}")
+                logger.info(
+                    f"Transcript posted to backend for user {user_id}: "
+                    f"{resp.status_code}",
+                )
             except Exception as e:
-                logger.error(f"Failed to post transcript for user {user_id}: {e}")
+                logger.error(
+                    f"Failed to post transcript for user {user_id}: {e}",
+                )
 
         asyncio.get_event_loop().run_in_executor(None, post_transcript)
 
@@ -200,5 +211,7 @@ async def my_agent(ctx: agents.JobContext):
 if __name__ == "__main__":
     command = "start" if LIVEKIT_URL.startswith("wss://") else "dev"
     sys.argv = ["agent.py", command]
-    logger.info(f"Starting agent '{AGENT_NAME}' → {LIVEKIT_URL} ({command})")
+    logger.info(
+        f"Starting agent '{AGENT_NAME}' → {LIVEKIT_URL} ({command})",
+    )
     agents.cli.run_app(server)
