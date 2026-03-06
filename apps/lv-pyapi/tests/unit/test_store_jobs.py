@@ -1,27 +1,9 @@
 import pandas as pd
 from unittest.mock import Mock, patch, MagicMock
-from store_jobs import parse_vector, parse_lists, parse_uuid, parse_timestamp, parse_int, parse_float, parse_bool, save_jobs_to_db
+from store_jobs import parse_lists, parse_uuid, parse_timestamp, parse_int, parse_float, parse_bool, save_jobs_to_db
 from datetime import datetime
 import uuid
 
-
-class TestParseVector:
-    """Test vector parsing from different formats"""
-    
-    def test_parse_vector_with_square_brackets(self):
-        """Test parsing vector with square brackets"""
-        result = parse_vector("[0.1, 0.2, 0.3]")
-        assert result == [0.1, 0.2, 0.3]
-    
-    def test_parse_vector_with_negative_values(self):
-        """Test parsing vector with negative values"""
-        result = parse_vector("[-0.001, 0.002, -0.003]")
-        assert result == [-0.001, 0.002, -0.003]
-    
-    def test_parse_vector_with_nan(self):
-        """Test parsing vector with NaN value"""
-        result = parse_vector(pd.NA)
-        assert result is None
 
 
 class TestParseLists:

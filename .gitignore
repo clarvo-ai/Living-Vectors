@@ -126,3 +126,9 @@ local.code-workspace
 
 #Agent configuration
 .vscode/mcp.json
+
+# CI-injected files copied into agents/ build context before LiveKit deploy.
+# Defined here (not in agents/.gitignore) so the deploy action's tar builder doesn't exclude them.
+apps/lv-pyapi/agents/database.py
+apps/lv-pyapi/agents/gemini_client.py
+apps/lv-pyapi/agents/python_utils/

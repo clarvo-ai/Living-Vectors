@@ -7,7 +7,7 @@ import {
 } from '@livekit/components-react';
 import '@livekit/components-styles';
 import { Track } from 'livekit-client';
-import { Bot, MessageSquare, Mic, MicOff } from 'lucide-react';
+import { Bot, MessageSquare, Mic, MicOff, PhoneOff } from 'lucide-react';
 import { useEffect } from 'react';
 
 function cn(...classes: (string | undefined | false)[]): string {
@@ -74,24 +74,26 @@ export function VoiceOnlyMode({ onGoToChat, hasStarted }: VoiceOnlyModeProps) {
               </div>
             </div>
           </div>
-          <BarVisualizer
-            barCount={7}
-            state={agentState}
-            options={{ minHeight: 10, maxHeight: 150 }}
-            track={agentAudioTrack}
-            className={cn('flex h-16 items-center justify-center gap-0.5')}
-          >
-            <span
-              className={cn(
-                'min-h-1 w-1.5 rounded-full transition-all duration-250 ease-linear',
-                'data-[lk-muted=true]:bg-gray-300 data-[lk-muted=true]:opacity-30',
-                'data-[lk-highlighted=true]:opacity-100 opacity-20'
-              )}
-              style={{
-                background: 'var(--gradient-primary)',
-              }}
-            />
-          </BarVisualizer>
+          <div className="w-40 h-20 flex items-center justify-center overflow-visible">
+            <BarVisualizer
+              barCount={7}
+              state={agentState}
+              options={{ minHeight: 40, maxHeight: 150 }}
+              track={agentAudioTrack}
+              className={cn('flex h-16 items-center justify-center gap-0')}
+            >
+              <span
+                className={cn(
+                  'min-h-1 w-1.5 rounded-full transition-all duration-250 ease-linear -mx-1',
+                  'data-[lk-muted=true]:bg-gray-300 data-[lk-muted=true]:opacity-30',
+                  'data-[lk-highlighted=true]:opacity-100 opacity-20'
+                )}
+                style={{
+                  background: 'var(--gradient-primary)',
+                }}
+              />
+            </BarVisualizer>
+          </div>
           <div
             className="flex gap-2 p-3 rounded-lg bg-white bg-opacity-80 shadow-md border border-gray-200"
             style={{
@@ -125,6 +127,18 @@ export function VoiceOnlyMode({ onGoToChat, hasStarted }: VoiceOnlyModeProps) {
               aria-label="Switch to chat"
             >
               <MessageSquare className="w-5 h-5 text-gray-600" />
+            </button>
+            <button
+              onClick={() => window.location.reload()}
+              className="w-10 h-10 rounded-full flex items-center justify-center transition-all transform hover:scale-110"
+              style={{
+                background: '#ef4444',
+                border: 'none',
+                boxShadow: '0px 2px 8px -2px rgba(239, 68, 68, 0.5)',
+              }}
+              aria-label="End interview"
+            >
+              <PhoneOff className="w-5 h-5 text-white" />
             </button>
           </div>
         </div>

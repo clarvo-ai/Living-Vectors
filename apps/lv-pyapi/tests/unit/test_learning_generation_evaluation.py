@@ -1,6 +1,6 @@
 import pytest
 from typing import cast, Dict, Any
-from learnings import learnings_from_messages
+from learnings import learnings_from_transcript
 from gemini_client import client # Gemini API client 
 from google.genai import types # For JSON schema config
 
@@ -82,7 +82,8 @@ def test_learning_generation_and_evaluation():
         print(f"{i}. {msg}")
     print(f"{'='*60}\n")
 
-    generated_learnings = learnings_from_messages(conversation)
+    generated_learnings = learnings_from_transcript("\n".join(conversation), [])
+    generated_learnings = [l['text'] for l in generated_learnings.get('add', [])]
 
     assert len(generated_learnings) > 0, "Should generate at least one learning" #check this LINE LATER -> what should assertion be for test?
 
@@ -152,7 +153,8 @@ def test_learning_generation_and_evaluation_vague_conversation():
         print(f"{i}. {msg}")
     print(f"{'='*60}\n")
 
-    generated_learnings = learnings_from_messages(conversation)
+    generated_learnings = learnings_from_transcript("\n".join(conversation), [])
+    generated_learnings = [l['text'] for l in generated_learnings.get('add', [])]
 
     print(f"\n{'='*60}")
     print(f"GENERATED {len(generated_learnings)} INDIVIDUAL LEARNING(S) (for embedding):")

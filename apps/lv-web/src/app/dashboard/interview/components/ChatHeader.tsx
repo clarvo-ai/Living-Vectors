@@ -1,5 +1,5 @@
 import { useRemoteParticipants } from '@livekit/components-react';
-import { Bot, MessageSquare, Phone, Volume2, VolumeX } from 'lucide-react';
+import { Bot, LogOut, MessageSquare, Phone, Volume2, VolumeX } from 'lucide-react';
 import { useEffect, useState } from 'react';
 
 interface ChatHeaderProps {
@@ -94,6 +94,13 @@ export function ChatHeader({ voiceOnlyMode, setVoiceOnlyMode }: ChatHeaderProps)
             ) : (
               <Phone className="h-4 w-4 text-gray-700" />
             )}
+          </button>
+          <button
+            onClick={() => window.location.reload()}
+            className="p-2 rounded-lg hover:bg-red-100 transition-colors flex items-center justify-center"
+            title="End interview"
+          >
+            <LogOut className="h-4 w-4 text-red-600" />
           </button>
         </div>
       </div>

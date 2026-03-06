@@ -1,5 +1,5 @@
+import type { AdminUserMessage, LearningConnection } from '@/types/admin';
 import { useCallback, useEffect, useRef, useState } from 'react';
-import type { LearningConnection, AdminUserMessage } from '@/types/admin';
 
 export function useVisualMode(
   learningConnections: LearningConnection[],
@@ -31,12 +31,12 @@ export function useVisualMode(
       }
 
       setSelectedLearningId(learning.id);
-      const messageIds = new Set(learning.messages.map((m) => m.messageId));
+      const messageIds = new Set(learning.messages);
       setHighlightedMessageIds(messageIds);
 
       // Auto-scroll to first related message
       if (learning.messages.length > 0) {
-        const firstMessageId = learning.messages[0].messageId;
+        const firstMessageId = learning.messages[0];
         const messageEl = messageRefs.current.get(firstMessageId);
         if (messageEl && chatContainerRef.current) {
           messageEl.scrollIntoView({ behavior: 'smooth', block: 'center' });
@@ -63,8 +63,8 @@ export function useVisualMode(
 
     const lines: { x1: number; y1: number; x2: number; y2: number; messageId: string }[] = [];
 
-    selectedLearning.messages.forEach((msg) => {
-      const messageEl = messageRefs.current.get(msg.messageId);
+    selectedLearning.messages.forEach((messageId) => {
+      const messageEl = messageRefs.current.get(messageId);
       if (messageEl) {
         const messageRect = messageEl.getBoundingClientRect();
 
@@ -74,7 +74,7 @@ export function useVisualMode(
         const x2 = messageRect.right - containerRect.left;
         const y2 = messageRect.top - containerRect.top + messageRect.height / 2;
 
-        lines.push({ x1, y1, x2, y2, messageId: msg.messageId });
+        lines.push({ x1, y1, x2, y2, messageId });
       }
     });
 
