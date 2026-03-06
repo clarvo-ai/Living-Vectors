@@ -10,7 +10,7 @@ import type { LearningConnection } from '../../types/admin';
 // - Shows error cards when evaluation fails
 // - Shows average scores summary
 // - Shows "Re-run Evaluations" button after completion
-// - Source messages toggle: collapsed by default, expands on click, shows sender badges, collapses again
+// - Source messages toggle: collapsed by default, expands on click, collapses again
 
 jest.mock('../../lib/services/pyapi', () => ({
   evaluateLearning: jest.fn(),
@@ -23,34 +23,14 @@ const mockLearning1: LearningConnection = {
   id: 'learning-1',
   summary: 'Enjoys building web applications',
   createdAt: '2024-01-01T00:00:00.000Z',
-  messages: [
-    {
-      messageId: 'msg-1',
-      sender: 'USER',
-      content: 'I love building web apps',
-      createdAt: '2024-01-01T00:00:00.000Z',
-    },
-  ],
+  messages: ['I love building web apps'],
 };
 
 const mockLearning2: LearningConnection = {
   id: 'learning-2',
   summary: 'Specializes in debugging CSS issues',
   createdAt: '2024-01-02T00:00:00.000Z',
-  messages: [
-    {
-      messageId: 'msg-2',
-      sender: 'USER',
-      content: 'I debug CSS a lot',
-      createdAt: '2024-01-02T00:00:00.000Z',
-    },
-    {
-      messageId: 'msg-3',
-      sender: 'AI',
-      content: 'Tell me more',
-      createdAt: '2024-01-02T00:01:00.000Z',
-    },
-  ],
+  messages: ['I debug CSS a lot', 'Tell me more'],
 };
 
 const mockEvaluationResult = {
@@ -120,11 +100,11 @@ describe('LearningEvaluationsSection', () => {
 
     expect(mockEvaluateLearning).toHaveBeenCalledWith(
       mockLearning1.summary,
-      mockLearning1.messages.map((m) => m.content)
+      mockLearning1.messages
     );
     expect(mockEvaluateLearning).toHaveBeenCalledWith(
       mockLearning2.summary,
-      mockLearning2.messages.map((m) => m.content)
+      mockLearning2.messages
     );
   });
 
@@ -262,7 +242,7 @@ describe('LearningEvaluationsSection', () => {
       expect(screen.getByText('Show 2 source messages')).toBeInTheDocument();
     });
 
-    it('expands to show message content and sender badges when toggle clicked', () => {
+    it('expands to show message content when toggle clicked', () => {
       mockEvaluateLearning.mockImplementation(() => new Promise(() => {}));
 
       render(
@@ -278,8 +258,6 @@ describe('LearningEvaluationsSection', () => {
       expect(screen.getByText('Hide 2 source messages')).toBeInTheDocument();
       expect(screen.getByText('I debug CSS a lot')).toBeInTheDocument();
       expect(screen.getByText('Tell me more')).toBeInTheDocument();
-      expect(screen.getByText('You')).toBeInTheDocument();
-      expect(screen.getByText('AI')).toBeInTheDocument();
     });
 
     it('collapses again when toggle clicked a second time', () => {
@@ -337,7 +315,6 @@ describe('LearningEvaluationsSection', () => {
 
       fireEvent.click(screen.getByText('Show 1 source message'));
       expect(screen.getByText('I love building web apps')).toBeInTheDocument();
-      expect(screen.getByText('You')).toBeInTheDocument();
     });
   });
 });

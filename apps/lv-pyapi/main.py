@@ -14,7 +14,7 @@ from python_utils.sqlalchemy_models import User, UserEmbedding, Job
 from message_save import save_message
 from python_utils.sqlalchemy_models import User, MessageSender
 from fastapi.responses import JSONResponse
-from learnings import check_and_trigger_learnings, evaluate_learning_quality
+from learnings import evaluate_learning_quality
 from gemini_client import client
 from user_embedding import generate_user_embedding
 from job_embedding import generate_missing_embeddings

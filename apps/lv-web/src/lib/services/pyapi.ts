@@ -74,7 +74,7 @@ export async function evaluateLearning(
   summary: string,
   messages: string[]
 ): Promise<LearningEvaluationResult> {
-  const response = await fetch(`${getBaseUrl()}/api/learnings/evaluate`, {
+  const response = await fetch(`/api/learnings/evaluate`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ summary, messages }),
@@ -89,9 +89,12 @@ export async function evaluateLearning(
     accuracy: data.accuracy ?? null,
     relevance: data.relevance ?? null,
     coherence: data.coherence ?? null,
-    overallScore: data.overall_score ?? null,
+    overallScore: data.overallScore ?? null,
     feedback: data.feedback ?? null,
-    evaluatedAt: new Date().toISOString(),
+    evaluatedAt: data.evaluatedAt ?? new Date().toISOString(),
+  };
+}
+
 interface PyAPIMatchJob {
   id: string;
   job_title: string;

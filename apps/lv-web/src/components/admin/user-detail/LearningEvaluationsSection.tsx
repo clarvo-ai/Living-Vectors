@@ -13,7 +13,7 @@ interface LearningEvaluationsSectionProps {
 
 type EvalState = LearningEvaluation | 'loading' | 'error';
 
-function SourceMessages({ messages }: { messages: LearningConnection['messages'] }) {
+function SourceMessages({ messages }: { messages: string[] }) {
   const [open, setOpen] = useState(false);
   return (
     <div className="mt-3 pt-3 border-t border-gray-100">
@@ -22,22 +22,16 @@ function SourceMessages({ messages }: { messages: LearningConnection['messages']
         className="flex items-center gap-1 text-xs text-muted-foreground hover:text-gray-700 transition-colors"
       >
         <span>{open ? '▾' : '▸'}</span>
-        <span>{open ? 'Hide' : 'Show'} {messages.length} source message{messages.length !== 1 ? 's' : ''}</span>
+        <span>
+          {open ? 'Hide' : 'Show'} {messages.length} source message
+          {messages.length !== 1 ? 's' : ''}
+        </span>
       </button>
       {open && (
         <div className="mt-2 space-y-1.5">
-          {messages.map((m) => (
-            <div key={m.messageId} className="flex items-start gap-2">
-              <span
-                className={`mt-0.5 shrink-0 inline-flex items-center rounded-full px-1.5 py-0.5 text-[10px] font-semibold ${
-                  m.sender === 'USER'
-                    ? 'bg-blue-100 text-blue-700'
-                    : 'bg-gray-100 text-gray-600'
-                }`}
-              >
-                {m.sender === 'USER' ? 'You' : 'AI'}
-              </span>
-              <p className="text-xs text-gray-600 leading-relaxed">{m.content}</p>
+          {messages.map((message, index) => (
+            <div key={index} className="flex items-start gap-2">
+              <p className="text-xs text-gray-600 leading-relaxed">{message}</p>
             </div>
           ))}
         </div>
@@ -211,10 +205,7 @@ export function LearningEvaluationsSection({
     setEvaluations(Object.fromEntries(learningConnections.map((l) => [l.id, 'loading'])));
 
     learningConnections.forEach((learning) => {
-      evaluateLearning(
-        learning.summary,
-        learning.messages.map((m) => m.content)
-      )
+      evaluateLearning(learning.summary, learning.messages)
         .then((result) => setEvaluations((prev) => ({ ...prev, [learning.id]: result })))
         .catch(() => setEvaluations((prev) => ({ ...prev, [learning.id]: 'error' })));
     });
