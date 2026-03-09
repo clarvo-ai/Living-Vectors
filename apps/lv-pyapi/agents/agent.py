@@ -3,13 +3,19 @@ import os
 import sys
 from dotenv import load_dotenv
 import asyncio
+from typing import List
 
 import requests
+from sqlalchemy import select
 from livekit import agents
 from livekit.agents import AgentServer, AgentSession, Agent, JobProcess, room_io
 from livekit.agents.beta.workflows import TaskGroup
 from livekit.plugins import elevenlabs, google, silero, noise_cancellation
 from livekit.plugins.elevenlabs import TTS, VoiceSettings
+
+from database import SessionLocal
+from python_utils.sqlalchemy_models import CompletedTask, Learning
+
 
 from tasks import (
     OpeningTask,
@@ -39,10 +45,49 @@ def prewarm(proc: JobProcess) -> None:
     proc.userdata["vad"] = silero.VAD.load()
 
 
+def fetch_completed_tasks(user_id: str) -> List[str]:
+    try:
+        db = SessionLocal()
+        rows = db.execute(
+            select(CompletedTask.taskId)
+            .where(CompletedTask.userId == user_id)
+        ).all()
+        return [row.taskId for row in rows]
+    except Exception as e:
+        logger.error(f"Failed to fetch completed tasks for user {user_id}: {e}")
+        return []
+    finally:
+        db.close()
+
+
+def fetch_user_insights(user_id: str) -> List[str]:
+    try:
+        db = SessionLocal()
+        rows = db.execute(
+            select(Learning.id, Learning.summary)
+            .where(Learning.userId == user_id)
+            .order_by(Learning.createdAt)
+        ).all()
+        return [row.summary for row in rows]
+    except Exception as e:
+        logger.error(f"Failed to fetch user insights for user {user_id}: {e}")
+        return []
+    finally:
+        db.close()
+
+
 class CareerAssistant(Agent):
-    def __init__(self) -> None:
+    def __init__(self, user_id: str, completed_tasks: List[str], user_insights: List[str]) -> None:
+        self.user_id = user_id
+        self.completed_tasks = completed_tasks
+        insight_text = ""
+        if user_insights:
+            insight_text = "\n\nHere is what we already know about you from previous conversations:\n"
+            for insight in user_insights:
+                insight_text += f"- {insight}\n"
+        
         super().__init__(
-            instructions="""
+            instructions=f"""
             You are a career consultant. Your job is to get to know this person deeply —
             their background, what they are great at, what they want next, and what matters to them.
             After this conversation, you will use what you learn to surface the best matching
@@ -50,20 +95,29 @@ class CareerAssistant(Agent):
             You are on their side. Make them feel heard.
             Speak conversationally. Reference earlier answers to avoid repeating questions.
             Be concise — this is a voice conversation, not a written form.
+
+            {insight_text}
             """,
             tools=[],
         )
 
     async def on_enter(self) -> None:
+        all_tasks = [
+            ("opening",      lambda: OpeningTask(self.user_id),     "Why the candidate is here and how they found Clarvo"),
+            ("logistics",    lambda: LogisticsTask(self.user_id),   "Job search logistics, timing, and motivation to leave"),
+            ("industry",     lambda: IndustryTask(self.user_id),    "Target industry or field the candidate wants to work in"),
+            ("location",     lambda: LocationTask(self.user_id),    "Preferred cities and remote/hybrid/onsite preferences"),
+            ("background",   lambda: BackgroundTask(self.user_id),  "Work experience, strengths, and domain knowledge"),
+            ("culture",      lambda: CultureTask(self.user_id),     "Team size, management style, and company culture fit"),
+            ("value_vision", lambda: ValueVisionTask(self.user_id), "Compensation expectations and career vision"),
+            ("alignment",    lambda: AlignmentTask(self.user_id),   "Summary confirmation and closing"),
+        ]
+
         task_group = TaskGroup(chat_ctx=self.chat_ctx)
-        task_group.add(lambda: OpeningTask(),      id="opening",      description="Why the candidate is here and how they found Clarvo")
-        task_group.add(lambda: LogisticsTask(),    id="logistics",    description="Job search logistics, timing, and motivation to leave")
-        task_group.add(lambda: IndustryTask(),     id="industry",     description="Target industry or field the candidate wants to work in")
-        task_group.add(lambda: LocationTask(),     id="location",     description="Preferred cities and remote/hybrid/onsite preferences")
-        task_group.add(lambda: BackgroundTask(),   id="background",   description="Work experience, strengths, and domain knowledge")
-        task_group.add(lambda: CultureTask(),      id="culture",      description="Team size, management style, and company culture fit")
-        task_group.add(lambda: ValueVisionTask(),  id="value_vision", description="Compensation expectations and career vision")
-        task_group.add(lambda: AlignmentTask(),    id="alignment",    description="Summary confirmation and closing")
+        for task_id, task_fn, task_desc in all_tasks:
+            if task_id not in self.completed_tasks:
+                task_group.add(task_fn, id=task_id, description=task_desc)
+        
         await task_group
 
 
@@ -99,9 +153,12 @@ async def my_agent(ctx: agents.JobContext):
     user_id = ctx.room.name.removeprefix("interview-")
     logger.info(f"Session user: {user_id}")
 
+    completed_tasks = fetch_completed_tasks(user_id)
+    user_insights = fetch_user_insights(user_id)
+
     await session.start(
         room=ctx.room,
-        agent=CareerAssistant(),
+        agent=CareerAssistant(user_id, completed_tasks, user_insights),
         room_options=room_io.RoomOptions(
             audio_input=room_io.AudioInputOptions(
                 noise_cancellation=noise_cancellation.NC(),

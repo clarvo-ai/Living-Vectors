@@ -1,12 +1,30 @@
 import logging
 
 from livekit.agents import AgentTask, function_tool
+from database import SessionLocal
+from python_utils.sqlalchemy_models import CompletedTask
+from datetime import datetime
 
 logger = logging.getLogger("career-agent")
 
 
+def update_completed_tasks(user_id: str, task_id: str) -> None:
+    db = None
+    try:
+        db = SessionLocal()
+        db.add(CompletedTask(userId=user_id, taskId=task_id, completedAt=datetime.now()))
+        db.commit()
+    except Exception as e:
+        logger.error(f"Failed to update completed tasks for user {user_id}: {e}")
+        if db:
+            db.rollback()
+    finally:
+        if db:
+            db.close()
+
 class OpeningTask(AgentTask[None]):
-    def __init__(self) -> None:
+    def __init__(self, user_id: str) -> None:
+        self.user_id = user_id
         super().__init__(
             instructions="""
             Your name is the "Clarvo career assistant".
@@ -54,10 +72,12 @@ class OpeningTask(AgentTask[None]):
     async def opening_complete(self) -> None:
         """Call this once you understand why the candidate is here and how they found Clarvo."""
         self.complete(None)
+        update_completed_tasks(self.user_id, "opening")
 
 
 class LogisticsTask(AgentTask[None]):
-    def __init__(self) -> None:
+    def __init__(self, user_id: str) -> None:
+        self.user_id = user_id
         super().__init__(
             instructions="""
             You are a career consultant. Your goal is to understand the candidate's
@@ -100,10 +120,12 @@ class LogisticsTask(AgentTask[None]):
     async def logistics_complete(self) -> None:
         """Call this once you have covered search intensity, timing, and motivation to leave."""
         self.complete(None)
+        update_completed_tasks(self.user_id, "logistics")
 
 
 class IndustryTask(AgentTask[None]):
-    def __init__(self) -> None:
+    def __init__(self, user_id: str) -> None:
+        self.user_id = user_id
         super().__init__(
             instructions="""
             You are a career consultant. Before diving into specifics, you need to understand
@@ -150,10 +172,12 @@ class IndustryTask(AgentTask[None]):
     async def industry_complete(self) -> None:
         """Call this once you know what industry or field the candidate is targeting."""
         self.complete(None)
+        update_completed_tasks(self.user_id, "industry")
 
 
 class LocationTask(AgentTask[None]):
-    def __init__(self) -> None:
+    def __init__(self, user_id: str) -> None:
+        self.user_id = user_id
         super().__init__(
             instructions="""
             You are a career consultant. Understanding location constraints is critical
@@ -199,10 +223,12 @@ class LocationTask(AgentTask[None]):
     async def location_complete(self) -> None:
         """Call this once you understand their geography and work model preferences."""
         self.complete(None)
+        update_completed_tasks(self.user_id, "location")
 
 
 class BackgroundTask(AgentTask[None]):
-    def __init__(self) -> None:
+    def __init__(self, user_id: str) -> None:
+        self.user_id = user_id
         super().__init__(
             instructions="""
             You are a career consultant doing a deep professional background assessment.
@@ -249,10 +275,12 @@ class BackgroundTask(AgentTask[None]):
     async def background_complete(self) -> None:
         """Call this once you have a clear picture of their experience, strengths, and domain knowledge."""
         self.complete(None)
+        update_completed_tasks(self.user_id, "background")
 
 
 class CultureTask(AgentTask[None]):
-    def __init__(self) -> None:
+    def __init__(self, user_id: str) -> None:
+        self.user_id = user_id
         super().__init__(
             instructions="""
             You are a career consultant. Culture fit is one of the biggest reasons
@@ -296,10 +324,12 @@ class CultureTask(AgentTask[None]):
     async def culture_complete(self) -> None:
         """Call this once you understand their culture and team environment preferences."""
         self.complete(None)
+        update_completed_tasks(self.user_id, "culture")
 
 
 class ValueVisionTask(AgentTask[None]):
-    def __init__(self) -> None:
+    def __init__(self, user_id: str) -> None:
+        self.user_id = user_id
         super().__init__(
             instructions="""
             You are a career consultant. You need comp and vision data to make sure
@@ -344,10 +374,12 @@ class ValueVisionTask(AgentTask[None]):
     async def value_vision_complete(self) -> None:
         """Call this once you have covered compensation expectations and their career vision."""
         self.complete(None)
+        update_completed_tasks(self.user_id, "value_vision")
 
 
 class AlignmentTask(AgentTask[None]):
-    def __init__(self) -> None:
+    def __init__(self, user_id: str) -> None:
+        self.user_id = user_id
         super().__init__(
             instructions="""
             You are a career consultant wrapping up this discovery session.
@@ -378,3 +410,4 @@ class AlignmentTask(AgentTask[None]):
     async def alignment_complete(self) -> None:
         """Call this once the candidate has confirmed the summary and the conversation is wrapping up."""
         self.complete(None)
+        update_completed_tasks(self.user_id, "alignment")
