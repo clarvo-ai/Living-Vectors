@@ -56,9 +56,7 @@ export async function PATCH(req: NextRequest) {
 
         return NextResponse.json(updated);
     } catch (error) {
-        if (error instanceof Prisma.PrismaClientKnownRequestError && error.code === 'P2025') {
-            return NextResponse.json({ error: 'User not found' }, { status: 404 });
-        }
+
         console.error('Error updating user role:', error);
         return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
     }
