@@ -353,13 +353,41 @@ export default function EditPage() {
     if (!session?.user?.id) return;
     setIsConfirming(true);
     try {
+      // Save any manually added criteria (those without an id) to the DB
+      const unsaved = criteria.filter((c) => !c.id && c.criteriaText.trim());
+      if (unsaved.length > 0) {
+        const saved = await Promise.all(
+          unsaved.map((c) =>
+            fetch('/api/learnings', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({
+                summary: c.criteriaText.trim(),
+                messages: ['[HARDCODED] manually added learning from edit criterion page'],
+              }),
+            }).then((res) => res.json())
+          )
+        );
+        // Assign the new ids back so they behave like persisted criteria
+        setCriteria((prev) => {
+          let unsavedIndex = 0;
+          return prev.map((c) => {
+            if (!c.id && c.criteriaText.trim()) {
+              const newId = saved[unsavedIndex]?.body?.id;
+              unsavedIndex++;
+              return newId ? { ...c, id: newId } : c;
+            }
+            return c;
+          });
+        });
+      }
       await generateUserEmbedding(session.user.id);
     } catch (error) {
-      console.error('Failed to regenerate embedding:', error);
+      console.error('Failed to confirm:', error);
     } finally {
       setIsConfirming(false);
     }
-  }, [session]);
+  }, [session, criteria]);
 
   const title = useMemo(
     () =>
