@@ -1,5 +1,6 @@
 'use client';
 
+import type { Learning } from '@/app/api/learnings/route';
 import {
     DndContext,
     DragEndEvent,
@@ -259,6 +260,25 @@ function SortableCriteriaList({
 export default function EditPage() {
   const [criteria, setCriteria] = useState<Criterion[]>([]);
   const [userClickedAddFirstCriteria, setUserClickedAddFirstCriteria] = useState(false);
+  const [learningsLoading, setLearningsLoading] = useState(true);
+
+  useEffect(() => {
+    fetch('/api/learnings')
+      .then((res) => res.json())
+      .then((data) => {
+        if (data.body && Array.isArray(data.body)) {
+          setCriteria(
+            (data.body as Learning[]).map((learning, index) => ({
+              id: learning.id,
+              criteriaText: learning.summary,
+              priority: index + 1,
+            }))
+          );
+        }
+      })
+      .catch(console.error)
+      .finally(() => setLearningsLoading(false));
+  }, []);
 
   const sensors = useSensors(
     useSensor(PointerSensor, {
@@ -342,7 +362,9 @@ export default function EditPage() {
     >
       <h2 style={{ marginTop: 0, marginBottom: 14, fontSize: 22, fontWeight: 600 }}>{title}</h2>
 
-      {criteria.length === 0 ? (
+      {learningsLoading ? (
+        <p style={{ color: '#6b7280', fontSize: 14 }}>Loading…</p>
+      ) : criteria.length === 0 ? (
         <EmptyCriteriaState onAddFirst={handleAddCriterion} />
       ) : (
         <SortableCriteriaList
