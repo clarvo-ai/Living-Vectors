@@ -77,11 +77,12 @@ describe('AdminUsersPage', () => {
     await waitFor(() => {
       expect(screen.getByText('Adam Brown')).toBeInTheDocument();
       expect(screen.getByText('adam@example.com')).toBeInTheDocument();
-      expect(screen.getByText('USER')).toBeInTheDocument();
       expect(screen.getByText('admin@example.com')).toBeInTheDocument();
-      expect(screen.getByText('ADMIN')).toBeInTheDocument();
       // Name is null, should show dash
       expect(screen.getByText('—')).toBeInTheDocument();
+      const roleSelects = screen.getAllByRole('combobox');
+      expect(roleSelects[0]).toHaveValue('user');
+      expect(roleSelects[1]).toHaveValue('admin');
     });
   });
 
