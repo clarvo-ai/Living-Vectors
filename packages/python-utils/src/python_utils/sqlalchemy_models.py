@@ -197,6 +197,7 @@ class Learning(Base):
     createdAt: Mapped[datetime] = mapped_column(TIMESTAMP, nullable=False, server_default=func.now())
     updatedAt: Mapped[datetime] = mapped_column(TIMESTAMP, nullable=False, server_default=func.now(), onupdate=func.now())
     messages: Mapped[Optional[List[str]]] = mapped_column(ARRAY(Text), nullable=True)
+    soft_delete: Mapped[bool] = mapped_column(Boolean, nullable=False)
 
     # Relationships
     user: Mapped["User"] = relationship("User", back_populates="learning", uselist=False)
@@ -240,8 +241,8 @@ class User(Base):
     session: Mapped[List["Session"]] = relationship("Session", back_populates="user")
     authenticator: Mapped[List["Authenticator"]] = relationship("Authenticator", back_populates="user")
     conversationMessage: Mapped[List["ConversationMessage"]] = relationship("ConversationMessage", back_populates="user")
-    jobRecommendation: Mapped[List["JobRecommendation"]] = relationship("JobRecommendation", back_populates="user")
     learning: Mapped[List["Learning"]] = relationship("Learning", back_populates="user")
+    jobRecommendation: Mapped[List["JobRecommendation"]] = relationship("JobRecommendation", back_populates="user")
     userEmbedding: Mapped["UserEmbedding"] = relationship("UserEmbedding", back_populates="user", uselist=False)
 
 
