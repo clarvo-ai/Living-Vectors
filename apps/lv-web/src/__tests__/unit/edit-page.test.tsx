@@ -1,7 +1,7 @@
-import EditPage from '@/app/dashboard/edit/page';
 import { render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { useSession } from 'next-auth/react';
+import EditPage from '../../app/dashboard/edit/page';
 
 // ─── Mocks ────────────────────────────────────────────────────────────────────
 
@@ -9,7 +9,7 @@ jest.mock('next-auth/react', () => ({
   useSession: jest.fn(),
 }));
 
-jest.mock('@/lib/services/pyapi', () => ({
+jest.mock('../../lib/services/pyapi', () => ({
   generateUserEmbedding: jest.fn().mockResolvedValue(undefined),
 }));
 
@@ -343,7 +343,7 @@ describe('EditPage — Confirm & Update Jobs button', () => {
 
   it('calls PATCH /api/learnings/order and generateUserEmbedding on confirm', async () => {
     const user = userEvent.setup();
-    const { generateUserEmbedding } = jest.requireMock('@/lib/services/pyapi');
+    const { generateUserEmbedding } = jest.requireMock('../../lib/services/pyapi');
     const fetchMock = jest.fn();
 
     // GET learnings
