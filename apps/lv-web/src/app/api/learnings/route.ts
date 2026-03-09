@@ -10,6 +10,7 @@ export type Learning = {
   messages: string[];
   createdAt: string;
   updatedAt: string;
+  order_index: number | null;
 };
 
 export type LearningsPostResponse =
@@ -39,6 +40,12 @@ export async function POST(request: NextRequest): Promise<NextResponse<Learnings
         summary: summary.trim(),
         messages: messages ?? [],
         soft_delete: false,
+        order_index: (
+          (await prisma.learning.aggregate({
+            where: { userId: session.user.id, soft_delete: false },
+            _max: { order_index: true },
+          }))._max.order_index ?? -1
+        ) + 1,
       },
       select: {
         id: true,
@@ -47,6 +54,7 @@ export async function POST(request: NextRequest): Promise<NextResponse<Learnings
         messages: true,
         createdAt: true,
         updatedAt: true,
+        order_index: true,
       },
     });
 
@@ -78,7 +86,7 @@ export async function GET(): Promise<NextResponse<LearningsGetResponse>> {
 
     const learnings = await prisma.learning.findMany({
       where: { userId: session.user.id, soft_delete: false },
-      orderBy: { createdAt: 'desc' }, //Need to be changed to something else later
+      orderBy: [{ order_index: 'asc' }, { createdAt: 'asc' }],
       select: {
         id: true,
         userId: true,
@@ -86,6 +94,7 @@ export async function GET(): Promise<NextResponse<LearningsGetResponse>> {
         messages: true,
         createdAt: true,
         updatedAt: true,
+        order_index: true,
       },
     });
 

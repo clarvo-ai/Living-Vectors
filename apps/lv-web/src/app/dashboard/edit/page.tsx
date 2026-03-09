@@ -355,6 +355,7 @@ export default function EditPage() {
     try {
       // Save any manually added criteria (those without an id) to the DB
       const unsaved = criteria.filter((c) => !c.id && c.criteriaText.trim());
+      let updatedCriteria = criteria;
       if (unsaved.length > 0) {
         const saved = await Promise.all(
           unsaved.map((c) =>
@@ -363,24 +364,36 @@ export default function EditPage() {
               headers: { 'Content-Type': 'application/json' },
               body: JSON.stringify({
                 summary: c.criteriaText.trim(),
-                messages: ['[HARDCODED] manually added learning from edit criterion page'],
+                messages: ['manually added learning from edit criterion page'], //This makes the embedding worse but is here only temporarily for easier understanding. Let's edit this out when we better the matching algorithm
               }),
             }).then((res) => res.json())
           )
         );
         // Assign the new ids back so they behave like persisted criteria
-        setCriteria((prev) => {
-          let unsavedIndex = 0;
-          return prev.map((c) => {
-            if (!c.id && c.criteriaText.trim()) {
-              const newId = saved[unsavedIndex]?.body?.id;
-              unsavedIndex++;
-              return newId ? { ...c, id: newId } : c;
-            }
-            return c;
-          });
+        let unsavedIndex = 0;
+        updatedCriteria = criteria.map((c) => {
+          if (!c.id && c.criteriaText.trim()) {
+            const newId = saved[unsavedIndex]?.body?.id;
+            unsavedIndex++;
+            return newId ? { ...c, id: newId } : c;
+          }
+          return c;
+        });
+        setCriteria(updatedCriteria);
+      }
+
+      // Persist the current drag order for all criteria that have an id
+      const orderPayload = updatedCriteria
+        .filter((c) => c.id)
+        .map((c, index) => ({ id: c.id as string, order_index: index }));
+      if (orderPayload.length > 0) {
+        await fetch('/api/learnings/order', {
+          method: 'PATCH',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(orderPayload),
         });
       }
+
       await generateUserEmbedding(session.user.id);
     } catch (error) {
       console.error('Failed to confirm:', error);

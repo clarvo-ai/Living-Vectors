@@ -112,6 +112,7 @@ model Learning {
   user        User     @relation(fields: [userId], references: [id])
   messages    String[]
   soft_delete Boolean  @default(false)
+  order_index Int?
 
   @@index([userId])
 }
