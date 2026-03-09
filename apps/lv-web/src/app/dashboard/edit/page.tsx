@@ -319,6 +319,10 @@ export default function EditPage() {
 
   const handleRemoveCriterion = useCallback((index: number) => {
     setCriteria((prev) => {
+      const item = prev[index];
+      if (item?.id) {
+        fetch(`/api/learnings/${item.id}`, { method: 'PATCH' }).catch(console.error);
+      }
       const newCriteria = prev.filter((_, i) => i !== index);
       return newCriteria.map((criterion, i) => ({
         ...criterion,

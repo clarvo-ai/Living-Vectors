@@ -26,8 +26,8 @@ export async function GET(): Promise<NextResponse<LearningsGetResponse>> {
     }
 
     const learnings = await prisma.learning.findMany({
-      where: { userId: session.user.id },
-      orderBy: { createdAt: 'desc' },
+      where: { userId: session.user.id, soft_delete: false },
+      orderBy: { createdAt: 'desc' }, //Need to be changed to something else later
       select: {
         id: true,
         userId: true,
