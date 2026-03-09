@@ -1,6 +1,7 @@
 'use client';
 
 import type { Learning } from '@/app/api/learnings/route';
+import { generateUserEmbedding } from '@/lib/services/pyapi';
 import {
     DndContext,
     DragEndEvent,
@@ -19,6 +20,7 @@ import {
     verticalListSortingStrategy,
 } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
+import { useSession } from 'next-auth/react';
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 
 export interface Criterion {
@@ -258,9 +260,11 @@ function SortableCriteriaList({
 }
 
 export default function EditPage() {
+  const { data: session } = useSession();
   const [criteria, setCriteria] = useState<Criterion[]>([]);
   const [userClickedAddFirstCriteria, setUserClickedAddFirstCriteria] = useState(false);
   const [learningsLoading, setLearningsLoading] = useState(true);
+  const [isConfirming, setIsConfirming] = useState(false);
 
   useEffect(() => {
     fetch('/api/learnings')
@@ -345,6 +349,18 @@ export default function EditPage() {
     ]);
   }, [criteria.length]);
 
+  const handleConfirm = useCallback(async () => {
+    if (!session?.user?.id) return;
+    setIsConfirming(true);
+    try {
+      await generateUserEmbedding(session.user.id);
+    } catch (error) {
+      console.error('Failed to regenerate embedding:', error);
+    } finally {
+      setIsConfirming(false);
+    }
+  }, [session]);
+
   const title = useMemo(
     () =>
       userClickedAddFirstCriteria || criteria.length === 0
@@ -384,7 +400,8 @@ export default function EditPage() {
       <div style={{ display: 'flex', justifyContent: 'flex-end', marginTop: 16 }}>
         <button
           type="button"
-          disabled={criteria.length === 0 || criteria.some((c) => !c.criteriaText.trim())}
+          onClick={handleConfirm}
+          disabled={isConfirming || criteria.length === 0 || criteria.some((c) => !c.criteriaText.trim())}
           style={{
             border: 'none',
             borderRadius: 8,
@@ -392,12 +409,12 @@ export default function EditPage() {
             color: '#ffffff',
             padding: '10px 14px',
             fontSize: 14,
-            cursor: 'pointer',
+            cursor: isConfirming ? 'not-allowed' : 'pointer',
             opacity:
-              criteria.length === 0 || criteria.some((c) => !c.criteriaText.trim()) ? 0.6 : 1,
+              isConfirming || criteria.length === 0 || criteria.some((c) => !c.criteriaText.trim()) ? 0.6 : 1,
           }}
         >
-          Confirm &amp; Start Evaluation
+          {isConfirming ? 'Updating…' : 'Confirm & Update Jobs'}
         </button>
       </div>
     </div>
