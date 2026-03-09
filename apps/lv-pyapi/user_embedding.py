@@ -33,8 +33,12 @@ def generate_user_embedding(user_id: str, db: Session) -> Optional[UserEmbedding
     Returns:
         The UserEmbedding record, or None if user has no learnings
     """
-    # 1. Fetch all learnings for user, ordered by creation time
-    stmt = select(Learning).where(Learning.userId == user_id).order_by(Learning.createdAt)
+    # 1. Fetch all non-soft-deleted learnings for user, ordered by creation time
+    stmt = (
+        select(Learning)
+        .where(Learning.userId == user_id, Learning.soft_delete == False)
+        .order_by(Learning.createdAt)
+    )
     result = db.execute(stmt)
     learnings = result.scalars().all()
     
