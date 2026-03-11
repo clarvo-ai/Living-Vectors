@@ -20,3 +20,4 @@ livekit-plugins-noise-cancellation~=0.2
 google-cloud-storage==3.8.0
 pandas==3.0.0
 pgvector==0.4.2
+livekit-plugins-noise-cancellation~=0.2
