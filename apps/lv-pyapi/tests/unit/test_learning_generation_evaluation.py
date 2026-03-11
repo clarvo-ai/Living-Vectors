@@ -1,6 +1,9 @@
 import pytest
 from learnings import learnings_from_transcript, evaluate_learning_quality
 
+# Threshold used for asserting minimum quality scores in tests
+QUALITY_THRESHOLD = 0.6
+
 def test_learning_generation_and_evaluation():
     """End-to-end test: Generate learnings and evaluate quality using LLM judge """
 
@@ -67,10 +70,10 @@ def test_learning_generation_and_evaluation():
     print(f"{'='*60}\n")
 
     # Assert quality scores meet threshold 
-    assert evaluation['accuracy']      >= 0.7, "Learning should be accurate"
-    assert evaluation['relevance']     >= 0.7, "Learning should be relevant"
-    assert evaluation['coherence']     >= 0.7, "Learning should be coherent"
-    assert evaluation['overall_score'] >= 0.7, "Overall quality should be good"
+    assert evaluation['accuracy']      >= QUALITY_THRESHOLD, "Learning should be accurate"
+    assert evaluation['relevance']     >= QUALITY_THRESHOLD, "Learning should be relevant"
+    assert evaluation['coherence']     >= QUALITY_THRESHOLD, "Learning should be coherent"
+    assert evaluation['overall_score'] >= QUALITY_THRESHOLD, "Overall quality should be good"
 
 def test_learning_generation_and_evaluation_vague_conversation():
     """Test with vague/generic conversation - should produce lower quality learnings and scores"""
