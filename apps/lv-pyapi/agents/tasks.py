@@ -22,8 +22,19 @@ def update_completed_tasks(user_id: str, task_id: str) -> None:
         if db:
             db.close()
 
+def _build_insight_block(insights: list[str]) -> str:
+    if not insights:
+        return ""
+    lines = "\n".join(f"- {s}" for s in insights)
+    return (
+        "\n\nContext from previous conversations with this candidate "
+        "(use this to avoid repeating questions and to personalise your approach):\n"
+        + lines
+    )
+
+
 class OpeningTask(AgentTask[None]):
-    def __init__(self, user_id: str) -> None:
+    def __init__(self, user_id: str, insights: list[str] | None = None) -> None:
         self.user_id = user_id
         super().__init__(
             instructions="""
@@ -55,7 +66,7 @@ class OpeningTask(AgentTask[None]):
               call opening_complete. Do NOT generate any verbal response before calling it.
               Do not say "great", "got it", "that's helpful", or anything else. Call the function
               silently — the next phase will handle the next response.
-            """,
+            """ + _build_insight_block(insights or []),
         )
 
     async def on_enter(self) -> None:
@@ -76,7 +87,7 @@ class OpeningTask(AgentTask[None]):
 
 
 class LogisticsTask(AgentTask[None]):
-    def __init__(self, user_id: str) -> None:
+    def __init__(self, user_id: str, insights: list[str] | None = None) -> None:
         self.user_id = user_id
         super().__init__(
             instructions="""
@@ -103,7 +114,7 @@ class LogisticsTask(AgentTask[None]):
             - When you have covered these areas, call logistics_complete. Do NOT generate any
               verbal response before calling it. Do not say "great", "got it", "that's helpful",
               or anything else. Call the function silently — the next phase will handle the next response.
-            """,
+            """ + _build_insight_block(insights or []),
         )
 
     async def on_enter(self) -> None:
@@ -124,7 +135,7 @@ class LogisticsTask(AgentTask[None]):
 
 
 class IndustryTask(AgentTask[None]):
-    def __init__(self, user_id: str) -> None:
+    def __init__(self, user_id: str, insights: list[str] | None = None) -> None:
         self.user_id = user_id
         super().__init__(
             instructions="""
@@ -154,7 +165,7 @@ class IndustryTask(AgentTask[None]):
               Do NOT generate any verbal response before calling it. Do not say "great", "got it",
               "that's helpful", or anything else. Call the function silently — the next phase will
               handle the next response.
-            """,
+            """ + _build_insight_block(insights or []),
         )
 
     async def on_enter(self) -> None:
@@ -176,7 +187,7 @@ class IndustryTask(AgentTask[None]):
 
 
 class LocationTask(AgentTask[None]):
-    def __init__(self, user_id: str) -> None:
+    def __init__(self, user_id: str, insights: list[str] | None = None) -> None:
         self.user_id = user_id
         super().__init__(
             instructions="""
@@ -206,7 +217,7 @@ class LocationTask(AgentTask[None]):
             - When covered, call location_complete. Do NOT generate any verbal response before
               calling it. Do not say "great", "got it", "that's helpful", or anything else.
               Call the function silently — the next phase will handle the next response.
-            """,
+            """ + _build_insight_block(insights or []),
         )
 
     async def on_enter(self) -> None:
@@ -227,7 +238,7 @@ class LocationTask(AgentTask[None]):
 
 
 class BackgroundTask(AgentTask[None]):
-    def __init__(self, user_id: str) -> None:
+    def __init__(self, user_id: str, insights: list[str] | None = None) -> None:
         self.user_id = user_id
         super().__init__(
             instructions="""
@@ -258,7 +269,7 @@ class BackgroundTask(AgentTask[None]):
             - When you have a solid picture, call background_complete. Do NOT generate any
               verbal response before calling it. Do not say "great", "got it", "that's helpful",
               or anything else. Call the function silently — the next phase will handle the next response.
-            """,
+            """ + _build_insight_block(insights or []),
         )
 
     async def on_enter(self) -> None:
@@ -279,7 +290,7 @@ class BackgroundTask(AgentTask[None]):
 
 
 class CultureTask(AgentTask[None]):
-    def __init__(self, user_id: str) -> None:
+    def __init__(self, user_id: str, insights: list[str] | None = None) -> None:
         self.user_id = user_id
         super().__init__(
             instructions="""
@@ -307,7 +318,7 @@ class CultureTask(AgentTask[None]):
             - When covered, call culture_complete. Do NOT generate any verbal response before
               calling it. Do not say "great", "got it", "that's helpful", or anything else.
               Call the function silently — the next phase will handle the next response.
-            """,
+            """ + _build_insight_block(insights or []),
         )
 
     async def on_enter(self) -> None:
@@ -328,7 +339,7 @@ class CultureTask(AgentTask[None]):
 
 
 class ValueVisionTask(AgentTask[None]):
-    def __init__(self, user_id: str) -> None:
+    def __init__(self, user_id: str, insights: list[str] | None = None) -> None:
         self.user_id = user_id
         super().__init__(
             instructions="""
@@ -356,7 +367,7 @@ class ValueVisionTask(AgentTask[None]):
             - When covered, call value_vision_complete. Do NOT generate any verbal response
               before calling it. Do not say "great", "got it", "that's helpful", or anything else.
               Call the function silently — the next phase will handle the next response.
-            """,
+            """ + _build_insight_block(insights or []),
         )
 
     async def on_enter(self) -> None:
@@ -378,7 +389,7 @@ class ValueVisionTask(AgentTask[None]):
 
 
 class AlignmentTask(AgentTask[None]):
-    def __init__(self, user_id: str) -> None:
+    def __init__(self, user_id: str, insights: list[str] | None = None) -> None:
         self.user_id = user_id
         super().__init__(
             instructions="""
@@ -391,7 +402,7 @@ class AlignmentTask(AgentTask[None]):
             - Close warmly: tell them you now have a great picture of what they are looking for
               and that you will use this to match them with the best opportunities
             Call alignment_complete once they have confirmed and you have said goodbye.
-            """,
+            """ + _build_insight_block(insights or []),
         )
 
     async def on_enter(self) -> None:

@@ -25,7 +25,7 @@ from tasks import (
     BackgroundTask,
     CultureTask,
     ValueVisionTask,
-    AlignmentTask,
+    AlignmentTask
 )
 
 load_dotenv(".env.local")
@@ -77,47 +77,66 @@ def fetch_user_insights(user_id: str) -> List[str]:
 
 
 class CareerAssistant(Agent):
+    DISCOVERY_TASKS = {"opening", "logistics", "industry", "location", "background", "culture", "value_vision", "alignment"}
+
     def __init__(self, user_id: str, completed_tasks: List[str], user_insights: List[str]) -> None:
         self.user_id = user_id
         self.completed_tasks = completed_tasks
-        insight_text = ""
-        if user_insights:
-            insight_text = "\n\nHere is what we already know about you from previous conversations:\n"
-            for insight in user_insights:
-                insight_text += f"- {insight}\n"
-        
-        super().__init__(
-            instructions=f"""
-            You are a career consultant. Your job is to get to know this person deeply —
-            their background, what they are great at, what they want next, and what matters to them.
-            After this conversation, you will use what you learn to surface the best matching
-            job opportunities for them from external sources.
-            You are on their side. Make them feel heard.
-            Speak conversationally. Reference earlier answers to avoid repeating questions.
-            Be concise — this is a voice conversation, not a written form.
+        self.user_insights = user_insights
+        self.all_completed = self.DISCOVERY_TASKS.issubset(set(completed_tasks))
 
+        insight_text = ""
+        if self.user_insights:
+            lines = "\n".join(f"- {s}" for s in self.user_insights)
+            insight_text = f"\n\nHere is what we know about the user from previous conversations:\n{lines}"
+
+        if self.all_completed:
+            instructions = f"""
+            You are a career assistant speaking with a candidate whose full discovery call
+            is already on file. You know their background, preferences, and goals well.
+
+            Your role now is to be a helpful, conversational career advisor:
+            - Answer any questions they have about their job search, roles, the market, etc.
+            - If they mention something has changed (location, comp, what they want), note it
+              and explore it naturally — one question at a time.
+            - Keep replies short and conversational. This is a voice call.
+            - Do NOT re-run the discovery interview. Do NOT ask unprompted questions.
             {insight_text}
-            """,
-            tools=[],
-        )
+            """
+        else:
+            instructions = ""
+
+        super().__init__(instructions=instructions, tools=[])
 
     async def on_enter(self) -> None:
+        if self.all_completed:
+            logger.info("[AGENT] Returning user — skipping TaskGroup, starting free-form check-in")
+            await self.session.generate_reply(
+                instructions=(
+                    "Welcome the candidate back warmly — you know them already. "
+                    "Briefly summarise their profile in a sentence or two so they feel heard. "
+                    "Then ask just ONE open question: whether anything has changed since you last spoke, "
+                    "or if there is anything on their mind."
+                )
+            )
+            return
+
         all_tasks = [
-            ("opening",      lambda: OpeningTask(self.user_id),     "Why the candidate is here and how they found Clarvo"),
-            ("logistics",    lambda: LogisticsTask(self.user_id),   "Job search logistics, timing, and motivation to leave"),
-            ("industry",     lambda: IndustryTask(self.user_id),    "Target industry or field the candidate wants to work in"),
-            ("location",     lambda: LocationTask(self.user_id),    "Preferred cities and remote/hybrid/onsite preferences"),
-            ("background",   lambda: BackgroundTask(self.user_id),  "Work experience, strengths, and domain knowledge"),
-            ("culture",      lambda: CultureTask(self.user_id),     "Team size, management style, and company culture fit"),
-            ("value_vision", lambda: ValueVisionTask(self.user_id), "Compensation expectations and career vision"),
-            ("alignment",    lambda: AlignmentTask(self.user_id),   "Summary confirmation and closing"),
+            ("opening",      lambda: OpeningTask(self.user_id, self.user_insights),     "Why the candidate is here and how they found Clarvo"),
+            ("logistics",    lambda: LogisticsTask(self.user_id, self.user_insights),   "Job search logistics, timing, and motivation to leave"),
+            ("industry",     lambda: IndustryTask(self.user_id, self.user_insights),    "Target industry or field the candidate wants to work in"),
+            ("location",     lambda: LocationTask(self.user_id, self.user_insights),    "Preferred cities and remote/hybrid/onsite preferences"),
+            ("background",   lambda: BackgroundTask(self.user_id, self.user_insights),  "Work experience, strengths, and domain knowledge"),
+            ("culture",      lambda: CultureTask(self.user_id, self.user_insights),     "Team size, management style, and company culture fit"),
+            ("value_vision", lambda: ValueVisionTask(self.user_id, self.user_insights), "Compensation expectations and career vision"),
+            ("alignment",    lambda: AlignmentTask(self.user_id, self.user_insights),   "Summary confirmation and closing"),
         ]
 
         task_group = TaskGroup(chat_ctx=self.chat_ctx)
         for task_id, task_fn, task_desc in all_tasks:
             if task_id not in self.completed_tasks:
                 task_group.add(task_fn, id=task_id, description=task_desc)
-        
+
         await task_group
 
 
