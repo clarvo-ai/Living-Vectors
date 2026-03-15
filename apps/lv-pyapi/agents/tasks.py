@@ -1,12 +1,25 @@
 import logging
+from typing import Any, Optional
 
 from livekit.agents import AgentTask, function_tool
 
 logger = logging.getLogger("career-agent")
 
 
+async def _set_current_task(room: Any, task_id: str) -> None:
+    """Update agent participant attributes so the frontend can show the current task."""
+    if room is None:
+        return
+    try:
+        await room.local_participant.set_attributes({"current_task": task_id})
+    except Exception as e:
+        logger.warning("Failed to set current_task attribute: %s", e)
+
+
 class OpeningTask(AgentTask[None]):
-    def __init__(self) -> None:
+    def __init__(self, room: Optional[Any] = None, task_id: str = "opening") -> None:
+        self._room = room
+        self._task_id = task_id
         super().__init__(
             instructions="""
             Your name is the "Clarvo career assistant".
@@ -41,6 +54,7 @@ class OpeningTask(AgentTask[None]):
         )
 
     async def on_enter(self) -> None:
+        await _set_current_task(self._room, self._task_id)
         logger.info("[TASK] Opening — greeting and discovery")
         await self.session.generate_reply(
             instructions=(
@@ -57,7 +71,9 @@ class OpeningTask(AgentTask[None]):
 
 
 class LogisticsTask(AgentTask[None]):
-    def __init__(self) -> None:
+    def __init__(self, room: Optional[Any] = None, task_id: str = "logistics") -> None:
+        self._room = room
+        self._task_id = task_id
         super().__init__(
             instructions="""
             You are a career consultant. Your goal is to understand the candidate's
@@ -87,6 +103,7 @@ class LogisticsTask(AgentTask[None]):
         )
 
     async def on_enter(self) -> None:
+        await _set_current_task(self._room, self._task_id)
         logger.info("[TASK] Logistics — search intensity, timing, motivation")
         await self.session.generate_reply(
             instructions=(
@@ -103,7 +120,9 @@ class LogisticsTask(AgentTask[None]):
 
 
 class IndustryTask(AgentTask[None]):
-    def __init__(self) -> None:
+    def __init__(self, room: Optional[Any] = None, task_id: str = "industry") -> None:
+        self._room = room
+        self._task_id = task_id
         super().__init__(
             instructions="""
             You are a career consultant. Before diving into specifics, you need to understand
@@ -136,6 +155,7 @@ class IndustryTask(AgentTask[None]):
         )
 
     async def on_enter(self) -> None:
+        await _set_current_task(self._room, self._task_id)
         logger.info("[TASK] Industry — target field and sector")
         await self.session.generate_reply(
             instructions=(
@@ -153,7 +173,9 @@ class IndustryTask(AgentTask[None]):
 
 
 class LocationTask(AgentTask[None]):
-    def __init__(self) -> None:
+    def __init__(self, room: Optional[Any] = None, task_id: str = "location") -> None:
+        self._room = room
+        self._task_id = task_id
         super().__init__(
             instructions="""
             You are a career consultant. Understanding location constraints is critical
@@ -186,6 +208,7 @@ class LocationTask(AgentTask[None]):
         )
 
     async def on_enter(self) -> None:
+        await _set_current_task(self._room, self._task_id)
         logger.info("[TASK] Location — cities, relocation, remote/hybrid/onsite")
         await self.session.generate_reply(
             instructions=(
@@ -202,7 +225,9 @@ class LocationTask(AgentTask[None]):
 
 
 class BackgroundTask(AgentTask[None]):
-    def __init__(self) -> None:
+    def __init__(self, room: Optional[Any] = None, task_id: str = "background") -> None:
+        self._room = room
+        self._task_id = task_id
         super().__init__(
             instructions="""
             You are a career consultant doing a deep professional background assessment.
@@ -236,6 +261,7 @@ class BackgroundTask(AgentTask[None]):
         )
 
     async def on_enter(self) -> None:
+        await _set_current_task(self._room, self._task_id)
         logger.info("[TASK] Background — roles, strengths, tools/domain")
         await self.session.generate_reply(
             instructions=(
@@ -252,7 +278,9 @@ class BackgroundTask(AgentTask[None]):
 
 
 class CultureTask(AgentTask[None]):
-    def __init__(self) -> None:
+    def __init__(self, room: Optional[Any] = None, task_id: str = "culture") -> None:
+        self._room = room
+        self._task_id = task_id
         super().__init__(
             instructions="""
             You are a career consultant. Culture fit is one of the biggest reasons
@@ -283,6 +311,7 @@ class CultureTask(AgentTask[None]):
         )
 
     async def on_enter(self) -> None:
+        await _set_current_task(self._room, self._task_id)
         logger.info("[TASK] Culture — management style, team size, startup vs corp")
         await self.session.generate_reply(
             instructions=(
@@ -299,7 +328,9 @@ class CultureTask(AgentTask[None]):
 
 
 class ValueVisionTask(AgentTask[None]):
-    def __init__(self) -> None:
+    def __init__(self, room: Optional[Any] = None, task_id: str = "value_vision") -> None:
+        self._room = room
+        self._task_id = task_id
         super().__init__(
             instructions="""
             You are a career consultant. You need comp and vision data to make sure
@@ -330,6 +361,7 @@ class ValueVisionTask(AgentTask[None]):
         )
 
     async def on_enter(self) -> None:
+        await _set_current_task(self._room, self._task_id)
         logger.info("[TASK] Value & Vision — compensation, career goals")
         await self.session.generate_reply(
             instructions=(
@@ -347,7 +379,9 @@ class ValueVisionTask(AgentTask[None]):
 
 
 class AlignmentTask(AgentTask[None]):
-    def __init__(self) -> None:
+    def __init__(self, room: Optional[Any] = None, task_id: str = "alignment") -> None:
+        self._room = room
+        self._task_id = task_id
         super().__init__(
             instructions="""
             You are a career consultant wrapping up this discovery session.
@@ -364,6 +398,7 @@ class AlignmentTask(AgentTask[None]):
         )
 
     async def on_enter(self) -> None:
+        await _set_current_task(self._room, self._task_id)
         logger.info("[TASK] Alignment — summary, confirm, close")
         await self.session.generate_reply(
             instructions=(

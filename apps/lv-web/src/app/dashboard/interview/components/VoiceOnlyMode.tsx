@@ -14,6 +14,17 @@ function cn(...classes: (string | undefined | false)[]): string {
   return classes.filter(Boolean).join(' ');
 }
 
+const TASK_LABELS: Record<string, string> = {
+  opening: 'Opening',
+  logistics: 'Logistics',
+  industry: 'Industry',
+  location: 'Location',
+  background: 'Background',
+  culture: 'Culture',
+  value_vision: 'Value & vision',
+  alignment: 'Alignment',
+};
+
 interface VoiceOnlyModeProps {
   onGoToChat?: () => void;
   hasStarted: boolean;
@@ -22,7 +33,9 @@ interface VoiceOnlyModeProps {
 export function VoiceOnlyMode({ onGoToChat, hasStarted }: VoiceOnlyModeProps) {
   const { isMicrophoneEnabled, localParticipant } = useLocalParticipant();
   const remoteParticipants = useRemoteParticipants();
-  const { state: agentState } = useVoiceAssistant();
+  const { state: agentState, agentAttributes } = useVoiceAssistant();
+  const currentTaskId = agentAttributes?.current_task as string | undefined;
+  const currentTaskLabel = currentTaskId ? TASK_LABELS[currentTaskId] ?? currentTaskId : undefined;
 
   // Get agent audio track
   const agentAudioTrack = useTracks([{ source: Track.Source.Microphone, withPlaceholder: false }], {
@@ -55,22 +68,32 @@ export function VoiceOnlyMode({ onGoToChat, hasStarted }: VoiceOnlyModeProps) {
     return (
       <div className="flex-1 w-full flex flex-col items-center justify-center">
         <div className="flex flex-col items-center justify-center h-full gap-6">
-          <div className="flex items-center justify-center animate-pulse">
-            <div
-              className="w-28 h-28 rounded-full flex items-center justify-center flex-shrink-0"
-              style={{
-                backgroundColor: 'var(--border-white)',
-                border: '5px solid var(--border-light-gray)',
-              }}
-            >
+          <div className="flex flex-col items-center gap-3">
+            {currentTaskLabel && (
+              <span
+                className="px-3 py-1 rounded-full text-xs font-medium text-gray-600 bg-gray-200"
+                aria-label={`Current section: ${currentTaskLabel}`}
+              >
+                {currentTaskLabel}
+              </span>
+            )}
+            <div className="flex items-center justify-center animate-pulse">
               <div
-                className="w-16 h-16 rounded-full flex items-center justify-center flex-shrink-0"
+                className="w-28 h-28 rounded-full flex items-center justify-center flex-shrink-0"
                 style={{
-                  backgroundColor: 'var(--bg-light-purple)',
-                  border: '3px solid var(--border-purple)',
+                  backgroundColor: 'var(--border-white)',
+                  border: '5px solid var(--border-light-gray)',
                 }}
               >
-                <Bot className="h-10 w-10" style={{ color: 'var(--icon-purple)' }} />
+                <div
+                  className="w-16 h-16 rounded-full flex items-center justify-center flex-shrink-0"
+                  style={{
+                    backgroundColor: 'var(--bg-light-purple)',
+                    border: '3px solid var(--border-purple)',
+                  }}
+                >
+                  <Bot className="h-10 w-10" style={{ color: 'var(--icon-purple)' }} />
+                </div>
               </div>
             </div>
           </div>
