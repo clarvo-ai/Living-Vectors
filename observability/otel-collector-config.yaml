@@ -24,15 +24,6 @@ exporters:
     resource_to_telemetry_conversion:
       enabled: true
 
-  # Logs → Loki
-  loki:
-    endpoint: http://loki:3100/loki/api/v1/push
-    default_labels_enabled:
-      exporter: false
-      job: true
-      instance: true
-      level: true
-
 service:
   pipelines:
     traces:
@@ -43,7 +34,3 @@ service:
       receivers: [otlp]
       processors: [batch]
       exporters: [prometheus]
-    logs:
-      receivers: [otlp]
-      processors: [batch]
-      exporters: [loki]

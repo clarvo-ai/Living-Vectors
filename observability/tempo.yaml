@@ -1,7 +1,13 @@
+# Avoid querier using live-store partition ring (empty in single binary)
+partition_ring_live_store: false
+stream_over_http_enabled: true
+
 server:
   http_listen_port: 3200
 
 distributor:
+  ingester_write_path_enabled: true
+  kafka_write_path_enabled: false
   receivers:
     otlp:
       protocols:
@@ -12,14 +18,15 @@ distributor:
 
 ingester:
   max_block_duration: 5m
+  trace_idle_period: 10s
 
-compactor:
-  compaction:
-    block_retention: 24h
+querier:
+  query_live_store: false
 
 storage:
   trace:
     backend: local
+    blocklist_poll: 10s
     local:
       path: /var/tempo/traces
     wal:

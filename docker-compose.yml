@@ -323,8 +323,8 @@ services:
   tempo:
     profiles: ['observability']
     container_name: tempo
-    image: grafana/tempo:latest
-    command: ['-config.file=/etc/tempo.yaml']
+    image: grafana/tempo:2.10.1
+    command: ['-config.file=/etc/tempo.yaml', '-target=all']
     volumes:
       - ./observability/tempo.yaml:/etc/tempo.yaml:ro
       - tempo_data:/var/tempo

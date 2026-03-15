@@ -13,7 +13,9 @@ export async function register() {
     const { PeriodicExportingMetricReader } = await import(
       '@opentelemetry/sdk-metrics'
     );
-    const { Resource } = await import('@opentelemetry/resources');
+    const { resourceFromAttributes } = await import(
+      '@opentelemetry/resources'
+    );
     const { ATTR_SERVICE_NAME } = await import(
       '@opentelemetry/semantic-conventions'
     );
@@ -22,7 +24,7 @@ export async function register() {
       process.env.OTEL_EXPORTER_OTLP_ENDPOINT ?? 'http://otel-collector:4318';
 
     const sdk = new NodeSDK({
-      resource: new Resource({
+      resource: resourceFromAttributes({
         [ATTR_SERVICE_NAME]: process.env.OTEL_SERVICE_NAME ?? 'lv-web',
       }),
       traceExporter: new OTLPTraceExporter({
