@@ -9,7 +9,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from google import genai
 import logging
 
-from database import get_db, SessionLocal
+from database import get_db, SessionLocal, engine
 from python_utils.sqlalchemy_models import User, UserEmbedding, Job
 from message_save import save_message
 from python_utils.sqlalchemy_models import User, MessageSender
@@ -24,6 +24,8 @@ from learnings import process_learnings
 
 import json
 from pathlib import Path
+
+from telemetry import setup_telemetry
 
 logging.basicConfig(level=logging.INFO)
 
@@ -43,6 +45,8 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
+setup_telemetry(app=app, engine=engine)
 
 @app.get("/")
 async def hello():
