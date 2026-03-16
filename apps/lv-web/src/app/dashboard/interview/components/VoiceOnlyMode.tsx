@@ -15,15 +15,26 @@ function cn(...classes: (string | undefined | false)[]): string {
 }
 
 const TASK_LABELS: Record<string, string> = {
-  opening: 'Opening',
-  logistics: 'Logistics',
-  industry: 'Industry',
-  location: 'Location',
-  background: 'Background',
-  culture: 'Culture',
-  value_vision: 'Value & vision',
-  alignment: 'Alignment',
+  opening: 'Opening conversation & goals',
+  logistics: 'Logistics, timing & motivation',
+  industry: 'Target industries & roles',
+  location: 'Location, remote & relocation',
+  background: 'Experience, strengths & skills',
+  culture: 'Team, culture & work style',
+  value_vision: 'Compensation, priorities & vision',
+  alignment: 'Summary, alignment & next steps',
 };
+
+const TASK_ORDER: Array<keyof typeof TASK_LABELS> = [
+  'opening',
+  'logistics',
+  'industry',
+  'location',
+  'background',
+  'culture',
+  'value_vision',
+  'alignment',
+];
 
 interface VoiceOnlyModeProps {
   onGoToChat?: () => void;
@@ -34,8 +45,10 @@ export function VoiceOnlyMode({ onGoToChat, hasStarted }: VoiceOnlyModeProps) {
   const { isMicrophoneEnabled, localParticipant } = useLocalParticipant();
   const remoteParticipants = useRemoteParticipants();
   const { state: agentState, agentAttributes } = useVoiceAssistant();
-  const currentTaskId = agentAttributes?.current_task as string | undefined;
-  const currentTaskLabel = currentTaskId ? TASK_LABELS[currentTaskId] ?? currentTaskId : undefined;
+  const currentTaskId = (agentAttributes?.current_task as string | undefined) || 'opening';
+  const currentTaskLabel = currentTaskId ? TASK_LABELS[currentTaskId] ?? currentTaskId : TASK_LABELS.opening;
+  const currentTaskIndex = TASK_ORDER.indexOf(currentTaskId as keyof typeof TASK_LABELS);
+  const totalTasks = TASK_ORDER.length;
 
   // Get agent audio track
   const agentAudioTrack = useTracks([{ source: Track.Source.Microphone, withPlaceholder: false }], {
@@ -68,13 +81,19 @@ export function VoiceOnlyMode({ onGoToChat, hasStarted }: VoiceOnlyModeProps) {
     return (
       <div className="flex-1 w-full flex flex-col items-center justify-center">
         <div className="flex flex-col items-center justify-center h-full gap-6">
-          <div className="flex flex-col items-center gap-3">
-            {currentTaskLabel && (
+          <div className="flex flex-col items-center gap-6">
+            {currentTaskLabel && currentTaskIndex !== -1 && (
               <span
-                className="px-3 py-1 rounded-full text-xs font-medium text-gray-600 bg-gray-200"
+                className="px-4 py-1.5 rounded-full text-xs font-medium text-gray-700 border border-purple-200 bg-gradient-to-r from-purple-50/80 to-pink-50/80 shadow-sm"
                 aria-label={`Current section: ${currentTaskLabel}`}
               >
-                {currentTaskLabel}
+                <span className="mr-1 text-[0.7rem] uppercase tracking-wide text-purple-500">
+                  Current theme:
+                </span>
+                <span>{currentTaskLabel}</span>
+                <span className="ml-2 text-[0.7rem] text-gray-500">
+                  {currentTaskIndex + 1}/{totalTasks}
+                </span>
               </span>
             )}
             <div className="flex items-center justify-center animate-pulse">
