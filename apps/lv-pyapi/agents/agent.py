@@ -70,14 +70,15 @@ class CareerAssistant(Agent):
             - Keep replies short and conversational. This is a voice call.
             - Do NOT re-run the discovery interview. Do NOT ask unprompted questions.
             
+            {insight_text}
+
             For factual questions about this service, interview, or data handling, use get_faq and answer from those entries.
             If the user asks a FAQ type-question answer it ONLY if you know the answer. Do not hallucinate.
-            {insight_text}
             """
         else:
             instructions = ""
             
-        super().__init__(instructions=instructions, tools=[])
+        super().__init__(instructions=instructions)
 
     async def on_enter(self) -> None:
         if self.all_completed:
@@ -85,7 +86,7 @@ class CareerAssistant(Agent):
             await self.session.generate_reply(
                 instructions=(
                     "Welcome the candidate back warmly — you know them already. "
-                    "Briefly summarise their profile in a sentence or two so they feel heard. "
+                    "Briefly summarise their profile. "
                     "Then ask just ONE open question: whether anything has changed since you last spoke, "
                     "or if there is anything on their mind."
                 )

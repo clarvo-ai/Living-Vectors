@@ -2,8 +2,6 @@ import uuid
 from datetime import datetime
 from unittest.mock import MagicMock, patch
 
-import pytest
-
 from helper import update_completed_tasks, fetch_completed_tasks, fetch_user_insights
 
 
