@@ -9,6 +9,14 @@ import { useEffect, useState } from 'react';
 import { toast } from 'sonner';
 import { ProfileGetResponse, UserProfile } from '../../api/profile/route';
 
+const PROFILE_FIELD_LIMITS = {
+  firstName: 50,
+  lastName: 50,
+  displayName: 100,
+  phone: 15,
+  bio: 500,
+} as const;
+
 export default function ProfilePage() {
   const { data: session, status } = useSession();
   const router = useRouter();
@@ -34,7 +42,12 @@ export default function ProfilePage() {
       const data: ProfileGetResponse = await response.json();
 
       if (response.ok && 'body' in data) {
-        setProfile(data.body);
+        setProfile({
+          ...data.body,
+          phone: data.body.phone
+            ? data.body.phone.replace(/\D/g, '').slice(0, PROFILE_FIELD_LIMITS.phone)
+            : null,
+        });
       } else if ('error' in data) {
         toast.error(data.error);
       } else {
@@ -54,12 +67,22 @@ export default function ProfilePage() {
 
     setSaving(true);
     try {
+      const payload = {
+        name: profile.name || null,
+        first_name: profile.first_name || null,
+        last_name: profile.last_name || null,
+        phone: profile.phone
+          ? profile.phone.replace(/\D/g, '').slice(0, PROFILE_FIELD_LIMITS.phone)
+          : null,
+        bio: profile.bio || null,
+      };
+
       const response = await fetch('/api/profile', {
         method: 'PUT',
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify(profile),
+        body: JSON.stringify(payload),
       });
 
       if (response.ok) {
@@ -68,7 +91,13 @@ export default function ProfilePage() {
         toast.success('Profile updated successfully');
         router.push('/dashboard');
       } else {
-        toast.error('Failed to update profile');
+        const errorResponse =
+          typeof response.json === 'function' ? await response.json().catch(() => null) : null;
+        const errorMessage =
+          errorResponse && typeof errorResponse.error === 'string'
+            ? errorResponse.error
+            : 'Failed to update profile';
+        toast.error(errorMessage);
       }
     } catch (error) {
       toast.error('Error updating profile');
@@ -80,6 +109,16 @@ export default function ProfilePage() {
 
   const handleInputChange = (field: keyof NonNullable<UserProfile>, value: string) => {
     if (!profile) return;
+
+    if (field === 'phone') {
+      const numericPhone = value.replace(/\D/g, '').slice(0, PROFILE_FIELD_LIMITS.phone);
+      setProfile({
+        ...profile,
+        phone: numericPhone || null,
+      });
+      return;
+    }
+
     setProfile({
       ...profile,
       [field]: value || null,
@@ -121,6 +160,7 @@ export default function ProfilePage() {
                   value={profile.first_name || ''}
                   onChange={(e) => handleInputChange('first_name', e.target.value)}
                   placeholder="Enter your first name"
+                  maxLength={PROFILE_FIELD_LIMITS.firstName}
                 />
               </div>
               <div>
@@ -133,6 +173,7 @@ export default function ProfilePage() {
                   value={profile.last_name || ''}
                   onChange={(e) => handleInputChange('last_name', e.target.value)}
                   placeholder="Enter your last name"
+                  maxLength={PROFILE_FIELD_LIMITS.lastName}
                 />
               </div>
             </div>
@@ -147,6 +188,7 @@ export default function ProfilePage() {
                 value={profile.name || ''}
                 onChange={(e) => handleInputChange('name', e.target.value)}
                 placeholder="Enter your display name"
+                maxLength={PROFILE_FIELD_LIMITS.displayName}
               />
             </div>
 
@@ -176,6 +218,9 @@ export default function ProfilePage() {
                 value={profile.phone || ''}
                 onChange={(e) => handleInputChange('phone', e.target.value)}
                 placeholder="Enter your phone number"
+                inputMode="numeric"
+                pattern="[0-9]*"
+                maxLength={PROFILE_FIELD_LIMITS.phone}
               />
             </div>
 
@@ -189,6 +234,7 @@ export default function ProfilePage() {
                 value={profile.bio || ''}
                 onChange={(e) => handleInputChange('bio', e.target.value)}
                 placeholder="Tell us about yourself..."
+                maxLength={PROFILE_FIELD_LIMITS.bio}
                 className="flex w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
               />
             </div>
