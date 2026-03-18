@@ -90,7 +90,6 @@ export default function ProfilePage() {
         const updatedProfile: UserProfile = await response.json();
         setProfile(updatedProfile);
         toast.success('Profile updated successfully');
-        router.push('/dashboard');
       } else {
         const errorResponse =
           typeof response.json === 'function' ? await response.json().catch(() => null) : null;
