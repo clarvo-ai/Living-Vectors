@@ -69,11 +69,14 @@ class CareerAssistant(Agent):
               and explore it naturally — one question at a time.
             - Keep replies short and conversational. This is a voice call.
             - Do NOT re-run the discovery interview. Do NOT ask unprompted questions.
+            
+            For factual questions about this service, interview, or data handling, use get_faq and answer from those entries.
+            If the user asks a FAQ type-question answer it ONLY if you know the answer. Do not hallucinate.
             {insight_text}
             """
         else:
             instructions = ""
-
+            
         super().__init__(instructions=instructions, tools=[])
 
     async def on_enter(self) -> None:
