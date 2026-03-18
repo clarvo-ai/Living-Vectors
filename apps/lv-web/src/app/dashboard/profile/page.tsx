@@ -19,6 +19,7 @@ const PROFILE_FIELD_LIMITS = {
 
 export default function ProfilePage() {
   const { data: session, status } = useSession();
+  const userId = session?.user?.id;
   const router = useRouter();
   const [profile, setProfile] = useState<UserProfile | null>(null);
   const [loading, setLoading] = useState(true);
@@ -31,10 +32,10 @@ export default function ProfilePage() {
   }, [status, router]);
 
   useEffect(() => {
-    if (session?.user?.id) {
+    if (userId) {
       fetchProfile();
     }
-  }, [session]);
+  }, [userId]);
 
   const fetchProfile = async () => {
     try {

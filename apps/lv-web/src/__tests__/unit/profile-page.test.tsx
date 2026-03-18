@@ -177,6 +177,54 @@ describe('Profile Page', () => {
     expect(phoneInput.value).toBe('1234567');
   });
 
+  it('does not clear unsaved fields when session object refreshes', async () => {
+    const user = userEvent.setup();
+    let currentSession = {
+      user: {
+        id: '1',
+        name: 'John Doe',
+        email: 'john@example.com',
+      },
+    };
+
+    (useSession as jest.Mock).mockImplementation(() => ({
+      data: currentSession,
+      status: 'authenticated',
+    }));
+
+    (global.fetch as jest.Mock).mockResolvedValue({
+      ok: true,
+      json: async () => ({ body: mockProfile }),
+    });
+
+    const { rerender } = render(<ProfilePage />);
+
+    await waitFor(() => {
+      expect(screen.getByLabelText(/First Name/i)).toBeInTheDocument();
+    });
+
+    const firstNameInput = screen.getByLabelText(/First Name/i) as HTMLInputElement;
+    await user.clear(firstNameInput);
+    await user.type(firstNameInput, 'Jane');
+    expect(firstNameInput.value).toBe('Jane');
+
+    currentSession = {
+      user: {
+        id: '1',
+        name: 'John Doe Refreshed',
+        email: 'john@example.com',
+      },
+    };
+
+    rerender(<ProfilePage />);
+
+    await waitFor(() => {
+      expect((screen.getByLabelText(/First Name/i) as HTMLInputElement).value).toBe('Jane');
+    });
+
+    expect(global.fetch).toHaveBeenCalledTimes(1);
+  });
+
   it('submits form with updated data', async () => {
     const user = userEvent.setup();
     (global.fetch as jest.Mock)
