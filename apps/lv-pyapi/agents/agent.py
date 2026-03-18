@@ -6,7 +6,6 @@ import asyncio
 from typing import List
 
 import requests
-from sqlalchemy import select
 from livekit import agents
 from livekit.agents import AgentServer, AgentSession, Agent, JobProcess, room_io
 from livekit.agents.beta.workflows import TaskGroup
@@ -14,7 +13,7 @@ from livekit.plugins import elevenlabs, google, silero, noise_cancellation
 from livekit.plugins.elevenlabs import TTS, VoiceSettings
 
 from database import SessionLocal
-from python_utils.sqlalchemy_models import CompletedTask, Learning
+from helper import fetch_completed_tasks, fetch_user_insights
 
 
 from tasks import (
@@ -43,37 +42,6 @@ logger = logging.getLogger("voice-agent")
 
 def prewarm(proc: JobProcess) -> None:
     proc.userdata["vad"] = silero.VAD.load()
-
-
-def fetch_completed_tasks(user_id: str) -> List[str]:
-    try:
-        db = SessionLocal()
-        rows = db.execute(
-            select(CompletedTask.taskId)
-            .where(CompletedTask.userId == user_id)
-        ).all()
-        return [row.taskId for row in rows]
-    except Exception as e:
-        logger.error(f"Failed to fetch completed tasks for user {user_id}: {e}")
-        return []
-    finally:
-        db.close()
-
-
-def fetch_user_insights(user_id: str) -> List[str]:
-    try:
-        db = SessionLocal()
-        rows = db.execute(
-            select(Learning.id, Learning.summary)
-            .where(Learning.userId == user_id)
-            .order_by(Learning.createdAt)
-        ).all()
-        return [row.summary for row in rows]
-    except Exception as e:
-        logger.error(f"Failed to fetch user insights for user {user_id}: {e}")
-        return []
-    finally:
-        db.close()
 
 
 class CareerAssistant(Agent):

@@ -1,26 +1,10 @@
 import logging
 
 from livekit.agents import AgentTask, function_tool
-from database import SessionLocal
-from python_utils.sqlalchemy_models import CompletedTask
-from datetime import datetime
+from helper import update_completed_tasks
 
 logger = logging.getLogger("career-agent")
 
-
-def update_completed_tasks(user_id: str, task_id: str) -> None:
-    db = None
-    try:
-        db = SessionLocal()
-        db.add(CompletedTask(userId=user_id, taskId=task_id, completedAt=datetime.now()))
-        db.commit()
-    except Exception as e:
-        logger.error(f"Failed to update completed tasks for user {user_id}: {e}")
-        if db:
-            db.rollback()
-    finally:
-        if db:
-            db.close()
 
 def _build_insight_block(insights: list[str]) -> str:
     if not insights:
