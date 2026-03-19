@@ -39,7 +39,7 @@ describe('Profile Page', () => {
     last_name: 'Doe',
     name: 'John Doe',
     email: 'john@example.com',
-    phone: '+14155552671',
+    phone: '+1234567890',
     bio: 'Software developer',
   };
 
@@ -101,7 +101,7 @@ describe('Profile Page', () => {
       expect((screen.getByLabelText(/First Name/i) as HTMLInputElement).value).toBe('John');
       expect((screen.getByLabelText(/Last Name/i) as HTMLInputElement).value).toBe('Doe');
       expect((screen.getByLabelText(/Phone Number/i) as HTMLInputElement).value).toBe(
-        '+14155552671'
+        '+1234567890'
       );
     });
   });
