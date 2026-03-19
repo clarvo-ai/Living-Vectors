@@ -242,7 +242,7 @@ export default function ProfilePage() {
                 type="tel"
                 value={profile.phone || ''}
                 onChange={(e) => handleInputChange('phone', e.target.value)}
-                placeholder="+358(0)123-456789"
+                placeholder="+358123456789"
                 inputMode="tel"
                 pattern="[+\-()0-9]*"
                 maxLength={PROFILE_FIELD_LIMITS.phone}
