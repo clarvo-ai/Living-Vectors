@@ -13,9 +13,28 @@ const PROFILE_FIELD_LIMITS = {
   firstName: 50,
   lastName: 50,
   displayName: 100,
-  phone: 15,
+  phone: 20,
   bio: 500,
 } as const;
+
+const PHONE_ALLOWED_CHARS_REGEX = /^[+\-()0-9]*$/;
+
+const normalizePhoneInput = (value: string) => {
+  return value.replace(/[^+\-()0-9]/g, '').slice(0, PROFILE_FIELD_LIMITS.phone);
+};
+
+const normalizePhoneForDisplay = (value: string | null | undefined) => {
+  if (!value) return '';
+
+  return normalizePhoneInput(value);
+};
+
+const normalizePhoneForStorage = (value: string | null | undefined) => {
+  if (!value) return null;
+
+  const normalizedPhone = normalizePhoneInput(value);
+  return normalizedPhone === '' ? null : normalizedPhone;
+};
 
 export default function ProfilePage() {
   const { data: session, status } = useSession();
@@ -45,9 +64,7 @@ export default function ProfilePage() {
       if (response.ok && 'body' in data) {
         setProfile({
           ...data.body,
-          phone: data.body.phone
-            ? data.body.phone.replace(/\D/g, '').slice(0, PROFILE_FIELD_LIMITS.phone)
-            : null,
+          phone: normalizePhoneForDisplay(data.body.phone),
         });
       } else if ('error' in data) {
         toast.error(data.error);
@@ -68,13 +85,18 @@ export default function ProfilePage() {
 
     setSaving(true);
     try {
+      const normalizedPhone = normalizePhoneForStorage(profile.phone);
+
+      if (normalizedPhone && !PHONE_ALLOWED_CHARS_REGEX.test(normalizedPhone)) {
+        toast.error('Phone number can only contain +, -, (, ) and digits');
+        return;
+      }
+
       const payload = {
         name: profile.name || null,
         first_name: profile.first_name || null,
         last_name: profile.last_name || null,
-        phone: profile.phone
-          ? profile.phone.replace(/\D/g, '').slice(0, PROFILE_FIELD_LIMITS.phone)
-          : null,
+        phone: normalizedPhone,
         bio: profile.bio || null,
       };
 
@@ -88,7 +110,10 @@ export default function ProfilePage() {
 
       if (response.ok) {
         const updatedProfile: UserProfile = await response.json();
-        setProfile(updatedProfile);
+        setProfile({
+          ...updatedProfile,
+          phone: normalizePhoneForDisplay(updatedProfile.phone),
+        });
         toast.success('Profile updated successfully');
       } else {
         const errorResponse =
@@ -111,10 +136,10 @@ export default function ProfilePage() {
     if (!profile) return;
 
     if (field === 'phone') {
-      const numericPhone = value.replace(/\D/g, '').slice(0, PROFILE_FIELD_LIMITS.phone);
+      const normalizedPhone = normalizePhoneForDisplay(value);
       setProfile({
         ...profile,
-        phone: numericPhone || null,
+        phone: normalizedPhone,
       });
       return;
     }
@@ -217,11 +242,14 @@ export default function ProfilePage() {
                 type="tel"
                 value={profile.phone || ''}
                 onChange={(e) => handleInputChange('phone', e.target.value)}
-                placeholder="Enter your phone number"
-                inputMode="numeric"
-                pattern="[0-9]*"
+                placeholder="+358(0)123-456789"
+                inputMode="tel"
+                pattern="[+\-()0-9]*"
                 maxLength={PROFILE_FIELD_LIMITS.phone}
               />
+              <p className="text-xs text-gray-500 mt-1">
+                Allowed characters: +, -, (, ) and digits.
+              </p>
             </div>
 
             <div>

@@ -39,7 +39,7 @@ describe('Profile Page', () => {
     last_name: 'Doe',
     name: 'John Doe',
     email: 'john@example.com',
-    phone: '+1234567890',
+    phone: '+14155552671',
     bio: 'Software developer',
   };
 
@@ -100,7 +100,9 @@ describe('Profile Page', () => {
     await waitFor(() => {
       expect((screen.getByLabelText(/First Name/i) as HTMLInputElement).value).toBe('John');
       expect((screen.getByLabelText(/Last Name/i) as HTMLInputElement).value).toBe('Doe');
-      expect((screen.getByLabelText(/Phone Number/i) as HTMLInputElement).value).toBe('1234567890');
+      expect((screen.getByLabelText(/Phone Number/i) as HTMLInputElement).value).toBe(
+        '+14155552671'
+      );
     });
   });
 
@@ -153,11 +155,11 @@ describe('Profile Page', () => {
     expect(screen.getByLabelText(/First Name/i)).toHaveAttribute('maxLength', '50');
     expect(screen.getByLabelText(/Last Name/i)).toHaveAttribute('maxLength', '50');
     expect(screen.getByLabelText(/Display Name/i)).toHaveAttribute('maxLength', '100');
-    expect(screen.getByLabelText(/Phone Number/i)).toHaveAttribute('maxLength', '15');
+    expect(screen.getByLabelText(/Phone Number/i)).toHaveAttribute('maxLength', '20');
     expect(screen.getByLabelText(/Bio/i)).toHaveAttribute('maxLength', '500');
   });
 
-  it('accepts digits only in phone input', async () => {
+  it('keeps only allowed phone characters', async () => {
     const user = userEvent.setup();
     (global.fetch as jest.Mock).mockResolvedValueOnce({
       ok: true,
@@ -172,9 +174,44 @@ describe('Profile Page', () => {
 
     const phoneInput = screen.getByLabelText(/Phone Number/i) as HTMLInputElement;
     await user.clear(phoneInput);
-    await user.type(phoneInput, 'abc123-45+67');
+    await user.type(phoneInput, 'abc+12(34)-56#');
 
-    expect(phoneInput.value).toBe('1234567');
+    expect(phoneInput.value).toBe('+12(34)-56');
+  });
+
+  it('submits null phone when phone input is cleared', async () => {
+    const user = userEvent.setup();
+    (global.fetch as jest.Mock)
+      .mockResolvedValueOnce({
+        ok: true,
+        json: async () => ({ body: mockProfile }),
+      })
+      .mockResolvedValueOnce({
+        ok: true,
+        json: async () => mockProfile,
+      });
+
+    render(<ProfilePage />);
+
+    await waitFor(() => {
+      expect(screen.getByLabelText(/Phone Number/i)).toBeInTheDocument();
+    });
+
+    const phoneInput = screen.getByLabelText(/Phone Number/i) as HTMLInputElement;
+    await user.clear(phoneInput);
+    expect(phoneInput.value).toBe('');
+
+    const saveButton = screen.getByText(/Save Changes/i);
+    await user.click(saveButton);
+
+    await waitFor(() => {
+      expect(global.fetch).toHaveBeenCalledWith(
+        '/api/profile',
+        expect.objectContaining({
+          method: 'PUT',
+        })
+      );
+    });
   });
 
   it('does not clear unsaved fields when session object refreshes', async () => {

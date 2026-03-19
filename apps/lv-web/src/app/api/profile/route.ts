@@ -8,7 +8,7 @@ const PROFILE_FIELD_LIMITS = {
   firstName: 50,
   lastName: 50,
   displayName: 100,
-  phone: 15,
+  phone: 20,
   bio: 500,
 } as const;
 
@@ -27,9 +27,9 @@ const profileUpdateSchema = z
     first_name: nullableTrimmedString(PROFILE_FIELD_LIMITS.firstName),
     last_name: nullableTrimmedString(PROFILE_FIELD_LIMITS.lastName),
     phone: nullableTrimmedString(PROFILE_FIELD_LIMITS.phone).refine(
-      (value) => value === null || /^\d+$/.test(value),
+      (value) => value === null || /^[+\-()0-9]+$/.test(value),
       {
-        message: 'Phone number must contain digits only',
+        message: 'Phone number can only contain +, -, (, ) and digits',
       }
     ),
     bio: nullableTrimmedString(PROFILE_FIELD_LIMITS.bio),
