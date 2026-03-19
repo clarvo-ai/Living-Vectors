@@ -1,16 +1,9 @@
+import { isPhoneCharactersValid, PROFILE_FIELD_LIMITS } from '@/lib/profile-validation';
 import { prisma, User } from '@repo/db';
 import { authOptions } from '@repo/lib';
 import { getServerSession } from 'next-auth';
 import { NextRequest, NextResponse } from 'next/server';
 import { z } from 'zod';
-
-const PROFILE_FIELD_LIMITS = {
-  firstName: 50,
-  lastName: 50,
-  displayName: 100,
-  phone: 20,
-  bio: 500,
-} as const;
 
 const nullableTrimmedString = (maxLength: number) =>
   z.preprocess((value) => {
@@ -27,7 +20,7 @@ const profileUpdateSchema = z
     first_name: nullableTrimmedString(PROFILE_FIELD_LIMITS.firstName),
     last_name: nullableTrimmedString(PROFILE_FIELD_LIMITS.lastName),
     phone: nullableTrimmedString(PROFILE_FIELD_LIMITS.phone).refine(
-      (value) => value === null || /^[+\-()0-9]+$/.test(value),
+      (value) => isPhoneCharactersValid(value),
       {
         message: 'Phone number can only contain +, -, (, ) and digits',
       }
