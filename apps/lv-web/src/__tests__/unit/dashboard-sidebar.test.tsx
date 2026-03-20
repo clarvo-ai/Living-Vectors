@@ -116,6 +116,7 @@ describe('Dashboard Sidebar', () => {
 
   beforeEach(() => {
     jest.clearAllMocks();
+    sessionStorage.clear();
     (useRouter as jest.Mock).mockReturnValue(mockRouter);
     (usePathname as jest.Mock).mockReturnValue('/dashboard/interview');
     (useSession as jest.Mock).mockReturnValue({
@@ -127,6 +128,10 @@ describe('Dashboard Sidebar', () => {
       total: 3,
       has_more: false,
     });
+  });
+
+  afterEach(() => {
+    sessionStorage.clear();
   });
 
   it('renders sidebar', () => {
