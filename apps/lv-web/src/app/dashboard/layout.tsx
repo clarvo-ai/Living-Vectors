@@ -62,7 +62,6 @@ function DashboardLayoutContent({ children }: { children: React.ReactNode }) {
 
   const handleSignOut = () => {
     if (typeof window !== 'undefined') {
-      sessionStorage.removeItem('sidebar-open');
       sessionStorage.removeItem(OPPORTUNITIES_COUNT_STORAGE_KEY);
     }
     signOut({ callbackUrl: '/login' });
