@@ -35,6 +35,7 @@ function DashboardLayoutContent({ children }: { children: React.ReactNode }) {
   const { data: session, status } = useSession();
   const [isHovering, setIsHovering] = useState(false);
   const [opportunitiesCount, setOpportunitiesCount] = useState(0);
+  const hasFetchedOpportunitiesCountRef = useRef(false);
   const previousPathnameRef = useRef<string | null>(null);
 
   // Save to sessionStorage when sidebar state changes
@@ -100,11 +101,26 @@ function DashboardLayoutContent({ children }: { children: React.ReactNode }) {
   }, []);
 
   useEffect(() => {
+    if (!session?.user?.id || hasFetchedOpportunitiesCountRef.current) {
+      return;
+    }
+
+    hasFetchedOpportunitiesCountRef.current = true;
+    fetchOpportunitiesCount();
+  }, [session?.user?.id, fetchOpportunitiesCount]);
+
+  useEffect(() => {
     const previousPathname = previousPathnameRef.current;
+
+    // Skip first render to avoid duplicate fetch when landing directly on opportunities.
+    if (previousPathname === null) {
+      previousPathnameRef.current = pathname;
+      return;
+    }
 
     if (
       pathname?.startsWith('/dashboard/opportunities') &&
-      !previousPathname?.startsWith('/dashboard/opportunities')
+      !previousPathname.startsWith('/dashboard/opportunities')
     ) {
       fetchOpportunitiesCount();
     }

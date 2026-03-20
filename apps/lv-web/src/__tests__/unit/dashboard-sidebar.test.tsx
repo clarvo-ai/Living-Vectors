@@ -1,5 +1,5 @@
 import DashboardLayout from '@/app/dashboard/layout';
-import { render, screen } from '@testing-library/react';
+import { render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { signOut, useSession } from 'next-auth/react';
 import { usePathname, useRouter } from 'next/navigation';
@@ -154,8 +154,6 @@ describe('Dashboard Sidebar', () => {
   });
 
   it('shows dynamic opportunities count', async () => {
-    (usePathname as jest.Mock).mockReturnValue('/dashboard/opportunities');
-
     render(
       <DashboardLayout>
         <div>Test Content</div>
@@ -167,7 +165,6 @@ describe('Dashboard Sidebar', () => {
   });
 
   it('hides opportunities count badge when count is zero', async () => {
-    (usePathname as jest.Mock).mockReturnValue('/dashboard/opportunities');
     (getMatchedJobs as jest.Mock).mockResolvedValueOnce({
       jobs: [],
       total: 0,
@@ -184,16 +181,48 @@ describe('Dashboard Sidebar', () => {
     expect(screen.queryByText('0')).not.toBeInTheDocument();
   });
 
-  it('does not recalculate count outside opportunities page', () => {
-    (usePathname as jest.Mock).mockReturnValue('/dashboard/profile');
-
-    render(
+  it('calculates opportunities count once on app open', async () => {
+    const { rerender } = render(
       <DashboardLayout>
         <div>Test Content</div>
       </DashboardLayout>
     );
 
-    expect(getMatchedJobs).not.toHaveBeenCalled();
+    await screen.findByText('3');
+
+    rerender(
+      <DashboardLayout>
+        <div>Test Content Updated</div>
+      </DashboardLayout>
+    );
+
+    expect(getMatchedJobs).toHaveBeenCalledTimes(1);
+  });
+
+  it('recalculates opportunities count when entering opportunities page', async () => {
+    (usePathname as jest.Mock).mockReturnValue('/dashboard/profile');
+
+    const { rerender } = render(
+      <DashboardLayout>
+        <div>Test Content</div>
+      </DashboardLayout>
+    );
+
+    await waitFor(() => {
+      expect(getMatchedJobs).toHaveBeenCalledTimes(1);
+    });
+
+    (usePathname as jest.Mock).mockReturnValue('/dashboard/opportunities');
+
+    rerender(
+      <DashboardLayout>
+        <div>Test Content</div>
+      </DashboardLayout>
+    );
+
+    await waitFor(() => {
+      expect(getMatchedJobs).toHaveBeenCalledTimes(2);
+    });
   });
 
   it('shows active state for current page', () => {
