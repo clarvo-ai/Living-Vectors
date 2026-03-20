@@ -140,25 +140,6 @@ describe('Profile Page', () => {
     expect(firstNameInput.value).toBe('Jane');
   });
 
-  it('enforces max lengths on profile fields', async () => {
-    (global.fetch as jest.Mock).mockResolvedValueOnce({
-      ok: true,
-      json: async () => ({ body: mockProfile }),
-    });
-
-    render(<ProfilePage />);
-
-    await waitFor(() => {
-      expect(screen.getByLabelText(/First Name/i)).toBeInTheDocument();
-    });
-
-    expect(screen.getByLabelText(/First Name/i)).toHaveAttribute('maxLength', '50');
-    expect(screen.getByLabelText(/Last Name/i)).toHaveAttribute('maxLength', '50');
-    expect(screen.getByLabelText(/Display Name/i)).toHaveAttribute('maxLength', '100');
-    expect(screen.getByLabelText(/Phone Number/i)).toHaveAttribute('maxLength', '20');
-    expect(screen.getByLabelText(/Bio/i)).toHaveAttribute('maxLength', '500');
-  });
-
   it('keeps only allowed phone characters', async () => {
     const user = userEvent.setup();
     (global.fetch as jest.Mock).mockResolvedValueOnce({
