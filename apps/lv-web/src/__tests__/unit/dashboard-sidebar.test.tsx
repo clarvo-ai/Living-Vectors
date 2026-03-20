@@ -124,7 +124,7 @@ describe('Dashboard Sidebar', () => {
     });
     (getMatchedJobs as jest.Mock).mockResolvedValue({
       jobs: [{ id: 'job-1' }, { id: 'job-2' }, { id: 'job-3' }],
-      total: 7,
+      total: 3,
       has_more: false,
     });
   });
