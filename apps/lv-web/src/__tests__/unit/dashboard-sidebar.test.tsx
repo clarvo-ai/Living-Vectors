@@ -4,6 +4,7 @@ import userEvent from '@testing-library/user-event';
 import { signOut, useSession } from 'next-auth/react';
 import { usePathname, useRouter } from 'next/navigation';
 import { ReactNode } from 'react';
+import { getMatchedJobs } from '../../lib/services/pyapi';
 
 interface SidebarMenuButtonProps {
   children: ReactNode;
@@ -36,6 +37,10 @@ jest.mock('next/navigation', () => ({
 jest.mock('next-auth/react', () => ({
   useSession: jest.fn(),
   signOut: jest.fn(),
+}));
+
+jest.mock('../../lib/services/pyapi', () => ({
+  getMatchedJobs: jest.fn(),
 }));
 
 // Mock sidebar components
@@ -117,6 +122,11 @@ describe('Dashboard Sidebar', () => {
       data: mockSession,
       status: 'authenticated',
     });
+    (getMatchedJobs as jest.Mock).mockResolvedValue({
+      jobs: [{ id: 'job-1' }, { id: 'job-2' }, { id: 'job-3' }],
+      total: 7,
+      has_more: false,
+    });
   });
 
   it('renders sidebar', () => {
@@ -141,6 +151,49 @@ describe('Dashboard Sidebar', () => {
     expect(sidebarItems.length).toBeGreaterThan(0);
     expect(screen.getByText('Opportunities')).toBeInTheDocument();
     expect(screen.getAllByText('Profile').length).toBeGreaterThan(0);
+  });
+
+  it('shows dynamic opportunities count', async () => {
+    (usePathname as jest.Mock).mockReturnValue('/dashboard/opportunities');
+
+    render(
+      <DashboardLayout>
+        <div>Test Content</div>
+      </DashboardLayout>
+    );
+
+    expect(await screen.findByText('3')).toBeInTheDocument();
+    expect(getMatchedJobs).toHaveBeenCalledWith('1');
+  });
+
+  it('hides opportunities count badge when count is zero', async () => {
+    (usePathname as jest.Mock).mockReturnValue('/dashboard/opportunities');
+    (getMatchedJobs as jest.Mock).mockResolvedValueOnce({
+      jobs: [],
+      total: 0,
+      has_more: false,
+    });
+
+    render(
+      <DashboardLayout>
+        <div>Test Content</div>
+      </DashboardLayout>
+    );
+
+    await screen.findAllByText('Opportunities');
+    expect(screen.queryByText('0')).not.toBeInTheDocument();
+  });
+
+  it('does not recalculate count outside opportunities page', () => {
+    (usePathname as jest.Mock).mockReturnValue('/dashboard/profile');
+
+    render(
+      <DashboardLayout>
+        <div>Test Content</div>
+      </DashboardLayout>
+    );
+
+    expect(getMatchedJobs).not.toHaveBeenCalled();
   });
 
   it('shows active state for current page', () => {

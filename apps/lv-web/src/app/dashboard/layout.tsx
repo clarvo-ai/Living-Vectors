@@ -1,5 +1,6 @@
 'use client';
 
+import { getMatchedJobs } from '@/lib/services/pyapi';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -23,7 +24,9 @@ import { Briefcase, ChevronDown, Database, LogOut, Menu, Phone, Shield, User } f
 import { signOut, useSession } from 'next-auth/react';
 import Image from 'next/image';
 import { usePathname, useRouter } from 'next/navigation';
-import { useEffect, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
+
+const OPPORTUNITIES_COUNT_STORAGE_KEY = 'opportunities-count';
 
 function DashboardLayoutContent({ children }: { children: React.ReactNode }) {
   const { toggleSidebar, open } = useSidebar();
@@ -31,6 +34,8 @@ function DashboardLayoutContent({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
   const { data: session, status } = useSession();
   const [isHovering, setIsHovering] = useState(false);
+  const [opportunitiesCount, setOpportunitiesCount] = useState(0);
+  const previousPathnameRef = useRef<string | null>(null);
 
   // Save to sessionStorage when sidebar state changes
   useEffect(() => {
@@ -59,6 +64,53 @@ function DashboardLayoutContent({ children }: { children: React.ReactNode }) {
       router.push('/login');
     }
   }, [status, router]);
+
+  const fetchOpportunitiesCount = useCallback(async () => {
+    if (!session?.user?.id) {
+      setOpportunitiesCount(0);
+      return;
+    }
+
+    try {
+      // Keep badge aligned with opportunities page fetch behavior.
+      const matchResponse = await getMatchedJobs(session.user.id);
+      const count = matchResponse.jobs.length;
+      setOpportunitiesCount(count);
+      if (typeof window !== 'undefined') {
+        sessionStorage.setItem(OPPORTUNITIES_COUNT_STORAGE_KEY, String(count));
+      }
+    } catch {
+      // Missing embedding and request failures should show zero.
+      setOpportunitiesCount(0);
+      if (typeof window !== 'undefined') {
+        sessionStorage.setItem(OPPORTUNITIES_COUNT_STORAGE_KEY, '0');
+      }
+    }
+  }, [session?.user?.id]);
+
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+    const storedCount = sessionStorage.getItem(OPPORTUNITIES_COUNT_STORAGE_KEY);
+    if (storedCount === null) return;
+
+    const parsed = Number.parseInt(storedCount, 10);
+    if (!Number.isNaN(parsed) && parsed >= 0) {
+      setOpportunitiesCount(parsed);
+    }
+  }, []);
+
+  useEffect(() => {
+    const previousPathname = previousPathnameRef.current;
+
+    if (
+      pathname?.startsWith('/dashboard/opportunities') &&
+      !previousPathname?.startsWith('/dashboard/opportunities')
+    ) {
+      fetchOpportunitiesCount();
+    }
+
+    previousPathnameRef.current = pathname;
+  }, [pathname, fetchOpportunitiesCount]);
 
   if (status === 'loading') {
     return (
@@ -181,9 +233,11 @@ function DashboardLayoutContent({ children }: { children: React.ReactNode }) {
                         Opportunities
                       </span>
                     </div>
-                    <span className="px-2 py-0.5 bg-gray-300 text-gray-700 text-xs rounded-full font-medium">
-                      3
-                    </span>
+                    {opportunitiesCount > 0 && (
+                      <span className="px-2 py-0.5 bg-gray-300 text-gray-700 text-xs rounded-full font-medium">
+                        {opportunitiesCount}
+                      </span>
+                    )}
                   </SidebarMenuButton>
                 </SidebarMenuItem>
 
@@ -226,7 +280,9 @@ function DashboardLayoutContent({ children }: { children: React.ReactNode }) {
                       isActive={pathname?.startsWith('/admin/users')}
                       tooltip="Admin"
                       style={
-                        pathname?.startsWith('/admin/users') ? { backgroundColor: 'var(--bg-hover)' } : {}
+                        pathname?.startsWith('/admin/users')
+                          ? { backgroundColor: 'var(--bg-hover)' }
+                          : {}
                       }
                       className="justify-between hover:bg-blue-50"
                     >
@@ -268,9 +324,7 @@ function DashboardLayoutContent({ children }: { children: React.ReactNode }) {
                         />
                         <span
                           className={
-                            pathname?.startsWith('/admin/jobs')
-                              ? 'text-gray-900'
-                              : 'text-gray-600'
+                            pathname?.startsWith('/admin/jobs') ? 'text-gray-900' : 'text-gray-600'
                           }
                         >
                           Upload Jobs
