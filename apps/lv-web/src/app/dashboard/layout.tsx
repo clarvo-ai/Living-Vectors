@@ -60,6 +60,14 @@ function DashboardLayoutContent({ children }: { children: React.ReactNode }) {
     }
   };
 
+  const handleSignOut = () => {
+    if (typeof window !== 'undefined') {
+      sessionStorage.removeItem('sidebar-open');
+      sessionStorage.removeItem(OPPORTUNITIES_COUNT_STORAGE_KEY);
+    }
+    signOut({ callbackUrl: '/login' });
+  };
+
   useEffect(() => {
     if (status === 'unauthenticated') {
       router.push('/login');
@@ -391,10 +399,7 @@ function DashboardLayoutContent({ children }: { children: React.ReactNode }) {
                   </SidebarMenuButton>
                 </DropdownMenuTrigger>
                 <DropdownMenuContent align="end" className="w-56">
-                  <DropdownMenuItem
-                    onClick={() => signOut({ callbackUrl: '/login' })}
-                    className="text-red-600 cursor-pointer"
-                  >
+                  <DropdownMenuItem onClick={handleSignOut} className="text-red-600 cursor-pointer">
                     <LogOut className="w-4 h-4 mr-2" />
                     Sign Out
                   </DropdownMenuItem>

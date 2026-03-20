@@ -286,6 +286,8 @@ describe('Dashboard Sidebar', () => {
 
   it('calls signOut when sign out clicked', async () => {
     const user = userEvent.setup();
+    sessionStorage.setItem('sidebar-open', 'true');
+    sessionStorage.setItem('opportunities-count', '3');
 
     render(
       <DashboardLayout>
@@ -295,6 +297,8 @@ describe('Dashboard Sidebar', () => {
 
     const signOutButton = screen.getByText('Sign Out');
     await user.click(signOutButton);
+    expect(sessionStorage.getItem('sidebar-open')).toBeNull();
+    expect(sessionStorage.getItem('opportunities-count')).toBeNull();
     expect(signOut).toHaveBeenCalledWith({ callbackUrl: '/login' });
   });
 
