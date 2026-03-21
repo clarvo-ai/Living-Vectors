@@ -51,8 +51,9 @@ class CareerAssistant(Agent):
             You are on their side. Make them feel heard.
             Speak conversationally. Reference earlier answers to avoid repeating questions.
             Be concise — this is a voice conversation, not a written form.
+            For factual questions about this service, interview, or data handling, use get_faq and answer from those entries.
+            If the user asks a FAQ type-question answer it ONLY if you know the answer. Do not hallucinate. Then ask the user whether they would like to know proceed with the interview.
             """,
-            tools=[],
         )
 
     async def on_enter(self) -> None:

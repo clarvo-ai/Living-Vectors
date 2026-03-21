@@ -3,6 +3,8 @@ from typing import Any, Optional
 
 from livekit.agents import AgentTask, function_tool
 
+from faq import get_faq
+
 logger = logging.getLogger("career-agent")
 
 
@@ -51,6 +53,7 @@ class OpeningTask(AgentTask[None]):
               Do not say "great", "got it", "that's helpful", or anything else. Call the function
               silently — the next phase will handle the next response.
             """,
+            tools=[get_faq],
         )
 
     async def on_enter(self) -> None:
@@ -100,6 +103,7 @@ class LogisticsTask(AgentTask[None]):
               verbal response before calling it. Do not say "great", "got it", "that's helpful",
               or anything else. Call the function silently — the next phase will handle the next response.
             """,
+            tools=[get_faq],
         )
 
     async def on_enter(self) -> None:
@@ -152,6 +156,7 @@ class IndustryTask(AgentTask[None]):
               "that's helpful", or anything else. Call the function silently — the next phase will
               handle the next response.
             """,
+            tools=[get_faq],
         )
 
     async def on_enter(self) -> None:
@@ -205,6 +210,7 @@ class LocationTask(AgentTask[None]):
               calling it. Do not say "great", "got it", "that's helpful", or anything else.
               Call the function silently — the next phase will handle the next response.
             """,
+            tools=[get_faq],
         )
 
     async def on_enter(self) -> None:
@@ -258,6 +264,7 @@ class BackgroundTask(AgentTask[None]):
               verbal response before calling it. Do not say "great", "got it", "that's helpful",
               or anything else. Call the function silently — the next phase will handle the next response.
             """,
+            tools=[get_faq],
         )
 
     async def on_enter(self) -> None:
@@ -308,6 +315,7 @@ class CultureTask(AgentTask[None]):
               calling it. Do not say "great", "got it", "that's helpful", or anything else.
               Call the function silently — the next phase will handle the next response.
             """,
+            tools=[get_faq],
         )
 
     async def on_enter(self) -> None:
@@ -358,6 +366,7 @@ class ValueVisionTask(AgentTask[None]):
               before calling it. Do not say "great", "got it", "that's helpful", or anything else.
               Call the function silently — the next phase will handle the next response.
             """,
+            tools=[get_faq],
         )
 
     async def on_enter(self) -> None:
@@ -395,6 +404,7 @@ class AlignmentTask(AgentTask[None]):
               "opportunities" page. Say a genuine goodbye.
             Call alignment_complete once they have confirmed the summary and you have said goodbye.
             """,
+            tools=[get_faq],
         )
 
     async def on_enter(self) -> None:
