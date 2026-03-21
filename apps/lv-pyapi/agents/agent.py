@@ -58,8 +58,7 @@ class CareerAssistant(Agent):
             lines = "\n".join(f"- {s}" for s in self.user_insights)
             insight_text = f"\n\nHere is what we know about the user from previous conversations:\n{lines}"
 
-        if self.all_completed:
-            instructions = f"""
+        instructions = f"""
             You are a career assistant speaking with a candidate whose full discovery call
             is already on file. You know their background, preferences, and goals well.
 
@@ -75,9 +74,7 @@ class CareerAssistant(Agent):
             For factual questions about this service, interview, or data handling, use get_faq and answer from those entries.
             If the user asks a FAQ type-question answer it ONLY if you know the answer. Do not hallucinate.
             """
-        else:
-            instructions = ""
-            
+
         super().__init__(instructions=instructions)
 
     async def on_enter(self) -> None:
