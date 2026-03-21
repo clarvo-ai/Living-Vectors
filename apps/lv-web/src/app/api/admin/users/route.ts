@@ -1,6 +1,6 @@
-import { prisma, User } from '@repo/db';
-import {requireAdminAuth} from '@repo/lib';
-import { NextResponse } from 'next/server';
+import { prisma, User, UserRole } from '@repo/db';
+import { requireAdminAuth } from '@repo/lib';
+import { NextRequest, NextResponse } from 'next/server';
 
 export type AdminUserListItem = Pick<User, 'id' | 'name' | 'email' | 'role' | 'createdAt'>;
 
@@ -27,6 +27,37 @@ export async function GET() {
         return NextResponse.json(users);
     } catch (error) {
         console.error('Error fetching users:', error);
+        return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
+    }
+}
+
+// update the role of a single user
+export async function PATCH(req: NextRequest) {
+    const authError = await requireAdminAuth();
+    if (authError) {
+        return authError;
+    }
+
+    try {
+        const body = await req.json();
+        const { id, role } = body;
+
+        if (typeof id !== 'string' || !id || typeof role !== 'string' || !['user', 'admin'].includes(role)) {
+            return NextResponse.json({ error: 'Invalid request body' }, { status: 400 });
+        }
+
+        const prismaRole = role === 'admin' ? UserRole.ADMIN : UserRole.USER;
+
+        const updated = await prisma.user.update({
+            where: { id },
+            data: { role: prismaRole },
+            select: { id: true, role: true },
+        });
+
+        return NextResponse.json(updated);
+    } catch (error) {
+
+        console.error('Error updating user role:', error);
         return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
     }
 }

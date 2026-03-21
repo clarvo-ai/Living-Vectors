@@ -4,6 +4,8 @@ from typing import Any
 
 from livekit.agents import AgentTask, function_tool
 
+from faq import get_faq
+
 logger = logging.getLogger("career-agent")
 
 
@@ -80,6 +82,7 @@ class OpeningTask(AgentTask[None]):
               call opening_complete. Do not speak before calling it. Call
               silently — next phase will respond.
             """,
+            tools=[get_faq],
         )
 
     async def on_enter(self) -> None:
@@ -133,6 +136,7 @@ class LogisticsTask(AgentTask[None]):
             - Once you know the above, call logistics_complete. Do not speak
               before calling it. Call silently.
             """,
+            tools=[get_faq],
         )
 
     async def on_enter(self) -> None:
@@ -167,6 +171,7 @@ class IndustryTask(AgentTask[None]):
             - One phase of a longer conversation — no "wrapping up" language.
             - Once you know the above, call industry_complete. Do not speak before calling it. Call silently.
             """,
+            tools=[get_faq],
         )
 
     async def on_enter(self) -> None:
@@ -215,6 +220,7 @@ class LocationTask(AgentTask[None]):
             - Once you know the above, call location_complete. Do not speak
               before calling it. Call silently.
             """,
+            tools=[get_faq],
         )
 
     async def on_enter(self) -> None:
@@ -271,6 +277,7 @@ class BackgroundTask(AgentTask[None]):
             - Once you know the above, call background_complete. Do not speak
               before calling it. Call silently.
             """,
+            tools=[get_faq],
         )
 
     async def on_enter(self) -> None:
@@ -324,6 +331,7 @@ class CultureTask(AgentTask[None]):
             - Once you know the above, call culture_complete. Do not speak
               before calling it. Call silently.
             """,
+            tools=[get_faq],
         )
 
     async def on_enter(self) -> None:
@@ -382,6 +390,7 @@ class ValueVisionTask(AgentTask[None]):
             - Once you know the above, call value_vision_complete. Do not speak
               before calling it. Call silently.
             """,
+            tools=[get_faq],
         )
 
     async def on_enter(self) -> None:
@@ -432,6 +441,7 @@ class AlignmentTask(AgentTask[None]):
             page, and that jobs will appear there shortly. Then say goodbye.
             Call alignment_complete once you have said this closing and goodbye.
             """,
+            tools=[get_faq],
         )
 
     async def on_enter(self) -> None:
@@ -452,5 +462,6 @@ class AlignmentTask(AgentTask[None]):
 
     @function_tool
     async def alignment_complete(self) -> None:
-        """Call this once the candidate has confirmed the summary and the conversation is wrapping up."""
+        """Call this once the candidate has confirmed the summary and you have said goodbye."""
         self.complete(None)
+        await self.session.aclose()

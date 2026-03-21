@@ -1,13 +1,8 @@
 'use client';
 
-import {
-  RoomAudioRenderer,
-  SessionProvider,
-  StartAudio,
-  useSession as useLiveKitSession,
-} from '@livekit/components-react';
+import { RoomAudioRenderer, SessionProvider, StartAudio, useSession as useLiveKitSession } from '@livekit/components-react';
 import { Session } from 'next-auth';
-import { useEffect, useMemo } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { InterviewContent } from './InterviewContent';
 
 interface ActiveInterviewProps {
@@ -35,6 +30,38 @@ export function ActiveInterview({
   onEndInterview,
   hasStarted,
 }: ActiveInterviewProps) {
+  const [micPermissionStatus, setMicPermissionStatus] = useState<'pending' | 'granted' | 'denied'>('pending');
+
+  // Request and verify microphone access before joining the LiveKit room / agent session
+  useEffect(() => {
+    if (typeof navigator === 'undefined' || !navigator.mediaDevices?.getUserMedia) {
+      setMicPermissionStatus('denied');
+      return;
+    }
+
+    let cancelled = false;
+
+    navigator.mediaDevices
+      .getUserMedia({ audio: true })
+      .then((stream) => {
+        // We only need to trigger the permission prompt and verify access;
+        // stop tracks immediately to avoid holding the stream ourselves.
+        stream.getTracks().forEach((track) => track.stop());
+        if (!cancelled) {
+          setMicPermissionStatus('granted');
+        }
+      })
+      .catch(() => {
+        if (!cancelled) {
+          setMicPermissionStatus('denied');
+        }
+      });
+
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
   const tokenSource = useMemo(() => {
     return {
       fetch: async () => {
@@ -64,10 +91,14 @@ export function ActiveInterview({
   const liveKitSession = useLiveKitSession(tokenSource);
 
   useEffect(() => {
-    if (liveKitSession && liveKitSession.connectionState !== 'connected') {
+    if (!liveKitSession || micPermissionStatus !== 'granted') {
+      return;
+    }
+
+    if (liveKitSession.connectionState !== 'connected') {
       liveKitSession.start();
     }
-  }, []);
+  }, [liveKitSession, micPermissionStatus]);
 
   // Cleanup on unmount only
   useEffect(() => {

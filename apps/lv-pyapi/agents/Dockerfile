@@ -15,6 +15,8 @@ RUN pip install --no-cache-dir -r requirements.txt
 # Copy agent source files
 COPY agent.py ./agents/agent.py
 COPY tasks.py ./agents/tasks.py
+COPY faq.py ./agents/faq.py
+COPY faq_data.json ./agents/faq_data.json
 
 # Run the agent
 CMD ["python", "agents/agent.py"]
