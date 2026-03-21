@@ -3,11 +3,40 @@
 import { getMatchedJobs } from '@/lib/services/pyapi';
 import { Job } from '@/types/job';
 import { Dialog, DialogContent, DialogTitle } from '@repo/ui/components/dialog';
+import { Tabs, TabsList, TabsTrigger } from '@repo/ui/components/tabs';
 import { Sparkles } from 'lucide-react';
 import { useSession } from 'next-auth/react';
 import { useRouter } from 'next/navigation';
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import { EmptyState, JobDetailView, JobGridCard, JobGridSkeletonList } from './components';
+
+const VIEWED_STORAGE_KEY_PREFIX = 'opportunities-viewed-';
+
+function getViewedJobIds(userId: string): Set<string> {
+  if (typeof window === 'undefined') return new Set();
+  try {
+    const raw = localStorage.getItem(`${VIEWED_STORAGE_KEY_PREFIX}${userId}`);
+    if (!raw) return new Set();
+    const parsed = JSON.parse(raw) as string[];
+    return new Set(Array.isArray(parsed) ? parsed : []);
+  } catch {
+    return new Set();
+  }
+}
+
+function setViewedJobIds(userId: string, ids: Set<string>) {
+  if (typeof window === 'undefined') return;
+  try {
+    localStorage.setItem(
+      `${VIEWED_STORAGE_KEY_PREFIX}${userId}`,
+      JSON.stringify(Array.from(ids))
+    );
+  } catch {
+    // ignore
+  }
+}
+
+export type JobListView = 'all' | 'unseen' | 'viewed';
 
 export default function OpportunitiesPage() {
   const { data: session, status } = useSession();
@@ -17,6 +46,8 @@ export default function OpportunitiesPage() {
   const [isGenerating, setIsGenerating] = useState(false);
   const [selectedJob, setSelectedJob] = useState<Job | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [viewFilter, setViewFilter] = useState<JobListView>('all');
+  const [viewedIds, setViewedIds] = useState<Set<string>>(new Set());
 
   // Require auth
   useEffect(() => {
@@ -61,6 +92,19 @@ export default function OpportunitiesPage() {
     }
   }, [session?.user?.id, fetchRecommendations]);
 
+  // Hydrate viewed job IDs from localStorage (client-only)
+  useEffect(() => {
+    if (session?.user?.id) {
+      setViewedIds(getViewedJobIds(session.user.id));
+    }
+  }, [session?.user?.id]);
+
+  const filteredJobs = useMemo(() => {
+    if (viewFilter === 'all') return jobs;
+    if (viewFilter === 'unseen') return jobs.filter((j) => !viewedIds.has(j.id));
+    return jobs.filter((j) => viewedIds.has(j.id));
+  }, [jobs, viewFilter, viewedIds]);
+
   // Trigger recommendation algorithm when no jobs found
   const handleGenerateRecommendations = async () => {
     if (!session?.user?.id) return;
@@ -81,6 +125,12 @@ export default function OpportunitiesPage() {
 
   const handleJobClick = (job: Job) => {
     setSelectedJob(job);
+    if (session?.user?.id) {
+      const next = new Set(viewedIds);
+      next.add(job.id);
+      setViewedIds(next);
+      setViewedJobIds(session.user.id, next);
+    }
   };
 
   const handleCloseDetail = () => {
@@ -132,13 +182,38 @@ export default function OpportunitiesPage() {
           <EmptyState onRetry={handleGenerateRecommendations} isLoading={isGenerating} />
         )}
 
-        {/* Job Grid */}
+        {/* View filter + Job Grid */}
         {!isLoading && jobs.length > 0 && (
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-            {jobs.map((job) => (
-              <JobGridCard key={job.id} job={job} onClick={() => handleJobClick(job)} />
-            ))}
-          </div>
+          <>
+            <Tabs
+              value={viewFilter}
+              onValueChange={(v) => setViewFilter(v as JobListView)}
+              className="mb-4"
+            >
+              <TabsList className="bg-gray-100">
+                <TabsTrigger value="all">Show all jobs</TabsTrigger>
+                <TabsTrigger value="unseen">Unseen jobs</TabsTrigger>
+                <TabsTrigger value="viewed">Viewed jobs</TabsTrigger>
+              </TabsList>
+            </Tabs>
+            {filteredJobs.length === 0 ? (
+              <p className="text-gray-500 text-sm py-6">
+                {viewFilter === 'unseen' && 'No unseen jobs.'}
+                {viewFilter === 'viewed' && 'No viewed jobs yet. Open a job to mark it as viewed.'}
+              </p>
+            ) : (
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                {filteredJobs.map((job) => (
+                  <JobGridCard
+                    key={job.id}
+                    job={job}
+                    onClick={() => handleJobClick(job)}
+                    isViewed={viewedIds.has(job.id)}
+                  />
+                ))}
+              </div>
+            )}
+          </>
         )}
 
         {/* Job Detail Modal */}
