@@ -13,6 +13,10 @@ export function InterviewStartScreen({ onStart }: InterviewStartScreenProps) {
       <div className="text-center space-y-2">
         <p className="text-2xl font-semibold text-gray-700">Welcome to the interview!</p>
         <p className="text-sm text-gray-500">Press the button to start</p>
+        <p className="text-sm text-gray-600 max-w-md mx-auto">
+          Please complete the interview in one go. The call will end at 17 minutes. You can take a
+          new call anytime.
+        </p>
       </div>
       <div className="flex items-center justify-center">
         <div
