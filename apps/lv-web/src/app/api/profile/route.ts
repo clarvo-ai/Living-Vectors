@@ -22,7 +22,7 @@ const profileUpdateSchema = z
     phone: nullableTrimmedString(PROFILE_FIELD_LIMITS.phone).refine(
       (value) => isPhoneCharactersValid(value),
       {
-        message: 'Phone number can only contain +, -, (, ) and digits',
+        message: 'Phone number invalid',
       }
     ),
     bio: nullableTrimmedString(PROFILE_FIELD_LIMITS.bio),

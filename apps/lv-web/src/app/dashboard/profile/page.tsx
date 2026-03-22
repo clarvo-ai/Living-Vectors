@@ -67,7 +67,7 @@ export default function ProfilePage() {
       const normalizedPhone = normalizePhoneForStorage(profile.phone);
 
       if (!isPhoneCharactersValid(normalizedPhone)) {
-        toast.error('Phone number can only contain +, -, (, ) and digits');
+        toast.error('Phone number invalid');
         return;
       }
 
