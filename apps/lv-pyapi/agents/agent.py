@@ -31,6 +31,9 @@ LIVEKIT_URL = os.environ.get("LIVEKIT_URL", "ws://127.0.0.1:7880")
 BACKEND_URL = os.environ.get("BACKEND_URL", "")
 INTERNAL_API_SECRET = os.environ.get("INTERNAL_API_SECRET", "")
 
+WRAP_UP_TRIGGER_SECONDS = 15 * 60
+WRAP_UP_CLOSE_GRACE_SECONDS = 2 * 60
+
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger("voice-agent")
 
@@ -66,6 +69,29 @@ class CareerAssistant(Agent):
         task_group.add(lambda: ValueVisionTask(),  id="value_vision", description="Compensation expectations and career vision")
         task_group.add(lambda: AlignmentTask(),    id="alignment",    description="Summary confirmation and closing")
         await task_group
+
+
+class ForcedWrapUpAgent(Agent):
+    def __init__(self) -> None:
+        super().__init__(
+            instructions="""
+            You are in final wrap-up mode.
+            Previous interview tasks are no longer active.
+            Give a concise, warm closing summary based only on the conversation so far,
+            mention recommendations will appear on the opportunities page,
+            then say goodbye naturally.
+            """,
+        )
+
+    async def on_enter(self) -> None:
+        await self.session.generate_reply(
+            instructions=(
+                "Wrap up now in a concise and warm way. "
+                "Do not continue any earlier interview task flow."
+            )
+        )
+        await asyncio.sleep(WRAP_UP_CLOSE_GRACE_SECONDS)
+        await self.session.aclose()
 
 
 server = AgentServer()
@@ -113,8 +139,25 @@ async def my_agent(ctx: agents.JobContext):
     )
     logger.info("Agent started")
 
+    async def trigger_wrap_up_after_timeout() -> None:
+        await asyncio.sleep(WRAP_UP_TRIGGER_SECONDS)
+        try:
+            logger.info("15-minute mark reached, triggering wrap-up mode")
+            # Switch to a fresh wrap-up-only agent. By default update_agent starts
+            # with a fresh prompt context unless chat_ctx is explicitly passed.
+            session.update_agent(ForcedWrapUpAgent())
+        except asyncio.CancelledError:
+            logger.info("Wrap-up timer cancelled")
+        except Exception as e:
+            logger.info(f"Wrap-up trigger skipped because session is no longer active: {e}")
+
+    wrap_up_timer_task = asyncio.create_task(trigger_wrap_up_after_timeout())
+
     @session.on("close")
     def on_close():
+        if not wrap_up_timer_task.done():
+            wrap_up_timer_task.cancel()
+
         transcript = ""
         for item in session.history.items:
             if item.type == "message":
