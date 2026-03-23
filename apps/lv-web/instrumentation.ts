@@ -19,6 +19,7 @@ export async function register() {
     const { BatchLogRecordProcessor } = await import(
       '@opentelemetry/sdk-logs'
     );
+    const { logs } = await import('@opentelemetry/api-logs');
     const { resourceFromAttributes } = await import(
       '@opentelemetry/resources'
     );
@@ -55,5 +56,44 @@ export async function register() {
     });
 
     sdk.start();
+
+    const serviceName = process.env.OTEL_SERVICE_NAME ?? 'lv-web';
+    const otelLogger = logs.getLogger(serviceName);
+
+    // Bridge Node console logs into OTel so runtime logs reach Loki.
+    const patchedFlag = '__lvWebConsoleOtelPatched';
+    const globalState = globalThis as typeof globalThis & {
+      [patchedFlag]?: boolean;
+    };
+    if (!globalState[patchedFlag]) {
+      const bridgeConsoleMethod = (
+        method: 'debug' | 'info' | 'warn' | 'error' | 'log',
+        severityText: 'DEBUG' | 'INFO' | 'WARN' | 'ERROR',
+      ) => {
+        const original = console[method].bind(console);
+        console[method] = (...args: unknown[]) => {
+          original(...args);
+          const body = args
+            .map((arg) =>
+              typeof arg === 'string' ? arg : JSON.stringify(arg, null, 2),
+            )
+            .join(' ');
+          otelLogger.emit({ severityText, body });
+        };
+      };
+
+      bridgeConsoleMethod('debug', 'DEBUG');
+      bridgeConsoleMethod('info', 'INFO');
+      bridgeConsoleMethod('warn', 'WARN');
+      bridgeConsoleMethod('error', 'ERROR');
+      bridgeConsoleMethod('log', 'INFO');
+      globalState[patchedFlag] = true;
+    }
+
+    // Emit at least one OTel log record from app startup.
+    otelLogger.emit({
+      severityText: 'INFO',
+      body: `OpenTelemetry configured for ${serviceName}`,
+    });
   }
 }

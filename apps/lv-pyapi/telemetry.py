@@ -12,6 +12,7 @@ from opentelemetry.exporter.otlp.proto.http.metric_exporter import OTLPMetricExp
 from opentelemetry._logs import set_logger_provider
 from opentelemetry.sdk._logs import LoggerProvider
 from opentelemetry.sdk._logs.export import BatchLogRecordProcessor
+from opentelemetry.sdk._logs import LoggingHandler
 from opentelemetry.exporter.otlp.proto.http._log_exporter import OTLPLogExporter
 from opentelemetry.instrumentation.logging import LoggingInstrumentor
 
@@ -49,6 +50,12 @@ def setup_telemetry(app=None, engine=None) -> None:
     )
     set_logger_provider(log_provider)
     LoggingInstrumentor().instrument(set_logging_format=True)
+
+    # Forward standard Python logs into OTel so Loki receives application logs.
+    otel_handler = LoggingHandler(level=logging.INFO, logger_provider=log_provider)
+    root_logger = logging.getLogger()
+    root_logger.setLevel(logging.INFO)
+    root_logger.addHandler(otel_handler)
 
     if app is not None:
         from opentelemetry.instrumentation.fastapi import FastAPIInstrumentor
