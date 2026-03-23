@@ -5,6 +5,9 @@ import { ChatHeader } from '../../app/dashboard/interview/components/ChatHeader'
 // Mock LiveKit
 jest.mock('@livekit/components-react', () => ({
   useRemoteParticipants: jest.fn(() => []),
+  useVoiceAssistant: jest.fn(() => ({
+    agentAttributes: {},
+  })),
 }));
 
 describe('ChatHeader Component', () => {
