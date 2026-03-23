@@ -332,6 +332,14 @@ services:
       - '3200:3200'   # Tempo HTTP API
     restart: unless-stopped
 
+  loki-init:
+    profiles: ['observability']
+    image: busybox
+    user: root
+    command: ['sh', '-c', 'mkdir -p /var/loki/rules /var/loki/chunks && chown -R 10001:10001 /var/loki']
+    volumes:
+      - loki_data:/var/loki
+
   loki:
     profiles: ['observability']
     container_name: loki
@@ -342,6 +350,9 @@ services:
       - loki_data:/var/loki
     ports:
       - '3100:3100'   # Loki HTTP API
+    depends_on:
+      loki-init:
+        condition: service_completed_successfully
     restart: unless-stopped
 
   prometheus:
