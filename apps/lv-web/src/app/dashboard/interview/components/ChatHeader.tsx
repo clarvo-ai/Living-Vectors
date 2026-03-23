@@ -1,6 +1,28 @@
-import { useRemoteParticipants } from '@livekit/components-react';
+import { useRemoteParticipants, useVoiceAssistant } from '@livekit/components-react';
 import { Bot, LogOut, MessageSquare, Phone, Volume2, VolumeX } from 'lucide-react';
 import { useEffect, useState } from 'react';
+
+const TASK_LABELS: Record<string, string> = {
+  opening: 'Opening conversation & goals',
+  logistics: 'Logistics, timing & motivation',
+  industry: 'Target industries & roles',
+  location: 'Location, remote & relocation',
+  background: 'Experience, strengths & skills',
+  culture: 'Team, culture & work style',
+  value_vision: 'Compensation, priorities & vision',
+  alignment: 'Summary, alignment & next steps',
+};
+
+const TASK_ORDER: Array<keyof typeof TASK_LABELS> = [
+  'opening',
+  'logistics',
+  'industry',
+  'location',
+  'background',
+  'culture',
+  'value_vision',
+  'alignment',
+];
 
 interface ChatHeaderProps {
   voiceOnlyMode: boolean;
@@ -9,7 +31,12 @@ interface ChatHeaderProps {
 
 export function ChatHeader({ voiceOnlyMode, setVoiceOnlyMode }: ChatHeaderProps) {
   const remoteParticipants = useRemoteParticipants();
+  const { agentAttributes } = useVoiceAssistant();
   const [isAgentMuted, setIsAgentMuted] = useState(false);
+  const currentTaskId = (agentAttributes?.current_task as string | undefined) || 'opening';
+  const currentTaskLabel = currentTaskId ? TASK_LABELS[currentTaskId] ?? currentTaskId : TASK_LABELS.opening;
+  const currentTaskIndex = TASK_ORDER.indexOf(currentTaskId as keyof typeof TASK_LABELS);
+  const totalTasks = TASK_ORDER.length;
 
   // Load muted state from sessionStorage on mount
   useEffect(() => {
@@ -104,10 +131,24 @@ export function ChatHeader({ voiceOnlyMode, setVoiceOnlyMode }: ChatHeaderProps)
           </button>
         </div>
       </div>
-      <div
-        className="w-2.5 h-2.5 rounded-full flex-shrink-0 shadow-sm"
-        style={{ backgroundColor: 'var(--btn-success)' }}
-      ></div>
+      <div className="flex items-center gap-2 flex-shrink-0">
+        {currentTaskLabel && currentTaskIndex !== -1 && (
+          <span
+            className="px-3 py-1 rounded-full text-[11px] font-medium text-gray-700 border border-purple-200 bg-gradient-to-r from-purple-50/80 to-pink-50/80 shadow-sm whitespace-nowrap"
+            aria-label={`Current section: ${currentTaskLabel}`}
+          >
+            <span className="mr-1 text-[0.65rem] uppercase tracking-wide text-purple-500">Current theme:</span>
+            <span>{currentTaskLabel}</span>
+            <span className="ml-2 text-[0.65rem] text-gray-500">
+              {currentTaskIndex + 1}/{totalTasks}
+            </span>
+          </span>
+        )}
+        <div
+          className="w-2.5 h-2.5 rounded-full flex-shrink-0 shadow-sm"
+          style={{ backgroundColor: 'var(--btn-success)' }}
+        ></div>
+      </div>
     </div>
   );
 }
