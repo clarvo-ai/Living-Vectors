@@ -10,8 +10,14 @@ export async function register() {
     const { OTLPMetricExporter } = await import(
       '@opentelemetry/exporter-metrics-otlp-http'
     );
+    const { OTLPLogExporter } = await import(
+      '@opentelemetry/exporter-logs-otlp-http'
+    );
     const { PeriodicExportingMetricReader } = await import(
       '@opentelemetry/sdk-metrics'
+    );
+    const { BatchLogRecordProcessor } = await import(
+      '@opentelemetry/sdk-logs'
     );
     const { resourceFromAttributes } = await import(
       '@opentelemetry/resources'
@@ -23,10 +29,12 @@ export async function register() {
     const endpoint =
       process.env.OTEL_EXPORTER_OTLP_ENDPOINT ?? 'http://otel-collector:4318';
 
+    const resource = resourceFromAttributes({
+      [ATTR_SERVICE_NAME]: process.env.OTEL_SERVICE_NAME ?? 'lv-web',
+    });
+
     const sdk = new NodeSDK({
-      resource: resourceFromAttributes({
-        [ATTR_SERVICE_NAME]: process.env.OTEL_SERVICE_NAME ?? 'lv-web',
-      }),
+      resource,
       traceExporter: new OTLPTraceExporter({
         url: `${endpoint}/v1/traces`,
       }),
@@ -35,6 +43,9 @@ export async function register() {
           url: `${endpoint}/v1/metrics`,
         }),
       }),
+      logRecordProcessor: new BatchLogRecordProcessor(
+        new OTLPLogExporter({ url: `${endpoint}/v1/logs` }),
+      ),
       instrumentations: [
         getNodeAutoInstrumentations({
           // fs instrumentation is very noisy in Next.js

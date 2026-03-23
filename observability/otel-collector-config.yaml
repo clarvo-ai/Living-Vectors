@@ -11,6 +11,13 @@ processors:
     timeout: 1s
     send_batch_size: 1024
 
+  # Promote resource attributes as Loki stream labels
+  resource/loki_labels:
+    attributes:
+      - action: insert
+        key: loki.resource.labels
+        value: service.name, service.version, deployment.environment
+
 exporters:
   # Traces → Tempo
   otlp/tempo:
@@ -24,6 +31,10 @@ exporters:
     resource_to_telemetry_conversion:
       enabled: true
 
+  # Logs → Loki
+  loki:
+    endpoint: http://loki:3100/loki/api/v1/push
+
 service:
   pipelines:
     traces:
@@ -34,3 +45,7 @@ service:
       receivers: [otlp]
       processors: [batch]
       exporters: [prometheus]
+    logs:
+      receivers: [otlp]
+      processors: [resource/loki_labels, batch]
+      exporters: [loki]
