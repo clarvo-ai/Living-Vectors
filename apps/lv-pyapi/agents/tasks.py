@@ -394,8 +394,8 @@ class AlignmentTask(AgentTask[None]):
             - Ask if the summary sounds right or if they want to correct anything
             - Once they confirm, close warmly: tell them that job recommendations are now being created
               based on everything they shared, and that the results will appear shortly on their
-              "opportunities" page. Say a genuine goodbye.
-            Call alignment_complete once they have confirmed the summary and you have said goodbye.
+              "opportunities" page. Say a genuine goodbye AND THEN call `alignment_complete` in the same turn.
+            Do NOT wait for them to respond to your goodbye before calling the tool.
             """ + _build_insight_block(insights or []),
             tools=[get_faq],
         )
@@ -417,4 +417,15 @@ class AlignmentTask(AgentTask[None]):
         """Call this once the candidate has confirmed the summary and you have said goodbye."""
         self.complete(None)
         update_completed_tasks(self.user_id, "alignment")
-        await self.session.aclose()
+
+        has_spoken = False
+
+        @self.session.on("agent_state_changed")
+        def _on_state_changed(*args, **kwargs):
+            import asyncio
+            nonlocal has_spoken
+            state_str = str(args) + str(kwargs)
+            if "SPEAKING" in state_str.upper():
+                has_spoken = True
+            elif has_spoken and "LISTENING" in state_str.upper():
+                asyncio.create_task(self.session.aclose())
