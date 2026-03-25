@@ -1,6 +1,6 @@
-livekit-agents[google]~=1.3
-livekit-agents[elevenlabs]~=1.3
-livekit-agents[silero]~=1.3
+livekit-agents[google]==1.4.6
+livekit-agents[elevenlabs]==1.4.6
+livekit-agents[silero]==1.4.6
 livekit-plugins-noise-cancellation~=0.2
 python-dotenv==1.1.0
 # HTTP client to POST transcripts to the Cloud Run backend after each session
