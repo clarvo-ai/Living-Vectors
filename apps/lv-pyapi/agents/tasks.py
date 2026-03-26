@@ -1,6 +1,4 @@
-import json
 import logging
-import os
 
 from livekit.agents import AgentTask, function_tool
 from helper import update_completed_tasks
