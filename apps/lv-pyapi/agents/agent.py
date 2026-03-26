@@ -1,3 +1,4 @@
+import json
 import logging
 import os
 import sys
@@ -6,7 +7,7 @@ import asyncio
 from typing import List
 
 import requests
-from livekit import agents
+from livekit import agents, api as lkapi
 from livekit.agents import AgentServer, AgentSession, Agent, JobProcess, room_io
 from livekit.agents.beta.workflows import TaskGroup
 from livekit.plugins import elevenlabs, google, silero, noise_cancellation
@@ -32,7 +33,9 @@ load_dotenv(".env.local")
 ELEVENLABS_API_KEY = os.environ.get("ELEVENLABS_API_KEY")
 GOOGLE_API_KEY = os.environ.get("GEMINI_API_KEY")
 AGENT_NAME = os.environ.get("LIVEKIT_AGENT_NAME", "lv-voice-agent")
-LIVEKIT_URL = os.environ.get("LIVEKIT_URL", "ws://127.0.0.1:7880")
+LIVEKIT_URL = os.environ.get("LIVEKIT_URL")
+LIVEKIT_API_KEY = os.environ.get("LIVEKIT_API_KEY")
+LIVEKIT_API_SECRET = os.environ.get("LIVEKIT_API_SECRET")
 BACKEND_URL = os.environ.get("BACKEND_URL", "")
 INTERNAL_API_SECRET = os.environ.get("INTERNAL_API_SECRET", "")
 
@@ -155,7 +158,14 @@ async def my_agent(ctx: agents.JobContext):
             delete_room_on_close=True,
         ),
     )
-    logger.info("Agent started")
+    
+    # Changing metadata end the interview could be a tool. Atm this will always stay true after alignment task is completed. That doesn't affect anything though.
+    async with lkapi.LiveKitAPI(LIVEKIT_URL, LIVEKIT_API_KEY, LIVEKIT_API_SECRET) as lk:
+        await lk.room.update_room_metadata(lkapi.UpdateRoomMetadataRequest(
+            room=ctx.room.name,
+            metadata=json.dumps({"interview_ongoing": True}),
+        ))
+    logger.info("Agent started — room metadata set to interview_ongoing=true")
 
     @session.on("close")
     def on_close():

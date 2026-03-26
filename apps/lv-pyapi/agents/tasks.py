@@ -1,4 +1,6 @@
+import json
 import logging
+import os
 
 from livekit.agents import AgentTask, function_tool
 from helper import update_completed_tasks
@@ -382,7 +384,7 @@ class ValueVisionTask(AgentTask[None]):
 
 
 class AlignmentTask(AgentTask[None]):
-    def __init__(self, user_id: str, insights: list[str] | None = None) -> None:
+    def __init__(self, user_id: str, insights: list[str] | None = None, ) -> None:
         self.user_id = user_id
         super().__init__(
             instructions="""
@@ -415,7 +417,6 @@ class AlignmentTask(AgentTask[None]):
     @function_tool
     async def alignment_complete(self) -> None:
         """Call this once the candidate has confirmed the summary and you have said goodbye."""
-        self.complete(None)
         update_completed_tasks(self.user_id, "alignment")
 
         has_spoken = False
@@ -428,4 +429,19 @@ class AlignmentTask(AgentTask[None]):
             if "SPEAKING" in state_str.upper():
                 has_spoken = True
             elif has_spoken and "LISTENING" in state_str.upper():
-                asyncio.create_task(self.session.aclose())
+                async def _signal_and_close():
+                    try:
+                        from livekit import api as lkapi
+                        lk_url = os.environ.get("LIVEKIT_URL")
+                        lk_key = os.environ.get("LIVEKIT_API_KEY")
+                        lk_secret = os.environ.get("LIVEKIT_API_SECRET")
+                        async with lkapi.LiveKitAPI(lk_url, lk_key, lk_secret) as lk:
+                            await lk.room.update_room_metadata(lkapi.UpdateRoomMetadataRequest(
+                                room=f"interview-{self.user_id}",
+                                metadata=json.dumps({"interview_ongoing": False}),
+                            ))
+                        logger.info("Room metadata set to interview_ongoing=false — frontend will redirect")
+                    except Exception as e:
+                        logger.warning(f"Failed to update room metadata: {e}")
+                    self.complete(None)
+                asyncio.create_task(_signal_and_close())

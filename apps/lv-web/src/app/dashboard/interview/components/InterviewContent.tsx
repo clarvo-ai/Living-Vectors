@@ -3,12 +3,12 @@
 import {
   useChat,
   useLocalParticipant,
-  useRemoteParticipants,
+  useRoomInfo,
   useSessionContext,
   useSessionMessages,
 } from '@livekit/components-react';
 import { Mic, MicOff } from 'lucide-react';
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useRef } from 'react';
 import { ChatHeader } from './ChatHeader';
 import { ChatInput } from './ChatInput';
 import { ChatMessage, type Message } from './ChatMessage';
@@ -39,26 +39,19 @@ export function InterviewContent({
   const { messages } = useSessionMessages(session);
   const { send } = useChat();
   const { isMicrophoneEnabled, localParticipant } = useLocalParticipant();
-  const remoteParticipants = useRemoteParticipants();
-  const [agentSeen, setAgentSeen] = useState(false);
+  const { metadata } = useRoomInfo();
 
-  // Monitor the agent's connection to automatically redirect when they disconnect
+  // Redirect when the agent signals the interview is over
   useEffect(() => {
-    if (remoteParticipants.length > 0) {
-      setAgentSeen(true);
-      return;
-    }
-    
-    // If the agent drops to 0, wait 1.5 seconds before redirecting.
-    // This perfectly prevents React Strict Mode or network flickers from instantly booting you out!
-    if (agentSeen && remoteParticipants.length === 0) {
-      const redirectTimer = setTimeout(() => {
-        window.location.href = '/dashboard/opportunities';
-      }, 1500);
-      
-      return () => clearTimeout(redirectTimer);
-    }
-  }, [remoteParticipants.length, agentSeen]);
+    try {
+      const meta = JSON.parse(metadata ?? '{}');
+      if (meta.interview_ongoing === false) {
+        setTimeout(() => {
+          window.location.href = '/dashboard/opportunities';
+        }, 1000);
+      }
+    } catch {}
+  }, [metadata]);
 
   const toggleMute = async () => {
     if (localParticipant) {
