@@ -111,6 +111,19 @@ class CareerAssistant(Agent):
 
         await task_group
 
+        logger.info(f"[AGENT] TaskGroup for room interview-{self.user_id} completed.")
+        
+        # Update metadata before closing to signal interview complete
+        try:
+            async with lkapi.LiveKitAPI(LIVEKIT_URL, LIVEKIT_API_KEY, LIVEKIT_API_SECRET) as lk:
+                await lk.room.update_room_metadata(lkapi.UpdateRoomMetadataRequest(
+                    room=f"interview-{self.user_id}",
+                    metadata=json.dumps({"interview_ongoing": False}),
+                ))
+            logger.info(f"[AGENT] Room metadata updated for interview-{self.user_id}")
+        except Exception as e:
+            logger.error(f"[AGENT] Failed to update room metadata: {e}")
+
 
 server = AgentServer()
 server.setup_fnc = prewarm
