@@ -25,6 +25,7 @@ def save_learnings_to_db(user_id: str, learnings: List[Dict[str, Any]], removals
                 userId=user_id,
                 summary=learning['text'],
                 messages=learning.get('messages', []),
+                soft_delete=False,
                 createdAt=datetime.utcnow(),
                 updatedAt=datetime.utcnow()
             )
