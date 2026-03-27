@@ -1,4 +1,5 @@
 import logging
+from typing import Any, Optional
 
 from livekit.agents import AgentTask, function_tool
 from helper import update_completed_tasks
@@ -6,6 +7,16 @@ from helper import update_completed_tasks
 from faq import get_faq
 
 logger = logging.getLogger("career-agent")
+
+
+async def _set_current_task(room: Any, task_id: str) -> None:
+    """Update agent participant attributes so the frontend can show the current task."""
+    if room is None:
+        return
+    try:
+        await room.local_participant.set_attributes({"current_task": task_id})
+    except Exception as e:
+        logger.warning("Failed to set current_task attribute: %s", e)
 
 
 def _build_insight_block(insights: list[str]) -> str:
@@ -20,7 +31,9 @@ def _build_insight_block(insights: list[str]) -> str:
 
 
 class OpeningTask(AgentTask[None]):
-    def __init__(self, user_id: str, insights: list[str] | None = None) -> None:
+    def __init__(self, room: Optional[Any] = None, task_id: str = "opening", user_id: str, insights: list[str] | None = None) -> None:
+        self._room = room
+        self._task_id = task_id
         self.user_id = user_id
         super().__init__(
             instructions="""
@@ -57,6 +70,7 @@ class OpeningTask(AgentTask[None]):
         )
 
     async def on_enter(self) -> None:
+        await _set_current_task(self._room, self._task_id)
         logger.info("[TASK] Opening — greeting and discovery")
         await self.session.generate_reply(
             instructions=(
@@ -74,7 +88,9 @@ class OpeningTask(AgentTask[None]):
 
 
 class LogisticsTask(AgentTask[None]):
-    def __init__(self, user_id: str, insights: list[str] | None = None) -> None:
+    def __init__(self, room: Optional[Any] = None, task_id: str = "logistics", user_id: str, insights: list[str] | None = None) -> None:
+        self._room = room
+        self._task_id = task_id
         self.user_id = user_id
         super().__init__(
             instructions="""
@@ -106,6 +122,7 @@ class LogisticsTask(AgentTask[None]):
         )
 
     async def on_enter(self) -> None:
+        await _set_current_task(self._room, self._task_id)
         logger.info("[TASK] Logistics — search intensity, timing, motivation")
         await self.session.generate_reply(
             instructions=(
@@ -123,7 +140,9 @@ class LogisticsTask(AgentTask[None]):
 
 
 class IndustryTask(AgentTask[None]):
-    def __init__(self, user_id: str, insights: list[str] | None = None) -> None:
+    def __init__(self, room: Optional[Any] = None, task_id: str = "industry", user_id: str, insights: list[str] | None = None) -> None:
+        self._room = room
+        self._task_id = task_id
         self.user_id = user_id
         super().__init__(
             instructions="""
@@ -158,6 +177,7 @@ class IndustryTask(AgentTask[None]):
         )
 
     async def on_enter(self) -> None:
+        await _set_current_task(self._room, self._task_id)
         logger.info("[TASK] Industry — target field and sector")
         await self.session.generate_reply(
             instructions=(
@@ -176,7 +196,9 @@ class IndustryTask(AgentTask[None]):
 
 
 class LocationTask(AgentTask[None]):
-    def __init__(self, user_id: str, insights: list[str] | None = None) -> None:
+    def __init__(self, room: Optional[Any] = None, task_id: str = "location", user_id: str, insights: list[str] | None = None) -> None:
+        self._room = room
+        self._task_id = task_id
         self.user_id = user_id
         super().__init__(
             instructions="""
@@ -211,6 +233,7 @@ class LocationTask(AgentTask[None]):
         )
 
     async def on_enter(self) -> None:
+        await _set_current_task(self._room, self._task_id)
         logger.info("[TASK] Location — cities, relocation, remote/hybrid/onsite")
         await self.session.generate_reply(
             instructions=(
@@ -228,7 +251,9 @@ class LocationTask(AgentTask[None]):
 
 
 class BackgroundTask(AgentTask[None]):
-    def __init__(self, user_id: str, insights: list[str] | None = None) -> None:
+    def __init__(self, room: Optional[Any] = None, task_id: str = "background", user_id: str, insights: list[str] | None = None) -> None:
+        self._room = room
+        self._task_id = task_id
         self.user_id = user_id
         super().__init__(
             instructions="""
@@ -264,6 +289,7 @@ class BackgroundTask(AgentTask[None]):
         )
 
     async def on_enter(self) -> None:
+        await _set_current_task(self._room, self._task_id)
         logger.info("[TASK] Background — roles, strengths, tools/domain")
         await self.session.generate_reply(
             instructions=(
@@ -281,7 +307,9 @@ class BackgroundTask(AgentTask[None]):
 
 
 class CultureTask(AgentTask[None]):
-    def __init__(self, user_id: str, insights: list[str] | None = None) -> None:
+    def __init__(self, room: Optional[Any] = None, task_id: str = "culture", user_id: str, insights: list[str] | None = None) -> None:
+        self._room = room
+        self._task_id = task_id
         self.user_id = user_id
         super().__init__(
             instructions="""
@@ -314,6 +342,7 @@ class CultureTask(AgentTask[None]):
         )
 
     async def on_enter(self) -> None:
+        await _set_current_task(self._room, self._task_id)
         logger.info("[TASK] Culture — management style, team size, startup vs corp")
         await self.session.generate_reply(
             instructions=(
@@ -331,7 +360,9 @@ class CultureTask(AgentTask[None]):
 
 
 class ValueVisionTask(AgentTask[None]):
-    def __init__(self, user_id: str, insights: list[str] | None = None) -> None:
+    def __init__(self, room: Optional[Any] = None, task_id: str = "value_vision", user_id: str, insights: list[str] | None = None) -> None:
+        self._room = room
+        self._task_id = task_id
         self.user_id = user_id
         super().__init__(
             instructions="""
@@ -364,6 +395,7 @@ class ValueVisionTask(AgentTask[None]):
         )
 
     async def on_enter(self) -> None:
+        await _set_current_task(self._room, self._task_id)
         logger.info("[TASK] Value & Vision — compensation, career goals")
         await self.session.generate_reply(
             instructions=(
@@ -382,7 +414,9 @@ class ValueVisionTask(AgentTask[None]):
 
 
 class AlignmentTask(AgentTask[None]):
-    def __init__(self, user_id: str, insights: list[str] | None = None, ) -> None:
+    def __init__(self, room: Optional[Any] = None, task_id: str = "alignment", user_id: str, insights: list[str] | None = None, ) -> None:
+        self._room = room
+        self._task_id = task_id
         self.user_id = user_id
         super().__init__(
             instructions="""
@@ -401,6 +435,7 @@ class AlignmentTask(AgentTask[None]):
         )
 
     async def on_enter(self) -> None:
+        await _set_current_task(self._room, self._task_id)
         logger.info("[TASK] Alignment — summary, confirm, close")
         await self.session.generate_reply(
             instructions=(
