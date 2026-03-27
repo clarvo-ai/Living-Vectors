@@ -1,5 +1,4 @@
 FROM grafana/tempo:2.10.1
 COPY tempo.yaml /etc/tempo.yaml.tmpl
-COPY tempo-entrypoint.sh /tempo-entrypoint.sh
-RUN chmod +x /tempo-entrypoint.sh
+COPY --chmod=755 tempo-entrypoint.sh /tempo-entrypoint.sh
 ENTRYPOINT ["/tempo-entrypoint.sh"]
