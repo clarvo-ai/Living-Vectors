@@ -81,6 +81,18 @@ class CareerAssistant(Agent):
         super().__init__(instructions=instructions)
 
     async def on_enter(self) -> None:
+        if not self.all_completed:
+            # Mark interview as ongoing at the start of discovery
+            try:
+                async with lkapi.LiveKitAPI(LIVEKIT_URL, LIVEKIT_API_KEY, LIVEKIT_API_SECRET) as lk:
+                    await lk.room.update_room_metadata(lkapi.UpdateRoomMetadataRequest(
+                        room=f"interview-{self.user_id}",
+                        metadata=json.dumps({"interview_ongoing": True}),
+                    ))
+                logger.info(f"[AGENT] Room metadata set to interview_ongoing=true for interview-{self.user_id}")
+            except Exception as e:
+                logger.error(f"[AGENT] Failed to set room metadata: {e}")
+        
         if self.all_completed:
             logger.info("[AGENT] Returning user — skipping TaskGroup, starting free-form check-in")
             await self.session.generate_reply(
@@ -113,14 +125,14 @@ class CareerAssistant(Agent):
 
         logger.info(f"[AGENT] TaskGroup for room interview-{self.user_id} completed.")
         
-        # Update metadata before closing to signal interview complete
+        # Update metadata to signal interview complete
         try:
             async with lkapi.LiveKitAPI(LIVEKIT_URL, LIVEKIT_API_KEY, LIVEKIT_API_SECRET) as lk:
                 await lk.room.update_room_metadata(lkapi.UpdateRoomMetadataRequest(
                     room=f"interview-{self.user_id}",
                     metadata=json.dumps({"interview_ongoing": False}),
                 ))
-            logger.info(f"[AGENT] Room metadata updated for interview-{self.user_id}")
+            logger.info(f"[AGENT] Room metadata set to interview_ongoing=false for interview-{self.user_id}")
         except Exception as e:
             logger.error(f"[AGENT] Failed to update room metadata: {e}")
 
@@ -171,14 +183,6 @@ async def my_agent(ctx: agents.JobContext):
             delete_room_on_close=True,
         ),
     )
-    
-    # Changing metadata end the interview could be a tool. Atm this will always stay true after alignment task is completed. That doesn't affect anything though.
-    async with lkapi.LiveKitAPI(LIVEKIT_URL, LIVEKIT_API_KEY, LIVEKIT_API_SECRET) as lk:
-        await lk.room.update_room_metadata(lkapi.UpdateRoomMetadataRequest(
-            room=ctx.room.name,
-            metadata=json.dumps({"interview_ongoing": True}),
-        ))
-    logger.info("Agent started — room metadata set to interview_ongoing=true")
 
     @session.on("close")
     def on_close():
