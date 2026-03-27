@@ -6,6 +6,9 @@ on:
       - closed
     branches:
       - dev
+  push:
+    branches:
+      - integrate-opentelemetry-and-lgtm
   workflow_dispatch:
     inputs:
       branch:
