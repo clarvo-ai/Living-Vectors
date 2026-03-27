@@ -15,6 +15,7 @@ RUN pip install --no-cache-dir -r requirements.txt
 # Copy agent source files
 COPY agent.py ./agents/agent.py
 COPY tasks.py ./agents/tasks.py
+COPY langsmith_processor.py ./agents/langsmith_processor.py
 
 # Run the agent
 CMD ["python", "agents/agent.py"]

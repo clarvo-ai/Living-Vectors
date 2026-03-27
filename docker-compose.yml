@@ -103,6 +103,9 @@ services:
       - PYTHONPATH=/app:/app/apps/lv-pyapi:/app/packages/python-utils/src
       - BACKEND_URL=http://lv-pyapi:8080
       - INTERNAL_API_SECRET=localdev
+      # Optional LangSmith tracing; usually set in .env.local
+      - OTEL_EXPORTER_OTLP_ENDPOINT=${OTEL_EXPORTER_OTLP_ENDPOINT:-}
+      - OTEL_EXPORTER_OTLP_HEADERS=${OTEL_EXPORTER_OTLP_HEADERS:-}
     volumes:
       - ./apps/lv-pyapi:/app/apps/lv-pyapi
       - ./packages/python-utils:/app/packages/python-utils

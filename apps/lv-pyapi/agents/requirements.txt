@@ -5,3 +5,8 @@ livekit-plugins-noise-cancellation~=0.2
 python-dotenv==1.1.0
 # HTTP client to POST transcripts to the Cloud Run backend after each session
 requests==2.32.3
+
+# LangSmith tracing via OpenTelemetry OTLP exporter
+langsmith
+opentelemetry-sdk
+opentelemetry-exporter-otlp-proto-http
