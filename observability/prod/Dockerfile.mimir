@@ -1,2 +1,3 @@
 FROM grafana/mimir:latest
 COPY mimir.yaml /etc/mimir/mimir.yaml
+CMD ["-config.file=/etc/mimir/mimir.yaml"]

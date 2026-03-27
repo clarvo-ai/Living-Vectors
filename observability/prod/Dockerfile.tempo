@@ -1,4 +1,8 @@
-FROM grafana/tempo:2.10.1
+FROM busybox AS builder
+ARG MIMIR_URL
 COPY tempo.yaml /etc/tempo.yaml.tmpl
-COPY --chmod=755 tempo-entrypoint.sh /tempo-entrypoint.sh
-ENTRYPOINT ["/tempo-entrypoint.sh"]
+RUN sed "s|MIMIR_URL_PLACEHOLDER|${MIMIR_URL}|g" /etc/tempo.yaml.tmpl > /etc/tempo.yaml
+
+FROM grafana/tempo:2.10.1
+COPY --from=builder /etc/tempo.yaml /etc/tempo.yaml
+CMD ["-config.file=/etc/tempo.yaml", "-target=all"]

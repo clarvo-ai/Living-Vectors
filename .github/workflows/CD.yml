@@ -186,6 +186,7 @@ jobs:
           file: ./observability/prod/Dockerfile.tempo
           push: true
           tags: ${{ env.REGISTRY }}/lv-tempo-dev:${{ github.sha }}
+          build-args: MIMIR_URL=${{ env.MIMIR_URL }}
 
       - name: Build and push Mimir image
         uses: docker/build-push-action@v5
@@ -248,7 +249,6 @@ jobs:
             --min-instances=1
             --max-instances=1
             --port=3200
-          env_vars: MIMIR_URL=${{ env.MIMIR_URL }}
 
   observability-frontend:
     if: github.event_name != 'pull_request' || github.event.pull_request.merged == true
