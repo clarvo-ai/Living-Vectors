@@ -228,8 +228,7 @@ jobs:
             --max-instances=1
             --port=9009
             --cpu-boost
-            --startup-probe-initial-delay=30
-            --startup-probe-timeout=240
+            --startup-probe=initialDelaySeconds=30,timeoutSeconds=240,tcpSocket.port=9009
 
       - name: Fetch Mimir URL
         run: |
