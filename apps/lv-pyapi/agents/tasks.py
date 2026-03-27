@@ -1,6 +1,6 @@
 import asyncio
 import logging
-from typing import Any
+from typing import Any, Optional
 
 from livekit.agents import AgentTask, function_tool
 
@@ -44,10 +44,20 @@ async def _deferred_on_enter_reply(session: Any, instructions: str) -> None:
         await session.generate_reply(instructions=instructions)
     except Exception as e:
         logger.warning("Deferred on_enter reply failed: %s", e)
+async def _set_current_task(room: Any, task_id: str) -> None:
+    """Update agent participant attributes so the frontend can show the current task."""
+    if room is None:
+        return
+    try:
+        await room.local_participant.set_attributes({"current_task": task_id})
+    except Exception as e:
+        logger.warning("Failed to set current_task attribute: %s", e)
 
 
 class OpeningTask(AgentTask[None]):
-    def __init__(self) -> None:
+    def __init__(self, room: Optional[Any] = None, task_id: str = "opening") -> None:
+        self._room = room
+        self._task_id = task_id
         super().__init__(
             instructions="""
             Your name is the "Clarvo career assistant" — you help people explore
@@ -86,6 +96,7 @@ class OpeningTask(AgentTask[None]):
         )
 
     async def on_enter(self) -> None:
+        await _set_current_task(self._room, self._task_id)
         logger.info("[TASK] Opening — greeting and discovery")
         asyncio.create_task(
             _deferred_on_enter_reply(
@@ -110,7 +121,9 @@ class OpeningTask(AgentTask[None]):
 
 
 class LogisticsTask(AgentTask[None]):
-    def __init__(self) -> None:
+    def __init__(self, room: Optional[Any] = None, task_id: str = "logistics") -> None:
+        self._room = room
+        self._task_id = task_id
         super().__init__(
             instructions="""
             Your name is the "Clarvo career assistant". In this phase, learn
@@ -140,6 +153,7 @@ class LogisticsTask(AgentTask[None]):
         )
 
     async def on_enter(self) -> None:
+        await _set_current_task(self._room, self._task_id)
         logger.info("[TASK] Logistics — search intensity, timing, motivation")
         asyncio.create_task(
             _deferred_on_enter_reply(
@@ -158,7 +172,9 @@ class LogisticsTask(AgentTask[None]):
 
 
 class IndustryTask(AgentTask[None]):
-    def __init__(self) -> None:
+    def __init__(self, room: Optional[Any] = None, task_id: str = "industry") -> None:
+        self._room = room
+        self._task_id = task_id
         super().__init__(
             instructions="""
             Your name is the "Clarvo career assistant". Before diving into specifics, you need to understand what industry or field they want to work in — it shapes location, work model, comp, and what "a great role" looks like for them.
@@ -175,6 +191,7 @@ class IndustryTask(AgentTask[None]):
         )
 
     async def on_enter(self) -> None:
+        await _set_current_task(self._room, self._task_id)
         logger.info("[TASK] Industry — target field and sector")
         asyncio.create_task(
             _deferred_on_enter_reply(
@@ -193,7 +210,9 @@ class IndustryTask(AgentTask[None]):
 
 
 class LocationTask(AgentTask[None]):
-    def __init__(self) -> None:
+    def __init__(self, room: Optional[Any] = None, task_id: str = "location") -> None:
+        self._room = room
+        self._task_id = task_id
         super().__init__(
             instructions="""
             Understanding location constraints is critical for narrowing down
@@ -224,6 +243,7 @@ class LocationTask(AgentTask[None]):
         )
 
     async def on_enter(self) -> None:
+        await _set_current_task(self._room, self._task_id)
         logger.info("[TASK] Location — cities, relocation, remote/hybrid/onsite")
         asyncio.create_task(
             _deferred_on_enter_reply(
@@ -242,7 +262,9 @@ class LocationTask(AgentTask[None]):
 
 
 class BackgroundTask(AgentTask[None]):
-    def __init__(self) -> None:
+    def __init__(self, room: Optional[Any] = None, task_id: str = "background") -> None:
+        self._room = room
+        self._task_id = task_id
         super().__init__(
             instructions="""
             Your name is the "Clarvo career assistant". Deep professional
@@ -281,6 +303,7 @@ class BackgroundTask(AgentTask[None]):
         )
 
     async def on_enter(self) -> None:
+        await _set_current_task(self._room, self._task_id)
         logger.info("[TASK] Background — roles, strengths, tools/domain")
         asyncio.create_task(
             _deferred_on_enter_reply(
@@ -300,7 +323,9 @@ class BackgroundTask(AgentTask[None]):
 
 
 class CultureTask(AgentTask[None]):
-    def __init__(self) -> None:
+    def __init__(self, room: Optional[Any] = None, task_id: str = "culture") -> None:
+        self._room = room
+        self._task_id = task_id
         super().__init__(
             instructions="""
             Your name is the "Clarvo career assistant". Culture fit matters as
@@ -335,6 +360,7 @@ class CultureTask(AgentTask[None]):
         )
 
     async def on_enter(self) -> None:
+        await _set_current_task(self._room, self._task_id)
         logger.info("[TASK] Culture — management style, team size, startup vs corp")
         asyncio.create_task(
             _deferred_on_enter_reply(
@@ -354,7 +380,9 @@ class CultureTask(AgentTask[None]):
 
 
 class ValueVisionTask(AgentTask[None]):
-    def __init__(self) -> None:
+    def __init__(self, room: Optional[Any] = None, task_id: str = "value_vision") -> None:
+        self._room = room
+        self._task_id = task_id
         super().__init__(
             instructions="""
             Your name is the "Clarvo career assistant". You need comp and
@@ -394,6 +422,7 @@ class ValueVisionTask(AgentTask[None]):
         )
 
     async def on_enter(self) -> None:
+        await _set_current_task(self._room, self._task_id)
         logger.info("[TASK] Value & Vision — compensation, career goals")
         asyncio.create_task(
             _deferred_on_enter_reply(
@@ -413,7 +442,9 @@ class ValueVisionTask(AgentTask[None]):
 
 
 class AlignmentTask(AgentTask[None]):
-    def __init__(self) -> None:
+    def __init__(self, room: Optional[Any] = None, task_id: str = "alignment") -> None:
+        self._room = room
+        self._task_id = task_id
         super().__init__(
             instructions="""
             Your name is the "Clarvo career assistant". Wrapping up: deliver a
@@ -445,6 +476,7 @@ class AlignmentTask(AgentTask[None]):
         )
 
     async def on_enter(self) -> None:
+        await _set_current_task(self._room, self._task_id)
         logger.info("[TASK] Alignment — summary, confirm, close")
         asyncio.create_task(
             _deferred_on_enter_reply(

@@ -14,6 +14,28 @@ function cn(...classes: (string | undefined | false)[]): string {
   return classes.filter(Boolean).join(' ');
 }
 
+const TASK_LABELS: Record<string, string> = {
+  opening: 'Opening conversation & goals',
+  logistics: 'Logistics, timing & motivation',
+  industry: 'Target industries & roles',
+  location: 'Location, remote & relocation',
+  background: 'Experience, strengths & skills',
+  culture: 'Team, culture & work style',
+  value_vision: 'Compensation, priorities & vision',
+  alignment: 'Summary, alignment & next steps',
+};
+
+const TASK_ORDER: Array<keyof typeof TASK_LABELS> = [
+  'opening',
+  'logistics',
+  'industry',
+  'location',
+  'background',
+  'culture',
+  'value_vision',
+  'alignment',
+];
+
 interface VoiceOnlyModeProps {
   onGoToChat?: () => void;
   hasStarted: boolean;
@@ -22,7 +44,11 @@ interface VoiceOnlyModeProps {
 export function VoiceOnlyMode({ onGoToChat, hasStarted }: VoiceOnlyModeProps) {
   const { isMicrophoneEnabled, localParticipant } = useLocalParticipant();
   const remoteParticipants = useRemoteParticipants();
-  const { state: agentState } = useVoiceAssistant();
+  const { state: agentState, agentAttributes } = useVoiceAssistant();
+  const currentTaskId = (agentAttributes?.current_task as string | undefined) || 'opening';
+  const currentTaskLabel = currentTaskId ? TASK_LABELS[currentTaskId] ?? currentTaskId : TASK_LABELS.opening;
+  const currentTaskIndex = TASK_ORDER.indexOf(currentTaskId as keyof typeof TASK_LABELS);
+  const totalTasks = TASK_ORDER.length;
 
   // Get agent audio track
   const agentAudioTrack = useTracks([{ source: Track.Source.Microphone, withPlaceholder: false }], {
@@ -55,22 +81,38 @@ export function VoiceOnlyMode({ onGoToChat, hasStarted }: VoiceOnlyModeProps) {
     return (
       <div className="flex-1 w-full flex flex-col items-center justify-center">
         <div className="flex flex-col items-center justify-center h-full gap-6">
-          <div className="flex items-center justify-center animate-pulse">
-            <div
-              className="w-28 h-28 rounded-full flex items-center justify-center flex-shrink-0"
-              style={{
-                backgroundColor: 'var(--border-white)',
-                border: '5px solid var(--border-light-gray)',
-              }}
-            >
+          <div className="flex flex-col items-center gap-6">
+            {currentTaskLabel && currentTaskIndex !== -1 && (
+              <span
+                className="px-4 py-1.5 rounded-full text-xs font-medium text-gray-700 border border-purple-200 bg-gradient-to-r from-purple-50/80 to-pink-50/80 shadow-sm"
+                aria-label={`Current section: ${currentTaskLabel}`}
+              >
+                <span className="mr-1 text-[0.7rem] uppercase tracking-wide text-purple-500">
+                  Current theme:
+                </span>
+                <span>{currentTaskLabel}</span>
+                <span className="ml-2 text-[0.7rem] text-gray-500">
+                  {currentTaskIndex + 1}/{totalTasks}
+                </span>
+              </span>
+            )}
+            <div className="flex items-center justify-center animate-pulse">
               <div
-                className="w-16 h-16 rounded-full flex items-center justify-center flex-shrink-0"
+                className="w-28 h-28 rounded-full flex items-center justify-center flex-shrink-0"
                 style={{
-                  backgroundColor: 'var(--bg-light-purple)',
-                  border: '3px solid var(--border-purple)',
+                  backgroundColor: 'var(--border-white)',
+                  border: '5px solid var(--border-light-gray)',
                 }}
               >
-                <Bot className="h-10 w-10" style={{ color: 'var(--icon-purple)' }} />
+                <div
+                  className="w-16 h-16 rounded-full flex items-center justify-center flex-shrink-0"
+                  style={{
+                    backgroundColor: 'var(--bg-light-purple)',
+                    border: '3px solid var(--border-purple)',
+                  }}
+                >
+                  <Bot className="h-10 w-10" style={{ color: 'var(--icon-purple)' }} />
+                </div>
               </div>
             </div>
           </div>
