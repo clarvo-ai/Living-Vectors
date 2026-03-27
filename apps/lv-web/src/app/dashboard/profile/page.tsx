@@ -23,6 +23,7 @@ export default function ProfilePage() {
   const [profile, setProfile] = useState<UserProfile | null>(null);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
+  const [phoneError, setPhoneError] = useState<string | null>(null);
 
   useEffect(() => {
     if (status === 'unauthenticated') {
@@ -64,16 +65,21 @@ export default function ProfilePage() {
     if (!profile) return;
 
     setSaving(true);
+    setPhoneError(null);
     try {
       const normalizedPhone = normalizePhoneForStorage(profile.phone);
 
       if (!isPhoneCharactersValid(normalizedPhone)) {
-        toast.error('Phone number invalid');
+        const errorMessage = 'Phone number invalid';
+        setPhoneError(errorMessage);
+        toast.error(errorMessage);
         return;
       }
 
       if (!isPhoneMinLengthValid(normalizedPhone)) {
-        toast.error('Phone number must have at least 7 characters');
+        const errorMessage = 'Phone number must have at least 6 digits';
+        setPhoneError(errorMessage);
+        toast.error(errorMessage);
         return;
       }
 
@@ -99,6 +105,7 @@ export default function ProfilePage() {
           ...updatedProfile,
           phone: normalizePhoneForDisplay(updatedProfile.phone),
         });
+        setPhoneError(null);
         toast.success('Profile updated successfully');
       } else {
         const errorResponse =
@@ -121,10 +128,13 @@ export default function ProfilePage() {
     if (!profile) return;
 
     if (field === 'phone') {
-      const normalizedPhone = normalizePhoneForDisplay(value);
+      if (phoneError) {
+        setPhoneError(null);
+      }
+
       setProfile({
         ...profile,
-        phone: normalizedPhone,
+        phone: value,
       });
       return;
     }
@@ -229,12 +239,23 @@ export default function ProfilePage() {
                 onChange={(e) => handleInputChange('phone', e.target.value)}
                 placeholder="+358123456789"
                 inputMode="tel"
-                pattern="[+\-()0-9]*"
                 maxLength={PROFILE_FIELD_LIMITS.phone}
+                aria-invalid={Boolean(phoneError)}
+                className={
+                  phoneError
+                    ? 'border-red-500 ring-1 ring-red-500 focus-visible:ring-red-500'
+                    : undefined
+                }
+                style={phoneError ? { borderColor: '#ef4444' } : undefined}
               />
-              <p className="text-xs text-gray-500 mt-1">
-                Allowed characters: +, -, (, ) and digits.
-              </p>
+              {phoneError ? (
+                <p className="text-xs text-red-600 mt-1">{phoneError}</p>
+              ) : (
+                <p className="text-xs text-gray-500 mt-1">
+                  Phone number must contain at least 6 digits and may include a country code with a
+                  '+'.
+                </p>
+              )}
             </div>
 
             <div>

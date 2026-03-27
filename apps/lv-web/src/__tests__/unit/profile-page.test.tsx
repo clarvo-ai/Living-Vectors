@@ -140,7 +140,7 @@ describe('Profile Page', () => {
     expect(firstNameInput.value).toBe('Jane');
   });
 
-  it('keeps only allowed phone characters', async () => {
+  it('rejects phone numbers with invalid characters on save', async () => {
     const user = userEvent.setup();
     (global.fetch as jest.Mock).mockResolvedValueOnce({
       ok: true,
@@ -155,9 +155,18 @@ describe('Profile Page', () => {
 
     const phoneInput = screen.getByLabelText(/Phone Number/i) as HTMLInputElement;
     await user.clear(phoneInput);
-    await user.type(phoneInput, 'abc+12(34)-56#');
+    await user.type(phoneInput, '12ab34');
 
-    expect(phoneInput.value).toBe('+12(34)-56');
+    const saveButton = screen.getByText(/Save Changes/i);
+    await user.click(saveButton);
+
+    await waitFor(() => {
+      expect(toast.error).toHaveBeenCalledWith('Phone number invalid');
+      expect(phoneInput).toHaveClass('border-red-500');
+      expect(phoneInput).toHaveAttribute('aria-invalid', 'true');
+    });
+
+    expect(global.fetch).toHaveBeenCalledTimes(1);
   });
 
   it('submits null phone when phone input is cleared', async () => {
@@ -195,7 +204,7 @@ describe('Profile Page', () => {
     });
   });
 
-  it('rejects phone numbers shorter than 7 characters', async () => {
+  it('rejects phone numbers shorter than 6 digits', async () => {
     const user = userEvent.setup();
     (global.fetch as jest.Mock).mockResolvedValueOnce({
       ok: true,
@@ -210,13 +219,15 @@ describe('Profile Page', () => {
 
     const phoneInput = screen.getByLabelText(/Phone Number/i) as HTMLInputElement;
     await user.clear(phoneInput);
-    await user.type(phoneInput, '123456');
+    await user.type(phoneInput, '12345');
 
     const saveButton = screen.getByText(/Save Changes/i);
     await user.click(saveButton);
 
     await waitFor(() => {
-      expect(toast.error).toHaveBeenCalledWith('Phone number must have at least 7 characters');
+      expect(toast.error).toHaveBeenCalledWith('Phone number must have at least 6 digits');
+      expect(phoneInput).toHaveClass('border-red-500');
+      expect(phoneInput).toHaveAttribute('aria-invalid', 'true');
     });
 
     expect(global.fetch).toHaveBeenCalledTimes(1);

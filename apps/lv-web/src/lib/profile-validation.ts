@@ -6,24 +6,12 @@ export const PROFILE_FIELD_LIMITS = {
   bio: 500,
 } as const;
 
-export const PHONE_MIN_CHARACTERS = 7;
+export const PHONE_MIN_DIGITS = 6;
 
-const PHONE_ALLOWED_CHARS_REGEX = /^(\+)?[\d\-()]+$/;
+const PHONE_ALLOWED_CHARS_REGEX = /^\+?\d+$/;
 
 export const normalizePhoneInput = (value: string) => {
-  const hasPlus = value.includes('+');
-
-  // Remove all + signs and other non-allowed characters
-  const withoutPlus = value.replace(/\+/g, '').replace(/[^\-()0-9]/g, '');
-
-  // Preserve one leading + when the original input already had a plus.
-  const normalized = hasPlus ? '+' + withoutPlus : withoutPlus;
-
-  // Remove leading -, (, ) characters: only + and digits are allowed at the start
-  const trimmedStart = normalized.replace(/^[\-()]+/, '');
-
-  // Truncate to the limit
-  return trimmedStart.slice(0, PROFILE_FIELD_LIMITS.phone);
+  return value.trim().slice(0, PROFILE_FIELD_LIMITS.phone);
 };
 
 export const normalizePhoneForDisplay = (value: string | null | undefined) => {
@@ -50,5 +38,7 @@ export const isPhoneCharactersValid = (value: string | null | undefined) => {
 
 export const isPhoneMinLengthValid = (value: string | null | undefined) => {
   if (!value) return true;
-  return value.length >= PHONE_MIN_CHARACTERS;
+
+  const digitCount = (value.match(/\d/g) || []).length;
+  return digitCount >= PHONE_MIN_DIGITS;
 };

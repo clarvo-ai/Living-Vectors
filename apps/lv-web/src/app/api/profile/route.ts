@@ -28,7 +28,7 @@ const profileUpdateSchema = z
         message: 'Phone number invalid',
       })
       .refine((value) => isPhoneMinLengthValid(value), {
-        message: 'Phone number must have at least 7 characters',
+        message: 'Phone number must have at least 6 digits',
       }),
     bio: nullableTrimmedString(PROFILE_FIELD_LIMITS.bio),
   })
