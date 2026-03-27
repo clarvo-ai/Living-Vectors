@@ -227,7 +227,7 @@ jobs:
             --min-instances=1
             --max-instances=1
             --port=9009
-            --startup-cpu-boost
+            --cpu-boost
 
       - name: Fetch Mimir URL
         run: |
