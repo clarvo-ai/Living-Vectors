@@ -49,6 +49,7 @@ export function InterviewStartScreen({ onStart }: InterviewStartScreenProps) {
             <Phone className="w-4 h-4" />
             Start Call
           </button>
+          <p className="text-xs text-gray-500">This will take 10-15 minutes</p>
         </div>
       </div>
     </div>

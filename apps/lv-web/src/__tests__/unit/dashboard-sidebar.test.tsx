@@ -1,9 +1,10 @@
 import DashboardLayout from '@/app/dashboard/layout';
-import { render, screen } from '@testing-library/react';
+import { render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { signOut, useSession } from 'next-auth/react';
 import { usePathname, useRouter } from 'next/navigation';
 import { ReactNode } from 'react';
+import { getMatchedJobs } from '../../lib/services/pyapi';
 
 interface SidebarMenuButtonProps {
   children: ReactNode;
@@ -36,6 +37,10 @@ jest.mock('next/navigation', () => ({
 jest.mock('next-auth/react', () => ({
   useSession: jest.fn(),
   signOut: jest.fn(),
+}));
+
+jest.mock('../../lib/services/pyapi', () => ({
+  getMatchedJobs: jest.fn(),
 }));
 
 // Mock sidebar components
@@ -111,12 +116,22 @@ describe('Dashboard Sidebar', () => {
 
   beforeEach(() => {
     jest.clearAllMocks();
+    sessionStorage.clear();
     (useRouter as jest.Mock).mockReturnValue(mockRouter);
     (usePathname as jest.Mock).mockReturnValue('/dashboard/interview');
     (useSession as jest.Mock).mockReturnValue({
       data: mockSession,
       status: 'authenticated',
     });
+    (getMatchedJobs as jest.Mock).mockResolvedValue({
+      jobs: [{ id: 'job-1' }, { id: 'job-2' }, { id: 'job-3' }],
+      total: 3,
+      has_more: false,
+    });
+  });
+
+  afterEach(() => {
+    sessionStorage.clear();
   });
 
   it('renders sidebar', () => {
@@ -141,6 +156,78 @@ describe('Dashboard Sidebar', () => {
     expect(sidebarItems.length).toBeGreaterThan(0);
     expect(screen.getByText('Opportunities')).toBeInTheDocument();
     expect(screen.getAllByText('Profile').length).toBeGreaterThan(0);
+  });
+
+  it('shows dynamic opportunities count', async () => {
+    render(
+      <DashboardLayout>
+        <div>Test Content</div>
+      </DashboardLayout>
+    );
+
+    expect(await screen.findByText('3')).toBeInTheDocument();
+    expect(getMatchedJobs).toHaveBeenCalledWith('1');
+  });
+
+  it('hides opportunities count badge when count is zero', async () => {
+    (getMatchedJobs as jest.Mock).mockResolvedValueOnce({
+      jobs: [],
+      total: 0,
+      has_more: false,
+    });
+
+    render(
+      <DashboardLayout>
+        <div>Test Content</div>
+      </DashboardLayout>
+    );
+
+    await screen.findAllByText('Opportunities');
+    expect(screen.queryByText('0')).not.toBeInTheDocument();
+  });
+
+  it('calculates opportunities count once on app open', async () => {
+    const { rerender } = render(
+      <DashboardLayout>
+        <div>Test Content</div>
+      </DashboardLayout>
+    );
+
+    await screen.findByText('3');
+
+    rerender(
+      <DashboardLayout>
+        <div>Test Content Updated</div>
+      </DashboardLayout>
+    );
+
+    expect(getMatchedJobs).toHaveBeenCalledTimes(1);
+  });
+
+  it('recalculates opportunities count when entering opportunities page', async () => {
+    (usePathname as jest.Mock).mockReturnValue('/dashboard/profile');
+
+    const { rerender } = render(
+      <DashboardLayout>
+        <div>Test Content</div>
+      </DashboardLayout>
+    );
+
+    await waitFor(() => {
+      expect(getMatchedJobs).toHaveBeenCalledTimes(1);
+    });
+
+    (usePathname as jest.Mock).mockReturnValue('/dashboard/opportunities');
+
+    rerender(
+      <DashboardLayout>
+        <div>Test Content</div>
+      </DashboardLayout>
+    );
+
+    await waitFor(() => {
+      expect(getMatchedJobs).toHaveBeenCalledTimes(2);
+    });
   });
 
   it('shows active state for current page', () => {
@@ -199,6 +286,7 @@ describe('Dashboard Sidebar', () => {
 
   it('calls signOut when sign out clicked', async () => {
     const user = userEvent.setup();
+    sessionStorage.setItem('opportunities-count', '3');
 
     render(
       <DashboardLayout>
@@ -208,6 +296,7 @@ describe('Dashboard Sidebar', () => {
 
     const signOutButton = screen.getByText('Sign Out');
     await user.click(signOutButton);
+    expect(sessionStorage.getItem('opportunities-count')).toBeNull();
     expect(signOut).toHaveBeenCalledWith({ callbackUrl: '/login' });
   });
 
