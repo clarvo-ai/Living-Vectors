@@ -1,4 +1,8 @@
-import { isPhoneCharactersValid, PROFILE_FIELD_LIMITS } from '@/lib/profile-validation';
+import {
+  isPhoneCharactersValid,
+  isPhoneMinLengthValid,
+  PROFILE_FIELD_LIMITS,
+} from '@/lib/profile-validation';
 import { prisma, User } from '@repo/db';
 import { authOptions } from '@repo/lib';
 import { getServerSession } from 'next-auth';
@@ -19,12 +23,13 @@ const profileUpdateSchema = z
     name: nullableTrimmedString(PROFILE_FIELD_LIMITS.displayName),
     first_name: nullableTrimmedString(PROFILE_FIELD_LIMITS.firstName),
     last_name: nullableTrimmedString(PROFILE_FIELD_LIMITS.lastName),
-    phone: nullableTrimmedString(PROFILE_FIELD_LIMITS.phone).refine(
-      (value) => isPhoneCharactersValid(value),
-      {
+    phone: nullableTrimmedString(PROFILE_FIELD_LIMITS.phone)
+      .refine((value) => isPhoneCharactersValid(value), {
         message: 'Phone number invalid',
-      }
-    ),
+      })
+      .refine((value) => isPhoneMinLengthValid(value), {
+        message: 'Phone number must have at least 7 characters',
+      }),
     bio: nullableTrimmedString(PROFILE_FIELD_LIMITS.bio),
   })
   .strict();

@@ -195,6 +195,33 @@ describe('Profile Page', () => {
     });
   });
 
+  it('rejects phone numbers shorter than 7 characters', async () => {
+    const user = userEvent.setup();
+    (global.fetch as jest.Mock).mockResolvedValueOnce({
+      ok: true,
+      json: async () => ({ body: mockProfile }),
+    });
+
+    render(<ProfilePage />);
+
+    await waitFor(() => {
+      expect(screen.getByLabelText(/Phone Number/i)).toBeInTheDocument();
+    });
+
+    const phoneInput = screen.getByLabelText(/Phone Number/i) as HTMLInputElement;
+    await user.clear(phoneInput);
+    await user.type(phoneInput, '123456');
+
+    const saveButton = screen.getByText(/Save Changes/i);
+    await user.click(saveButton);
+
+    await waitFor(() => {
+      expect(toast.error).toHaveBeenCalledWith('Phone number must have at least 7 characters');
+    });
+
+    expect(global.fetch).toHaveBeenCalledTimes(1);
+  });
+
   it('does not clear unsaved fields when session object refreshes', async () => {
     const user = userEvent.setup();
     let currentSession = {

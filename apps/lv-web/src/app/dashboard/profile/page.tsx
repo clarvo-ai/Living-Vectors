@@ -5,6 +5,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Input } from '@/components/ui/input';
 import {
   isPhoneCharactersValid,
+  isPhoneMinLengthValid,
   normalizePhoneForDisplay,
   normalizePhoneForStorage,
   PROFILE_FIELD_LIMITS,
@@ -68,6 +69,11 @@ export default function ProfilePage() {
 
       if (!isPhoneCharactersValid(normalizedPhone)) {
         toast.error('Phone number invalid');
+        return;
+      }
+
+      if (!isPhoneMinLengthValid(normalizedPhone)) {
+        toast.error('Phone number must have at least 7 characters');
         return;
       }
 

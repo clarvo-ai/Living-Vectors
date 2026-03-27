@@ -6,6 +6,8 @@ export const PROFILE_FIELD_LIMITS = {
   bio: 500,
 } as const;
 
+export const PHONE_MIN_CHARACTERS = 7;
+
 const PHONE_ALLOWED_CHARS_REGEX = /^(\+)?[\d\-()]+$/;
 
 export const normalizePhoneInput = (value: string) => {
@@ -44,4 +46,9 @@ export const isPhoneCharactersValid = (value: string | null | undefined) => {
 
   // Phone number must contain at least one digit
   return /\d/.test(value);
+};
+
+export const isPhoneMinLengthValid = (value: string | null | undefined) => {
+  if (!value) return true;
+  return value.length >= PHONE_MIN_CHARACTERS;
 };
