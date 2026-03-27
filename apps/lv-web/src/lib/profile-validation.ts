@@ -11,13 +11,13 @@ export const PHONE_MIN_CHARACTERS = 7;
 const PHONE_ALLOWED_CHARS_REGEX = /^(\+)?[\d\-()]+$/;
 
 export const normalizePhoneInput = (value: string) => {
-  const startsWithPlus = value.trimStart().startsWith('+');
+  const hasPlus = value.includes('+');
 
   // Remove all + signs and other non-allowed characters
   const withoutPlus = value.replace(/\+/g, '').replace(/[^\-()0-9]/g, '');
 
-  // Only add + back if it was at the beginning of the original input
-  const normalized = startsWithPlus ? '+' + withoutPlus : withoutPlus;
+  // Preserve one leading + when the original input already had a plus.
+  const normalized = hasPlus ? '+' + withoutPlus : withoutPlus;
 
   // Remove leading -, (, ) characters: only + and digits are allowed at the start
   const trimmedStart = normalized.replace(/^[\-()]+/, '');
