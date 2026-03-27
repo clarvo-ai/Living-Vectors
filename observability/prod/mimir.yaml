@@ -1,4 +1,4 @@
-target: all,alertmanager
+target: compactor,distributor,ingester,querier,query-frontend,query-scheduler,store-gateway
 
 multitenancy_enabled: false
 
@@ -6,6 +6,9 @@ server:
   http_listen_port: 9009
   grpc_listen_port: 9095
   log_level: warn
+
+usage_stats:
+  enabled: false
 
 common:
   storage:
@@ -36,13 +39,3 @@ ingester:
     kvstore:
       store: inmemory
     replication_factor: 1
-
-ruler_storage:
-  backend: gcs
-  gcs:
-    bucket_name: lv-mimir-dev
-
-alertmanager_storage:
-  backend: gcs
-  gcs:
-    bucket_name: lv-mimir-dev
