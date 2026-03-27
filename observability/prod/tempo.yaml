@@ -34,12 +34,12 @@ metrics_generator:
     local_blocks:
       filter_server_spans: false
   storage:
-    path: /var/tempo/generator/wal
+    path: /tmp/tempo/generator/wal
     remote_write:
       - url: MIMIR_URL_PLACEHOLDER/api/v1/push
         send_exemplars: true
   traces_storage:
-    path: /var/tempo/generator/traces
+    path: /tmp/tempo/generator/traces
 
 overrides:
   defaults:
@@ -53,4 +53,4 @@ storage:
     gcs:
       bucket_name: lv-tempo-dev
     wal:
-      path: /var/tempo/wal
+      path: /tmp/tempo/wal

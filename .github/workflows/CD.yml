@@ -251,6 +251,7 @@ jobs:
             --min-instances=1
             --max-instances=1
             --port=3200
+            --startup-probe=initialDelaySeconds=20,periodSeconds=20,timeoutSeconds=10,failureThreshold=12,tcpSocket.port=3200
 
   observability-frontend:
     if: github.event_name != 'pull_request' || github.event.pull_request.merged == true
