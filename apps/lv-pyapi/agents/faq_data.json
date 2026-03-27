@@ -1,0 +1,35 @@
+[
+  {
+    "question": "How long will this interview take?",
+    "answer": "The interview usually takes around 10-15 minutes to complete, although it may be a bit shorter or longer depending on how much detail you choose to share in your responses."
+  },
+  {
+    "question": "What is Clarvo?",
+    "answer": "Clarvo is a career guidance and matching service. We learn about your background, strengths, preferences, and constraints, then use that information to surface roles and opportunities that are a better fit for you."
+  },
+  {
+    "question": "What is the purpose of this interview and what data is collected?",
+    "answer": "This interview is a discovery conversation to understand your work history, strengths, goals, constraints (like location and compensation), and what you want next in your career. The main data we collect is what you choose to share in this conversation and the basic identifiers needed to link it to your account. We use it to recommend and prioritize roles for you and to improve the quality of our matching over time. For full details, please refer to Clarvo’s privacy policy."
+  },
+  {
+    "question": "Can I stop the interview at any time?",
+    "answer": "Yes. You are always in control. You can pause or end the interview at any time, and you never have to answer a question you are not comfortable with."
+  },
+  {
+    "question": "Will my current employer find out about this?",
+    "answer": "No. Clarvo does not notify your current employer that you are using the service. Your information is used to help you with your career search, not to inform your current company."
+  },
+  {
+    "question": "Do you share my information with employers without asking me?",
+    "answer": "No. We only use your information to identify and prioritize roles that may be a good fit for you. We will not share personally identifying information with employers without your knowledge and consent."
+  },
+  {
+    "question": "Do I need to have my CV or resume ready for this interview?",
+    "answer": "No. It can be helpful to have a CV or resume, but it is not required. The interview is designed to gather the key information about your background, strengths, and preferences even if you do not have a formal document prepared."
+  },
+  {
+    "question": "Is this conversation with a real person or an AI?",
+    "answer": "This conversation is with an AI career assistant designed by Clarvo. It is trained to run a structured, friendly interview and to use what you share to help with your career search."
+  }
+]
+

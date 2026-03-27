@@ -32,11 +32,26 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
       return NextResponse.json({ error: 'User not found' }, { status: 404 });
     }
 
-    // Get counts using Prisma count queries
-    const [messageCount, learningCount] = await Promise.all([
+    // Count persisted conversation messages and learnings.
+    // For interviews that end early, conversation rows may be missing while
+    // learnings still carry source message snippets in Learning.messages.
+    const [conversationMessageCount, learningCount, learningMessageSources] = await Promise.all([
       prisma.conversationMessage.count({ where: { userId } }),
       prisma.learning.count({ where: { userId } }),
+      prisma.learning.findMany({
+        where: { userId },
+        select: { messages: true },
+      }),
     ]);
+
+    const derivedMessageCount = new Set(
+      learningMessageSources
+        .flatMap((learning) => learning.messages)
+        .map((message) => message.trim())
+        .filter((message) => message.length > 0)
+    ).size;
+
+    const messageCount = Math.max(conversationMessageCount, derivedMessageCount);
 
     const stats: AdminUserStats = {
       messageCount,
