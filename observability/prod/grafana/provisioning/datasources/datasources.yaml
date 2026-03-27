@@ -5,7 +5,7 @@ datasources:
     type: prometheus
     uid: mimir
     access: proxy
-    url: http://mimir:9009/prometheus
+    url: ${MIMIR_URL}/prometheus
     isDefault: true
     jsonData:
       httpMethod: POST
@@ -14,7 +14,7 @@ datasources:
     type: tempo
     uid: tempo
     access: proxy
-    url: http://tempo:3200
+    url: ${TEMPO_URL}
     jsonData:
       tracesToLogsV2:
         datasourceUid: loki
@@ -34,7 +34,7 @@ datasources:
     type: loki
     uid: loki
     access: proxy
-    url: http://loki:3100
+    url: ${LOKI_URL}
     jsonData:
       derivedFields:
         - datasourceUid: tempo

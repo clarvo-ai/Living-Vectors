@@ -344,28 +344,26 @@ services:
       - '3100:3100'   # Loki HTTP API
     restart: unless-stopped
 
-  prometheus:
+  mimir:
     profiles: ['observability']
-    container_name: prometheus
-    image: prom/prometheus:latest
-    command:
-      - '--config.file=/etc/prometheus/prometheus.yml'
-      - '--storage.tsdb.path=/prometheus'
-      - '--web.enable-remote-write-receiver'
+    container_name: mimir
+    image: grafana/mimir:latest
+    command: ['-config.file=/etc/mimir/mimir.yaml']
     volumes:
-      - ./observability/prometheus.yml:/etc/prometheus/prometheus.yml:ro
-      - prometheus_data:/prometheus
+      - ./observability/mimir.yaml:/etc/mimir/mimir.yaml:ro
+      - mimir_data:/data/mimir
     ports:
-      - '9090:9090'   # Prometheus HTTP UI
+      - '9009:9009'   # Mimir HTTP API / remote-write
     restart: unless-stopped
 
   grafana:
     profiles: ['observability']
     container_name: grafana
     image: grafana/grafana:latest
+    env_file:
+      - ./observability/.env.grafana
     environment:
-      - GF_AUTH_ANONYMOUS_ENABLED=true
-      - GF_AUTH_ANONYMOUS_ORG_ROLE=Admin
+      - GF_AUTH_ANONYMOUS_ENABLED=false
       - GF_AUTH_DISABLE_LOGIN_FORM=false
       - GF_SERVER_HTTP_PORT=3000
     volumes:
@@ -374,7 +372,7 @@ services:
     ports:
       - '3001:3000'   # Grafana UI (3001 to avoid conflict with lv-web on 3000)
     depends_on:
-      - prometheus
+      - mimir
       - tempo
       - loki
     restart: unless-stopped
@@ -385,5 +383,5 @@ volumes:
   postgres_mock_data:
   tempo_data:
   loki_data:
-  prometheus_data:
+  mimir_data:
   grafana_data:

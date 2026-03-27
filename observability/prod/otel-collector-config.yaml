@@ -11,7 +11,6 @@ processors:
     timeout: 1s
     send_batch_size: 1024
 
-  # Promote resource attributes as Loki stream labels
   resource/loki_labels:
     attributes:
       - action: insert
@@ -19,25 +18,16 @@ processors:
         value: service.name, service.version, deployment.environment
 
 exporters:
-  # Traces → Tempo
   otlp_grpc/tempo:
-    endpoint: tempo:4317
-    tls:
-      insecure: true
+    endpoint: ${TEMPO_URL}
 
-  # Metrics → Mimir (Prometheus remote-write)
   prometheusremotewrite/mimir:
-    endpoint: http://mimir:9009/api/v1/push
-    tls:
-      insecure: true
+    endpoint: ${MIMIR_URL}/api/v1/push
     resource_to_telemetry_conversion:
       enabled: true
 
-  # Logs → Loki (native OTLP ingestion, available since Loki 2.9)
   otlp_http/loki:
-    endpoint: http://loki:3100/otlp
-    tls:
-      insecure: true
+    endpoint: ${LOKI_URL}/otlp
 
 service:
   pipelines:

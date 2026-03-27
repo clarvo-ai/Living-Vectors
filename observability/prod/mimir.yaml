@@ -1,0 +1,50 @@
+target: all,alertmanager
+
+multitenancy_enabled: false
+
+server:
+  http_listen_port: 9009
+  grpc_listen_port: 9095
+  log_level: warn
+
+common:
+  storage:
+    backend: gcs
+    gcs:
+      bucket_name: lv-mimir-dev
+
+blocks_storage:
+  backend: gcs
+  gcs:
+    bucket_name: lv-mimir-dev
+  tsdb:
+    dir: /data/mimir/tsdb
+
+compactor:
+  data_dir: /data/mimir/compactor
+  sharding_ring:
+    kvstore:
+      store: memberlist
+
+distributor:
+  ring:
+    instance_addr: 127.0.0.1
+    kvstore:
+      store: memberlist
+
+ingester:
+  ring:
+    instance_addr: 127.0.0.1
+    kvstore:
+      store: memberlist
+    replication_factor: 1
+
+ruler_storage:
+  backend: gcs
+  gcs:
+    bucket_name: lv-mimir-dev
+
+alertmanager_storage:
+  backend: gcs
+  gcs:
+    bucket_name: lv-mimir-dev

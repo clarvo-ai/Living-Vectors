@@ -12,7 +12,7 @@
         "name": "service",
         "label": "Service",
         "type": "query",
-        "datasource": { "type": "prometheus", "uid": "prometheus" },
+        "datasource": { "type": "prometheus", "uid": "mimir" },
         "query": "label_values(traces_spanmetrics_calls_total, service_name)",
         "includeAll": false,
         "refresh": 2,
@@ -26,7 +26,7 @@
       "title": "Request rate",
       "type": "timeseries",
       "gridPos": { "x": 0, "y": 0, "w": 8, "h": 8 },
-      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "datasource": { "type": "prometheus", "uid": "mimir" },
       "fieldConfig": {
         "defaults": {
           "unit": "reqps",
@@ -36,7 +36,7 @@
       "targets": [
         {
           "refId": "A",
-          "datasource": { "type": "prometheus", "uid": "prometheus" },
+          "datasource": { "type": "prometheus", "uid": "mimir" },
           "expr": "sum(rate(traces_spanmetrics_calls_total{service_name=\"$service\"}[$__rate_interval]))",
           "legendFormat": "req/s"
         }
@@ -47,7 +47,7 @@
       "title": "Error rate",
       "type": "timeseries",
       "gridPos": { "x": 8, "y": 0, "w": 8, "h": 8 },
-      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "datasource": { "type": "prometheus", "uid": "mimir" },
       "fieldConfig": {
         "defaults": {
           "unit": "percentunit",
@@ -67,7 +67,7 @@
       "targets": [
         {
           "refId": "A",
-          "datasource": { "type": "prometheus", "uid": "prometheus" },
+          "datasource": { "type": "prometheus", "uid": "mimir" },
           "expr": "sum(rate(traces_spanmetrics_calls_total{service_name=\"$service\", status_code=\"STATUS_CODE_ERROR\"}[$__rate_interval])) / sum(rate(traces_spanmetrics_calls_total{service_name=\"$service\"}[$__rate_interval]))",
           "legendFormat": "error %"
         }
@@ -78,7 +78,7 @@
       "title": "Latency (p50 / p95 / p99)",
       "type": "timeseries",
       "gridPos": { "x": 16, "y": 0, "w": 8, "h": 8 },
-      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "datasource": { "type": "prometheus", "uid": "mimir" },
       "fieldConfig": {
         "defaults": {
           "unit": "s",
@@ -88,19 +88,19 @@
       "targets": [
         {
           "refId": "A",
-          "datasource": { "type": "prometheus", "uid": "prometheus" },
+          "datasource": { "type": "prometheus", "uid": "mimir" },
           "expr": "histogram_quantile(0.50, sum by (le) (rate(traces_spanmetrics_latency_bucket{service_name=\"$service\"}[$__rate_interval])))",
           "legendFormat": "p50"
         },
         {
           "refId": "B",
-          "datasource": { "type": "prometheus", "uid": "prometheus" },
+          "datasource": { "type": "prometheus", "uid": "mimir" },
           "expr": "histogram_quantile(0.95, sum by (le) (rate(traces_spanmetrics_latency_bucket{service_name=\"$service\"}[$__rate_interval])))",
           "legendFormat": "p95"
         },
         {
           "refId": "C",
-          "datasource": { "type": "prometheus", "uid": "prometheus" },
+          "datasource": { "type": "prometheus", "uid": "mimir" },
           "expr": "histogram_quantile(0.99, sum by (le) (rate(traces_spanmetrics_latency_bucket{service_name=\"$service\"}[$__rate_interval])))",
           "legendFormat": "p99"
         }

@@ -7,16 +7,25 @@ on:
     branches:
       - dev
   workflow_dispatch:
+    inputs:
+      branch:
+        description: Branch to deploy
+        required: false
+        default: dev
 
 env:
   PROJECT_ID: ${{ secrets.GCP_PROJECT_ID }}
   REGION: ${{ secrets.GCP_REGION }}
+  REGISTRY: ${{ secrets.GCP_REGION }}-docker.pkg.dev/${{ secrets.GCP_PROJECT_ID }}/lv-registry
   BACKEND_SERVICE_NAME: lv-pyapi-dev
-  BACKEND_REGISTRY: ${{ secrets.GCP_REGION }}-docker.pkg.dev/${{ secrets.GCP_PROJECT_ID }}/lv-registry
   BACKEND_IMAGE_NAME: lv-pyapi-dev
   FRONT_SERVICE_NAME: lv-web-dev
-  FRONT_REGISTRY: ${{ secrets.GCP_REGION }}-docker.pkg.dev/${{ secrets.GCP_PROJECT_ID }}/lv-registry
   FRONT_IMAGE_NAME: lv-web-dev
+  LOKI_SERVICE_NAME: lv-loki-dev
+  TEMPO_SERVICE_NAME: lv-tempo-dev
+  MIMIR_SERVICE_NAME: lv-mimir-dev
+  OTEL_SERVICE_NAME: lv-otel-dev
+  GRAFANA_SERVICE_NAME: lv-grafana-dev
 
 jobs:
   backend:
@@ -74,13 +83,13 @@ jobs:
           context: .
           file: ./apps/lv-pyapi/Dockerfile
           push: true
-          tags: ${{ env.BACKEND_REGISTRY }}/${{ env.BACKEND_IMAGE_NAME }}:${{ github.sha }}
+          tags: ${{ env.REGISTRY }}/${{ env.BACKEND_IMAGE_NAME }}:${{ github.sha }}
 
       - name: Deploy backend to Cloud Run
         uses: google-github-actions/deploy-cloudrun@v2
         with:
           service: ${{ env.BACKEND_SERVICE_NAME }}
-          image: ${{ env.BACKEND_REGISTRY }}/${{ env.BACKEND_IMAGE_NAME }}:${{ github.sha }}
+          image: ${{ env.REGISTRY }}/${{ env.BACKEND_IMAGE_NAME }}:${{ github.sha }}
           region: ${{ env.REGION }}
           project_id: ${{ env.PROJECT_ID }}
           flags: |
@@ -119,7 +128,7 @@ jobs:
           context: .
           file: ./apps/lv-web/Dockerfile
           push: true
-          tags: ${{ env.FRONT_REGISTRY }}/${{ env.FRONT_IMAGE_NAME }}:${{ github.sha }}
+          tags: ${{ env.REGISTRY }}/${{ env.FRONT_IMAGE_NAME }}:${{ github.sha }}
           build-args: |
             NEXT_PUBLIC_ENVIRONMENT=production
             NEXT_PUBLIC_PYAPI_URL=${{ secrets.NEXT_PUBLIC_PYAPI_URL }}
@@ -128,7 +137,7 @@ jobs:
         uses: google-github-actions/deploy-cloudrun@v2
         with:
           service: ${{ env.FRONT_SERVICE_NAME }}
-          image: ${{ env.FRONT_REGISTRY }}/${{ env.FRONT_IMAGE_NAME }}:${{ github.sha }}
+          image: ${{ env.REGISTRY }}/${{ env.FRONT_IMAGE_NAME }}:${{ github.sha }}
           region: ${{ env.REGION }}
           project_id: ${{ env.PROJECT_ID }}
           flags: |
@@ -137,3 +146,198 @@ jobs:
             --cpu=1
             --min-instances=1
             --max-instances=5
+
+  observability-storage:
+    if: github.event_name != 'pull_request' || github.event.pull_request.merged == true
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Authenticate with GCP
+        uses: google-github-actions/auth@v2
+        with:
+          credentials_json: ${{ secrets.GCP_SA_KEY }}
+
+      - name: Set up Cloud SDK
+        uses: google-github-actions/setup-gcloud@v2
+        with:
+          project_id: ${{ env.PROJECT_ID }}
+
+      - name: Configure Docker
+        run: gcloud auth configure-docker ${{ env.REGION }}-docker.pkg.dev
+
+      - name: Build and push Loki image
+        uses: docker/build-push-action@v5
+        with:
+          context: ./observability/prod
+          file: ./observability/prod/Dockerfile.loki
+          push: true
+          tags: ${{ env.REGISTRY }}/lv-loki-dev:${{ github.sha }}
+
+      - name: Build and push Tempo image
+        uses: docker/build-push-action@v5
+        with:
+          context: ./observability/prod
+          file: ./observability/prod/Dockerfile.tempo
+          push: true
+          tags: ${{ env.REGISTRY }}/lv-tempo-dev:${{ github.sha }}
+
+      - name: Build and push Mimir image
+        uses: docker/build-push-action@v5
+        with:
+          context: ./observability/prod
+          file: ./observability/prod/Dockerfile.mimir
+          push: true
+          tags: ${{ env.REGISTRY }}/lv-mimir-dev:${{ github.sha }}
+
+      - name: Deploy Loki
+        uses: google-github-actions/deploy-cloudrun@v2
+        with:
+          service: ${{ env.LOKI_SERVICE_NAME }}
+          image: ${{ env.REGISTRY }}/lv-loki-dev:${{ github.sha }}
+          region: ${{ env.REGION }}
+          project_id: ${{ env.PROJECT_ID }}
+          flags: |
+            --no-allow-unauthenticated
+            --ingress=internal
+            --memory=512Mi
+            --cpu=1
+            --min-instances=1
+            --max-instances=1
+            --port=3100
+
+      - name: Deploy Mimir
+        uses: google-github-actions/deploy-cloudrun@v2
+        with:
+          service: ${{ env.MIMIR_SERVICE_NAME }}
+          image: ${{ env.REGISTRY }}/lv-mimir-dev:${{ github.sha }}
+          region: ${{ env.REGION }}
+          project_id: ${{ env.PROJECT_ID }}
+          flags: |
+            --no-allow-unauthenticated
+            --ingress=internal
+            --memory=512Mi
+            --cpu=1
+            --min-instances=1
+            --max-instances=1
+            --port=9009
+
+      - name: Fetch Mimir URL
+        run: |
+          MIMIR_URL=$(gcloud run services describe ${{ env.MIMIR_SERVICE_NAME }} \
+            --region=${{ env.REGION }} --format='value(status.url)')
+          echo "MIMIR_URL=$MIMIR_URL" >> $GITHUB_ENV
+
+      - name: Deploy Tempo
+        uses: google-github-actions/deploy-cloudrun@v2
+        with:
+          service: ${{ env.TEMPO_SERVICE_NAME }}
+          image: ${{ env.REGISTRY }}/lv-tempo-dev:${{ github.sha }}
+          region: ${{ env.REGION }}
+          project_id: ${{ env.PROJECT_ID }}
+          flags: |
+            --no-allow-unauthenticated
+            --ingress=internal
+            --memory=512Mi
+            --cpu=1
+            --min-instances=1
+            --max-instances=1
+            --port=3200
+          env_vars: MIMIR_URL=${{ env.MIMIR_URL }}
+
+  observability-frontend:
+    if: github.event_name != 'pull_request' || github.event.pull_request.merged == true
+    runs-on: ubuntu-latest
+    needs: observability-storage
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Authenticate with GCP
+        uses: google-github-actions/auth@v2
+        with:
+          credentials_json: ${{ secrets.GCP_SA_KEY }}
+
+      - name: Set up Cloud SDK
+        uses: google-github-actions/setup-gcloud@v2
+        with:
+          project_id: ${{ env.PROJECT_ID }}
+
+      - name: Configure Docker
+        run: gcloud auth configure-docker ${{ env.REGION }}-docker.pkg.dev
+
+      - name: Fetch internal service URLs
+        run: |
+          LOKI_URL=$(gcloud run services describe ${{ env.LOKI_SERVICE_NAME }} \
+            --region=${{ env.REGION }} --format='value(status.url)')
+          TEMPO_URL=$(gcloud run services describe ${{ env.TEMPO_SERVICE_NAME }} \
+            --region=${{ env.REGION }} --format='value(status.url)')
+          MIMIR_URL=$(gcloud run services describe ${{ env.MIMIR_SERVICE_NAME }} \
+            --region=${{ env.REGION }} --format='value(status.url)')
+          echo "LOKI_URL=$LOKI_URL" >> $GITHUB_ENV
+          echo "TEMPO_URL=$TEMPO_URL" >> $GITHUB_ENV
+          echo "MIMIR_URL=$MIMIR_URL" >> $GITHUB_ENV
+
+      - name: Build and push OTel Collector image
+        uses: docker/build-push-action@v5
+        with:
+          context: ./observability/prod
+          file: ./observability/prod/Dockerfile.otel-collector
+          push: true
+          tags: ${{ env.REGISTRY }}/lv-otel-dev:${{ github.sha }}
+
+      - name: Build and push Grafana image
+        uses: docker/build-push-action@v5
+        with:
+          context: ./observability/prod
+          file: ./observability/prod/Dockerfile.grafana
+          push: true
+          tags: ${{ env.REGISTRY }}/lv-grafana-dev:${{ github.sha }}
+
+      - name: Deploy OTel Collector
+        uses: google-github-actions/deploy-cloudrun@v2
+        with:
+          service: ${{ env.OTEL_SERVICE_NAME }}
+          image: ${{ env.REGISTRY }}/lv-otel-dev:${{ github.sha }}
+          region: ${{ env.REGION }}
+          project_id: ${{ env.PROJECT_ID }}
+          flags: |
+            --no-allow-unauthenticated
+            --ingress=internal
+            --memory=256Mi
+            --cpu=1
+            --min-instances=1
+            --max-instances=1
+            --port=4318
+          env_vars: |
+            LOKI_URL=${{ env.LOKI_URL }}
+            TEMPO_URL=${{ env.TEMPO_URL }}
+            MIMIR_URL=${{ env.MIMIR_URL }}
+
+      - name: Deploy Grafana
+        uses: google-github-actions/deploy-cloudrun@v2
+        with:
+          service: ${{ env.GRAFANA_SERVICE_NAME }}
+          image: ${{ env.REGISTRY }}/lv-grafana-dev:${{ github.sha }}
+          region: ${{ env.REGION }}
+          project_id: ${{ env.PROJECT_ID }}
+          flags: |
+            --allow-unauthenticated
+            --ingress=all
+            --memory=512Mi
+            --cpu=1
+            --min-instances=1
+            --max-instances=1
+            --port=3000
+          env_vars: |
+            GF_SECURITY_ADMIN_USER=${{ secrets.GRAFANA_ADMIN_USER }}
+            GF_SECURITY_ADMIN_PASSWORD=${{ secrets.GRAFANA_ADMIN_PASSWORD }}
+            GF_AUTH_ANONYMOUS_ENABLED=false
+            GF_AUTH_DISABLE_LOGIN_FORM=false
+            GF_SERVER_HTTP_PORT=3000
+            LOKI_URL=${{ env.LOKI_URL }}
+            TEMPO_URL=${{ env.TEMPO_URL }}
+            MIMIR_URL=${{ env.MIMIR_URL }}

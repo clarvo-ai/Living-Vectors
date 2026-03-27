@@ -1,0 +1,2 @@
+FROM grafana/loki:latest
+COPY loki.yaml /etc/loki/loki.yaml

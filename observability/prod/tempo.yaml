@@ -1,4 +1,3 @@
-# Avoid querier using live-store partition ring (empty in single binary)
 partition_ring_live_store: false
 stream_over_http_enabled: true
 
@@ -37,7 +36,7 @@ metrics_generator:
   storage:
     path: /var/tempo/generator/wal
     remote_write:
-      - url: http://mimir:9009/api/v1/push
+      - url: MIMIR_URL_PLACEHOLDER/api/v1/push
         send_exemplars: true
   traces_storage:
     path: /var/tempo/generator/traces
@@ -49,9 +48,9 @@ overrides:
 
 storage:
   trace:
-    backend: local
+    backend: gcs
     blocklist_poll: 10s
-    local:
-      path: /var/tempo/traces
+    gcs:
+      bucket_name: lv-tempo-dev
     wal:
       path: /var/tempo/wal
