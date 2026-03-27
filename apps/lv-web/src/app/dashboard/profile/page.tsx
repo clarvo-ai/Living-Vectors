@@ -253,7 +253,7 @@ export default function ProfilePage() {
               ) : (
                 <p className="text-xs text-gray-500 mt-1">
                   Phone number must contain at least 6 digits and may include a country code with a
-                  '+'.
+                  &apos;+&apos;.
                 </p>
               )}
             </div>
