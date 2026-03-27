@@ -557,3 +557,50 @@ To enable Google voice interface features, set up Google Cloud credentials. This
    ./apps/lv-pyapi/credentials/google-credentials.json
    ```
 4. Paste the secret value into the file
+
+## 13. LangSmith Tracing (LiveKit Agent)
+
+LangSmith tracing is integrated in the LiveKit agent orchestration layer:
+
+- `apps/lv-pyapi/agents/agent.py` initializes OTEL tracing for LiveKit
+- `apps/lv-pyapi/agents/langsmith_processor.py` maps LiveKit spans to LangSmith format
+
+### Required Environment Variables
+
+Set these in `apps/lv-pyapi/.env.local`:
+
+```bash
+OTEL_EXPORTER_OTLP_ENDPOINT=https://api.smith.langchain.com/otel
+OTEL_EXPORTER_OTLP_HEADERS=x-api-key=<LANGSMITH_API_KEY>,Langsmith-Project=lv-voice-agent
+```
+
+For EU data region, use:
+
+```bash
+OTEL_EXPORTER_OTLP_ENDPOINT=https://eu.api.smith.langchain.com/otel
+```
+
+### Run Locally (Agent + LiveKit + PyAPI)
+
+```bash
+docker compose --profile lv-pyapi --profile lv-agent --profile livekit up --build
+```
+
+### Verify Tracing
+
+1. Start a voice session and complete at least one interaction
+2. Open LangSmith and select project `lv-voice-agent`
+3. Confirm spans are visible for:
+   - STT/transcription
+   - LLM prompt/response
+   - TTS output
+   - Session/job chain spans
+
+### Production Deployment Notes
+
+The LiveKit deploy workflow reads these secrets:
+
+- `OTEL_EXPORTER_OTLP_ENDPOINT`
+- `OTEL_EXPORTER_OTLP_HEADERS`
+
+They must be configured in GitHub Actions Secrets for cloud traces to appear.
