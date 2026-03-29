@@ -62,10 +62,12 @@ class CareerAssistant(Agent):
             insight_text = f"\n\nHere is what we know about the user from previous conversations:\n{lines}"
 
         instructions = f"""
-            You are a career assistant speaking with a candidate whose full discovery call
+            You are an AI assistant for the Living Vectors platform,
+            specializing in career guidance. You are speaking with a candidate whose full discovery call
             is already on file. You know their background, preferences, and goals well.
 
             Your role now is to be a helpful, conversational career advisor:
+            - Be concise — this is a voice conversation, not a written form.
             - Answer any questions they have about their job search, roles, the market, etc.
             - If they mention something has changed (location, comp, what they want), note it
               and explore it naturally — one question at a time.
@@ -207,7 +209,8 @@ async def my_agent(ctx: agents.JobContext):
         
         logger.info(f"Transcript: {transcript}")
 
-        # POST transcript to the Cloud Run backend because it holds the Cloud SQL Auth Proxy
+        # POST transcript to the Cloud Run backend because it holds
+        # the Cloud SQL Auth Proxy.
         def post_transcript():
             try:
                 resp = requests.post(
@@ -217,9 +220,14 @@ async def my_agent(ctx: agents.JobContext):
                     timeout=30,
                 )
                 resp.raise_for_status()
-                logger.info(f"Transcript posted to backend for user {user_id}: {resp.status_code}")
+                logger.info(
+                    f"Transcript posted to backend for user {user_id}: "
+                    f"{resp.status_code}",
+                )
             except Exception as e:
-                logger.error(f"Failed to post transcript for user {user_id}: {e}")
+                logger.error(
+                    f"Failed to post transcript for user {user_id}: {e}",
+                )
 
         asyncio.get_event_loop().run_in_executor(None, post_transcript)
 
@@ -227,5 +235,7 @@ async def my_agent(ctx: agents.JobContext):
 if __name__ == "__main__":
     command = "start" if LIVEKIT_URL.startswith("wss://") else "dev"
     sys.argv = ["agent.py", command]
-    logger.info(f"Starting agent '{AGENT_NAME}' → {LIVEKIT_URL} ({command})")
+    logger.info(
+        f"Starting agent '{AGENT_NAME}' → {LIVEKIT_URL} ({command})",
+    )
     agents.cli.run_app(server)
