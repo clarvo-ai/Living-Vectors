@@ -1,0 +1,20 @@
+{
+  "name": "lv-system-tests",
+  "version": "1.0.0",
+  "description": "End-to-end system tests for the application",
+  "scripts": {
+    "seed:test-user": "node ./scripts/create-test-user.cjs",
+    "test": "playwright test",
+    "test:headed": "playwright test --headed",
+    "test:debug": "playwright test --debug",
+    "test:report": "playwright show-report",
+    "test:ui": "playwright test --ui",
+    "test:single": "playwright test --grep"
+  },
+  "devDependencies": {
+    "@google/generative-ai": "^0.15.0",
+    "@playwright/test": "^1.48.0",
+    "@types/node": "^20.10.0",
+    "dotenv": "^16.3.1"
+  }
+}

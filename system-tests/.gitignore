@@ -1,0 +1,30 @@
+# Dependencies
+node_modules/
+package-lock.json
+yarn.lock
+
+# Test results and reports
+playwright-report/
+test-results/
+.test-results
+*.png
+*.webm
+
+# Environment
+.env
+.env.local
+.env.*.local
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Playwright
+.auth/
