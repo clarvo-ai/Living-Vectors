@@ -2,7 +2,7 @@ import json
 import asyncio
 import logging
 import os
-from typing import Optional, Any
+from typing import Any
 
 from livekit.agents import AgentTask, function_tool
 from livekit import api as lkapi

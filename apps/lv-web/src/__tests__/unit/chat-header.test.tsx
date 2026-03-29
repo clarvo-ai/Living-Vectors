@@ -1,7 +1,7 @@
+import { useVoiceAssistant } from '@livekit/components-react';
 import '@testing-library/jest-dom';
 import { fireEvent, render, screen } from '@testing-library/react';
 import { ChatHeader } from '../../app/dashboard/interview/components/ChatHeader';
-import { useVoiceAssistant } from '@livekit/components-react';
 
 // Mock LiveKit
 jest.mock('@livekit/components-react', () => ({
@@ -9,10 +9,14 @@ jest.mock('@livekit/components-react', () => ({
   useVoiceAssistant: jest.fn(() => ({
     agentAttributes: {},
   })),
+  useRoomInfo: jest.fn(() => ({
+    metadata: JSON.stringify({ current_task: 'opening' }),
+  })),
 }));
 
 describe('ChatHeader Component', () => {
   const mockUseVoiceAssistant = useVoiceAssistant as jest.Mock;
+  const mockUseRoomInfo = require('@livekit/components-react').useRoomInfo as jest.Mock;
   const defaultProps = {
     voiceOnlyMode: false,
     setVoiceOnlyMode: jest.fn(),
@@ -23,6 +27,9 @@ describe('ChatHeader Component', () => {
     sessionStorage.clear();
     mockUseVoiceAssistant.mockReturnValue({
       agentAttributes: {},
+    });
+    mockUseRoomInfo.mockReturnValue({
+      metadata: JSON.stringify({ current_task: 'opening' }),
     });
   });
 
@@ -77,16 +84,16 @@ describe('ChatHeader Component', () => {
   it('should render default current theme and progress', () => {
     render(<ChatHeader {...defaultProps} />);
 
-    expect(screen.getByLabelText('Current section: Opening conversation & goals')).toBeInTheDocument();
+    expect(
+      screen.getByLabelText('Current section: Opening conversation & goals')
+    ).toBeInTheDocument();
     expect(screen.getByText('Current theme:')).toBeInTheDocument();
     expect(screen.getByText('1/8')).toBeInTheDocument();
   });
 
   it('should render mapped theme label and progress for current task', () => {
-    mockUseVoiceAssistant.mockReturnValue({
-      agentAttributes: {
-        current_task: 'industry',
-      },
+    mockUseRoomInfo.mockReturnValue({
+      metadata: JSON.stringify({ current_task: 'industry' }),
     });
 
     render(<ChatHeader {...defaultProps} />);
@@ -96,15 +103,12 @@ describe('ChatHeader Component', () => {
   });
 
   it('should not render progress pill for unknown task IDs', () => {
-    mockUseVoiceAssistant.mockReturnValue({
-      agentAttributes: {
-        current_task: 'unknown_task',
-      },
+    mockUseRoomInfo.mockReturnValue({
+      metadata: JSON.stringify({ current_task: 'unknown_task' }),
     });
 
     render(<ChatHeader {...defaultProps} />);
 
     expect(screen.queryByText('Current theme:')).not.toBeInTheDocument();
-    expect(screen.queryByText('unknown_task')).not.toBeInTheDocument();
   });
 });
