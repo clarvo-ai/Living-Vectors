@@ -1,4 +1,4 @@
-import { useVoiceAssistant } from '@livekit/components-react';
+import { useRoomInfo, useVoiceAssistant } from '@livekit/components-react';
 import '@testing-library/jest-dom';
 import { fireEvent, render, screen } from '@testing-library/react';
 import { ChatHeader } from '../../app/dashboard/interview/components/ChatHeader';
@@ -16,7 +16,7 @@ jest.mock('@livekit/components-react', () => ({
 
 describe('ChatHeader Component', () => {
   const mockUseVoiceAssistant = useVoiceAssistant as jest.Mock;
-  const mockUseRoomInfo = require('@livekit/components-react').useRoomInfo as jest.Mock;
+  const mockUseRoomInfo = useRoomInfo as jest.Mock;
   const defaultProps = {
     voiceOnlyMode: false,
     setVoiceOnlyMode: jest.fn(),
