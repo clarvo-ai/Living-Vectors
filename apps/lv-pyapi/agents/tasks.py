@@ -2,7 +2,7 @@ import json
 import asyncio
 import logging
 import os
-from typing import Optional
+from typing import Optional, Any
 
 from livekit.agents import AgentTask, function_tool
 from livekit import api as lkapi
@@ -488,24 +488,20 @@ class AlignmentTask(AgentTask[None]):
             to?", "Anything else to share?"). Stick to: summary → ask if it
             sounds right → when they confirm or say goodbye, give the closing
             once and stop.
+
             If the user corrects one or two details (e.g. salary range, timeline
             for management): in the SAME message, (1) briefly acknowledge the
             correction (e.g. "Noted, 3000–3500." or "Got it, 10 years for a
-            management role."), then (2) immediately give the full closing: one
-            short warm sentence, then that we've explored their goals, job
-            recommendations will be created, they can close the call and go to
-            the opportunities page, jobs will appear shortly, goodbye. Do not
-            send only "Noted" and wait for another user message — always pair
-            the correction acknowledgment with the closing in one message. Then
-            call alignment_complete.
+            management role."), then (2) ask if everything else sounds right.
+
             When they confirm the summary (e.g. "sounds good", "that's right",
             "thank you", "bye") do NOT repeat the recap. Give the closing in
             one message: one short, warm sentence, then briefly refer back to
             the start (we said we'd explore your goals and match you — we've
             done that). Say that job recommendations will now be created for
-            them. Tell them that jobs will appear on their Opportunities page shortly.
-            Call `alignment_complete` in the same turn.
-            Do NOT wait for them to respond to your goodbye before calling the tool..
+            them and jobs will appear on their Opportunities page shortly.
+            Call `alignment_complete` IN THE SAME TURN.
+            Do NOT wait for them to respond to your goodbye before calling the tool.
             """ + _build_insight_block(insights or []),
             tools=[get_faq],
         )
@@ -529,6 +525,6 @@ class AlignmentTask(AgentTask[None]):
 
     @function_tool
     async def alignment_complete(self) -> None:
-        """Call this once the candidate has confirmed the summary and you have said goodbye."""
+        """Call this once the candidate has confirmed the summary and you are ready to say goodbye."""
         update_completed_tasks(self.user_id, "alignment")
         self.complete(None)

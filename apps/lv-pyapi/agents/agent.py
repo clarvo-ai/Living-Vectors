@@ -16,6 +16,7 @@ from livekit.plugins.elevenlabs import TTS, VoiceSettings
 from database import SessionLocal
 from helper import fetch_completed_tasks, fetch_user_insights
 
+from faq import get_faq
 
 from tasks import (
     OpeningTask,
@@ -80,7 +81,7 @@ class CareerAssistant(Agent):
             If the user asks a FAQ type-question answer it ONLY if you know the answer. Do not hallucinate.
             """
 
-        super().__init__(instructions=instructions)
+        super().__init__(instructions=instructions, tools=[get_faq])
 
     async def on_enter(self) -> None:
         if not self.all_completed:
