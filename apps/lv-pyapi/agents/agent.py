@@ -50,8 +50,7 @@ def prewarm(proc: JobProcess) -> None:
 class CareerAssistant(Agent):
     DISCOVERY_TASKS = {"opening", "logistics", "industry", "location", "background", "culture", "value_vision", "alignment"}
 
-    def __init__(self, user_id: str, completed_tasks: List[str], user_insights: List[str], room=None) -> None:
-        self._room = room
+    def __init__(self, user_id: str, completed_tasks: List[str], user_insights: List[str]) -> None:
         self.user_id = user_id
         self.completed_tasks = completed_tasks
         self.user_insights = user_insights
@@ -96,6 +95,17 @@ class CareerAssistant(Agent):
         
         if self.all_completed:
             logger.info("[AGENT] Returning user — skipping TaskGroup, starting free-form check-in")
+
+            try:
+                async with lkapi.LiveKitAPI(LIVEKIT_URL, LIVEKIT_API_KEY, LIVEKIT_API_SECRET) as lk:
+                    await lk.room.update_room_metadata(lkapi.UpdateRoomMetadataRequest(
+                        room=f"interview-{self.user_id}",
+                        metadata=json.dumps({"current_task": "post-interview"}),
+                    ))
+                logger.info(f"[AGENT] Room metadata set to interview_ongoing=true for interview-{self.user_id}")
+            except Exception as e:
+                logger.error(f"[AGENT] Failed to set room metadata: {e}")
+
             await self.session.generate_reply(
                 instructions=(
                     "Welcome the candidate back warmly — you know them already. "
@@ -107,14 +117,14 @@ class CareerAssistant(Agent):
             return
 
         all_tasks = [
-            ("opening",      lambda: OpeningTask(self._room, self.user_id, self.user_insights),     "Why the candidate is here and how they found Clarvo"),
-            ("logistics",    lambda: LogisticsTask(self._room, self.user_id, self.user_insights),   "Job search logistics, timing, and motivation to leave"),
-            ("industry",     lambda: IndustryTask(self._room, self.user_id, self.user_insights),    "Target industry or field the candidate wants to work in"),
-            ("location",     lambda: LocationTask(self._room, self.user_id, self.user_insights),    "Preferred cities and remote/hybrid/onsite preferences"),
-            ("background",   lambda: BackgroundTask(self._room, self.user_id, self.user_insights),  "Work experience, strengths, and domain knowledge"),
-            ("culture",      lambda: CultureTask(self._room, self.user_id, self.user_insights),     "Team size, management style, and company culture fit"),
-            ("value_vision", lambda: ValueVisionTask(self._room, self.user_id, self.user_insights), "Compensation expectations and career vision"),
-            ("alignment",    lambda: AlignmentTask(self._room, self.user_id, self.user_insights),   "Summary confirmation and closing"),
+            ("opening",      lambda: OpeningTask(self.user_id, self.user_insights),     "Why the candidate is here and how they found Clarvo"),
+            ("logistics",    lambda: LogisticsTask(self.user_id, self.user_insights),   "Job search logistics, timing, and motivation to leave"),
+            ("industry",     lambda: IndustryTask(self.user_id, self.user_insights),    "Target industry or field the candidate wants to work in"),
+            ("location",     lambda: LocationTask(self.user_id, self.user_insights),    "Preferred cities and remote/hybrid/onsite preferences"),
+            ("background",   lambda: BackgroundTask(self.user_id, self.user_insights),  "Work experience, strengths, and domain knowledge"),
+            ("culture",      lambda: CultureTask(self.user_id, self.user_insights),     "Team size, management style, and company culture fit"),
+            ("value_vision", lambda: ValueVisionTask(self.user_id, self.user_insights), "Compensation expectations and career vision"),
+            ("alignment",    lambda: AlignmentTask(self.user_id, self.user_insights),   "Summary confirmation and closing"),
         ]
 
         task_group = TaskGroup(chat_ctx=self.chat_ctx)
@@ -176,7 +186,7 @@ async def my_agent(ctx: agents.JobContext):
 
     await session.start(
         room=ctx.room,
-        agent=CareerAssistant(room=ctx.room, user_id, completed_tasks, user_insights),
+        agent=CareerAssistant(user_id, completed_tasks, user_insights),
         room_options=room_io.RoomOptions(
             audio_input=room_io.AudioInputOptions(
                 noise_cancellation=noise_cancellation.NC(),
