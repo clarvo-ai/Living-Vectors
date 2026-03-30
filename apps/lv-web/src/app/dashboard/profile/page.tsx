@@ -3,6 +3,13 @@
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
+import {
+  isPhoneCharactersValid,
+  isPhoneMinLengthValid,
+  normalizePhoneForDisplay,
+  normalizePhoneForStorage,
+  PROFILE_FIELD_LIMITS,
+} from '@/lib/profile-validation';
 import { useSession } from 'next-auth/react';
 import { useRouter } from 'next/navigation';
 import { useEffect, useState } from 'react';
@@ -11,10 +18,12 @@ import { ProfileGetResponse, UserProfile } from '../../api/profile/route';
 
 export default function ProfilePage() {
   const { data: session, status } = useSession();
+  const userId = session?.user?.id;
   const router = useRouter();
   const [profile, setProfile] = useState<UserProfile | null>(null);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
+  const [phoneError, setPhoneError] = useState<string | null>(null);
 
   useEffect(() => {
     if (status === 'unauthenticated') {
@@ -23,10 +32,10 @@ export default function ProfilePage() {
   }, [status, router]);
 
   useEffect(() => {
-    if (session?.user?.id) {
+    if (userId) {
       fetchProfile();
     }
-  }, [session]);
+  }, [userId]);
 
   const fetchProfile = async () => {
     try {
@@ -34,7 +43,10 @@ export default function ProfilePage() {
       const data: ProfileGetResponse = await response.json();
 
       if (response.ok && 'body' in data) {
-        setProfile(data.body);
+        setProfile({
+          ...data.body,
+          phone: normalizePhoneForDisplay(data.body.phone),
+        });
       } else if ('error' in data) {
         toast.error(data.error);
       } else {
@@ -53,22 +65,56 @@ export default function ProfilePage() {
     if (!profile) return;
 
     setSaving(true);
+    setPhoneError(null);
     try {
+      const normalizedPhone = normalizePhoneForStorage(profile.phone);
+
+      if (!isPhoneCharactersValid(normalizedPhone)) {
+        const errorMessage = 'Phone number invalid';
+        setPhoneError(errorMessage);
+        toast.error(errorMessage);
+        return;
+      }
+
+      if (!isPhoneMinLengthValid(normalizedPhone)) {
+        const errorMessage = 'Phone number must have at least 6 digits';
+        setPhoneError(errorMessage);
+        toast.error(errorMessage);
+        return;
+      }
+
+      const payload = {
+        name: profile.name || null,
+        first_name: profile.first_name || null,
+        last_name: profile.last_name || null,
+        phone: normalizedPhone,
+        bio: profile.bio || null,
+      };
+
       const response = await fetch('/api/profile', {
         method: 'PUT',
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify(profile),
+        body: JSON.stringify(payload),
       });
 
       if (response.ok) {
         const updatedProfile: UserProfile = await response.json();
-        setProfile(updatedProfile);
+        setProfile({
+          ...updatedProfile,
+          phone: normalizePhoneForDisplay(updatedProfile.phone),
+        });
+        setPhoneError(null);
         toast.success('Profile updated successfully');
-        router.push('/dashboard');
       } else {
-        toast.error('Failed to update profile');
+        const errorResponse =
+          typeof response.json === 'function' ? await response.json().catch(() => null) : null;
+        const errorMessage =
+          errorResponse && typeof errorResponse.error === 'string'
+            ? errorResponse.error
+            : 'Failed to update profile';
+        toast.error(errorMessage);
       }
     } catch (error) {
       toast.error('Error updating profile');
@@ -80,6 +126,19 @@ export default function ProfilePage() {
 
   const handleInputChange = (field: keyof NonNullable<UserProfile>, value: string) => {
     if (!profile) return;
+
+    if (field === 'phone') {
+      if (phoneError) {
+        setPhoneError(null);
+      }
+
+      setProfile({
+        ...profile,
+        phone: value,
+      });
+      return;
+    }
+
     setProfile({
       ...profile,
       [field]: value || null,
@@ -121,6 +180,7 @@ export default function ProfilePage() {
                   value={profile.first_name || ''}
                   onChange={(e) => handleInputChange('first_name', e.target.value)}
                   placeholder="Enter your first name"
+                  maxLength={PROFILE_FIELD_LIMITS.firstName}
                 />
               </div>
               <div>
@@ -133,6 +193,7 @@ export default function ProfilePage() {
                   value={profile.last_name || ''}
                   onChange={(e) => handleInputChange('last_name', e.target.value)}
                   placeholder="Enter your last name"
+                  maxLength={PROFILE_FIELD_LIMITS.lastName}
                 />
               </div>
             </div>
@@ -147,6 +208,7 @@ export default function ProfilePage() {
                 value={profile.name || ''}
                 onChange={(e) => handleInputChange('name', e.target.value)}
                 placeholder="Enter your display name"
+                maxLength={PROFILE_FIELD_LIMITS.displayName}
               />
             </div>
 
@@ -175,8 +237,25 @@ export default function ProfilePage() {
                 type="tel"
                 value={profile.phone || ''}
                 onChange={(e) => handleInputChange('phone', e.target.value)}
-                placeholder="Enter your phone number"
+                placeholder="+358123456789"
+                inputMode="tel"
+                maxLength={PROFILE_FIELD_LIMITS.phone}
+                aria-invalid={Boolean(phoneError)}
+                className={
+                  phoneError
+                    ? 'border-red-500 ring-1 ring-red-500 focus-visible:ring-red-500'
+                    : undefined
+                }
+                style={phoneError ? { borderColor: '#ef4444' } : undefined}
               />
+              {phoneError ? (
+                <p className="text-xs text-red-600 mt-1">{phoneError}</p>
+              ) : (
+                <p className="text-xs text-gray-500 mt-1">
+                  Phone number must contain at least 6 digits and may include a country code with a
+                  &apos;+&apos;.
+                </p>
+              )}
             </div>
 
             <div>
@@ -189,6 +268,7 @@ export default function ProfilePage() {
                 value={profile.bio || ''}
                 onChange={(e) => handleInputChange('bio', e.target.value)}
                 placeholder="Tell us about yourself..."
+                maxLength={PROFILE_FIELD_LIMITS.bio}
                 className="flex w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
               />
             </div>

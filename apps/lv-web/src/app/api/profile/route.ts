@@ -1,7 +1,38 @@
+import {
+  isPhoneCharactersValid,
+  isPhoneMinLengthValid,
+  PROFILE_FIELD_LIMITS,
+} from '@/lib/profile-validation';
 import { prisma, User } from '@repo/db';
 import { authOptions } from '@repo/lib';
 import { getServerSession } from 'next-auth';
 import { NextRequest, NextResponse } from 'next/server';
+import { z } from 'zod';
+
+const nullableTrimmedString = (maxLength: number) =>
+  z.preprocess((value) => {
+    if (value == null) return null;
+    if (typeof value !== 'string') return value;
+
+    const trimmedValue = value.trim();
+    return trimmedValue === '' ? null : trimmedValue;
+  }, z.string().max(maxLength).nullable());
+
+const profileUpdateSchema = z
+  .object({
+    name: nullableTrimmedString(PROFILE_FIELD_LIMITS.displayName),
+    first_name: nullableTrimmedString(PROFILE_FIELD_LIMITS.firstName),
+    last_name: nullableTrimmedString(PROFILE_FIELD_LIMITS.lastName),
+    phone: nullableTrimmedString(PROFILE_FIELD_LIMITS.phone)
+      .refine((value) => isPhoneCharactersValid(value), {
+        message: 'Phone number invalid',
+      })
+      .refine((value) => isPhoneMinLengthValid(value), {
+        message: 'Phone number must have at least 6 digits',
+      }),
+    bio: nullableTrimmedString(PROFILE_FIELD_LIMITS.bio),
+  })
+  .strict();
 
 // Type-safe profile type based on the exact fields returned by the API
 export type UserProfile = Pick<
@@ -59,16 +90,28 @@ export async function PUT(request: NextRequest) {
     }
 
     const body = await request.json();
-    const { name, first_name, last_name, phone, bio } = body;
+    const parsedPayload = profileUpdateSchema.safeParse(body);
+
+    if (!parsedPayload.success) {
+      const firstIssue = parsedPayload.error.issues[0];
+      return NextResponse.json(
+        {
+          error: firstIssue?.message || 'Invalid profile input',
+        },
+        { status: 400 }
+      );
+    }
+
+    const { name, first_name, last_name, phone, bio } = parsedPayload.data;
 
     const updatedUser = await prisma.user.update({
       where: { id: session.user.id },
       data: {
-        name: name || null,
-        first_name: first_name || null,
-        last_name: last_name || null,
-        phone: phone || null,
-        bio: bio || null,
+        name,
+        first_name,
+        last_name,
+        phone,
+        bio,
       },
       select: {
         id: true,

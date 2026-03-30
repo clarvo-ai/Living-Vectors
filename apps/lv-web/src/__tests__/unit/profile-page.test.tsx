@@ -140,6 +140,147 @@ describe('Profile Page', () => {
     expect(firstNameInput.value).toBe('Jane');
   });
 
+  it('rejects phone numbers with invalid characters on save', async () => {
+    const user = userEvent.setup();
+    (global.fetch as jest.Mock).mockResolvedValueOnce({
+      ok: true,
+      json: async () => ({ body: mockProfile }),
+    });
+
+    render(<ProfilePage />);
+
+    await waitFor(() => {
+      expect(screen.getByLabelText(/Phone Number/i)).toBeInTheDocument();
+    });
+
+    const phoneInput = screen.getByLabelText(/Phone Number/i) as HTMLInputElement;
+    await user.clear(phoneInput);
+    await user.type(phoneInput, '12ab34');
+
+    const saveButton = screen.getByText(/Save Changes/i);
+    await user.click(saveButton);
+
+    await waitFor(() => {
+      expect(toast.error).toHaveBeenCalledWith('Phone number invalid');
+      expect(phoneInput).toHaveClass('border-red-500');
+      expect(phoneInput).toHaveAttribute('aria-invalid', 'true');
+    });
+
+    expect(global.fetch).toHaveBeenCalledTimes(1);
+  });
+
+  it('submits null phone when phone input is cleared', async () => {
+    const user = userEvent.setup();
+    (global.fetch as jest.Mock)
+      .mockResolvedValueOnce({
+        ok: true,
+        json: async () => ({ body: mockProfile }),
+      })
+      .mockResolvedValueOnce({
+        ok: true,
+        json: async () => mockProfile,
+      });
+
+    render(<ProfilePage />);
+
+    await waitFor(() => {
+      expect(screen.getByLabelText(/Phone Number/i)).toBeInTheDocument();
+    });
+
+    const phoneInput = screen.getByLabelText(/Phone Number/i) as HTMLInputElement;
+    await user.clear(phoneInput);
+    expect(phoneInput.value).toBe('');
+
+    const saveButton = screen.getByText(/Save Changes/i);
+    await user.click(saveButton);
+
+    await waitFor(() => {
+      expect(global.fetch).toHaveBeenCalledWith(
+        '/api/profile',
+        expect.objectContaining({
+          method: 'PUT',
+        })
+      );
+    });
+  });
+
+  it('rejects phone numbers shorter than 6 digits', async () => {
+    const user = userEvent.setup();
+    (global.fetch as jest.Mock).mockResolvedValueOnce({
+      ok: true,
+      json: async () => ({ body: mockProfile }),
+    });
+
+    render(<ProfilePage />);
+
+    await waitFor(() => {
+      expect(screen.getByLabelText(/Phone Number/i)).toBeInTheDocument();
+    });
+
+    const phoneInput = screen.getByLabelText(/Phone Number/i) as HTMLInputElement;
+    await user.clear(phoneInput);
+    await user.type(phoneInput, '12345');
+
+    const saveButton = screen.getByText(/Save Changes/i);
+    await user.click(saveButton);
+
+    await waitFor(() => {
+      expect(toast.error).toHaveBeenCalledWith('Phone number must have at least 6 digits');
+      expect(phoneInput).toHaveClass('border-red-500');
+      expect(phoneInput).toHaveAttribute('aria-invalid', 'true');
+    });
+
+    expect(global.fetch).toHaveBeenCalledTimes(1);
+  });
+
+  it('does not clear unsaved fields when session object refreshes', async () => {
+    const user = userEvent.setup();
+    let currentSession = {
+      user: {
+        id: '1',
+        name: 'John Doe',
+        email: 'john@example.com',
+      },
+    };
+
+    (useSession as jest.Mock).mockImplementation(() => ({
+      data: currentSession,
+      status: 'authenticated',
+    }));
+
+    (global.fetch as jest.Mock).mockResolvedValue({
+      ok: true,
+      json: async () => ({ body: mockProfile }),
+    });
+
+    const { rerender } = render(<ProfilePage />);
+
+    await waitFor(() => {
+      expect(screen.getByLabelText(/First Name/i)).toBeInTheDocument();
+    });
+
+    const firstNameInput = screen.getByLabelText(/First Name/i) as HTMLInputElement;
+    await user.clear(firstNameInput);
+    await user.type(firstNameInput, 'Jane');
+    expect(firstNameInput.value).toBe('Jane');
+
+    currentSession = {
+      user: {
+        id: '1',
+        name: 'John Doe Refreshed',
+        email: 'john@example.com',
+      },
+    };
+
+    rerender(<ProfilePage />);
+
+    await waitFor(() => {
+      expect((screen.getByLabelText(/First Name/i) as HTMLInputElement).value).toBe('Jane');
+    });
+
+    expect(global.fetch).toHaveBeenCalledTimes(1);
+  });
+
   it('submits form with updated data', async () => {
     const user = userEvent.setup();
     (global.fetch as jest.Mock)
