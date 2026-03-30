@@ -1,3 +1,7 @@
 FROM grafana/tempo:2.10.1
-COPY tempo.yaml /etc/tempo.yaml
-CMD ["-config.file=/etc/tempo.yaml", "-config.expand-env=true", "-target=all"]
+
+# Copy your config
+COPY tempo.yaml /etc/tempo/tempo.yaml
+
+# Explicitly use the flags to enable environment variable expansion
+CMD ["-config.file=/etc/tempo/tempo.yaml", "-config.expand-env=true"]
