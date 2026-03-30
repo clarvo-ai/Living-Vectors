@@ -19,7 +19,7 @@ processors:
 
 exporters:
   otlp_grpc/tempo:
-    endpoint: ${TEMPO_URL}
+    endpoint: ${TEMPO_URL}:443
 
   prometheusremotewrite/mimir:
     endpoint: ${MIMIR_URL}/api/v1/push
