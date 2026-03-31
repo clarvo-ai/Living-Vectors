@@ -53,7 +53,7 @@ function loadInterviewSystemPrompt(): string {
 function initializeGeminiClient() {
   if (GEMINI_API_KEY && !geminiClient) {
     console.log(
-      `[Init] Initializing Gemini client with API key: ${GEMINI_API_KEY.substring(0, 10)}...`
+      `[Init] Initializing Gemini client with configured API key`
     );
     geminiClient = new GoogleGenerativeAI(GEMINI_API_KEY);
   } else if (!GEMINI_API_KEY) {
