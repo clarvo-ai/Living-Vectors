@@ -112,7 +112,6 @@ class CareerAssistant(Agent):
             await self.session.generate_reply(
                 instructions=(
                     "Welcome the candidate back warmly — you know them already. "
-                    "Briefly summarise their profile. "
                     "Then ask just ONE open question: whether anything has changed since you last spoke, "
                     "or if there is anything on their mind."
                 )
