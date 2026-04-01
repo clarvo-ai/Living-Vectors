@@ -1,4 +1,6 @@
+import asyncio
 import logging
+from typing import Any, Optional
 
 from livekit.agents import AgentTask, function_tool
 
@@ -7,49 +9,108 @@ from faq import get_faq
 logger = logging.getLogger("career-agent")
 
 
+def _last_message_was_from_user(session: Any) -> bool:
+    """
+    Return True if the last message in session history is from the user, or if history is empty.
+    Used in on_enter to avoid sending two agent messages in a row when multiple tasks are
+    entered in the same turn (e.g. logistics_complete then industry_complete without user reply).
+    We only generate a reply when we are actually responding to something the user said.
+    """
+    try:
+        items = getattr(session.history, "items", None) or []
+    except Exception:
+        return True  # If we can't read history, allow reply (e.g. start of session)
+    if not items:
+        return True  # Start of conversation — we may send the opening greeting
+    last = items[-1]
+    role = getattr(last, "role", None)
+    if role is None:
+        return True
+    # Compare as string in case role is an enum
+    return str(role).lower() == "user"
+
+
+async def _deferred_on_enter_reply(session: Any, instructions: str) -> None:
+    """
+    Run the on_enter reply on the next event-loop tick so that any agent message
+    from the previous task (e.g. one that just called X_complete) is committed to
+    history before we check. This prevents two consecutive agent messages when
+    transitioning between tasks.
+    """
+    await asyncio.sleep(0)
+    if not _last_message_was_from_user(session):
+        return
+    try:
+        await session.generate_reply(instructions=instructions)
+    except Exception as e:
+        logger.warning("Deferred on_enter reply failed: %s", e)
+async def _set_current_task(room: Any, task_id: str) -> None:
+    """Update agent participant attributes so the frontend can show the current task."""
+    if room is None:
+        return
+    try:
+        await room.local_participant.set_attributes({"current_task": task_id})
+    except Exception as e:
+        logger.warning("Failed to set current_task attribute: %s", e)
+
+
 class OpeningTask(AgentTask[None]):
-    def __init__(self) -> None:
+    def __init__(self, room: Optional[Any] = None, task_id: str = "opening") -> None:
+        self._room = room
+        self._task_id = task_id
         super().__init__(
             instructions="""
-            Your name is the "Clarvo career assistant".
-            You are a career consultant in the opening phase of a discovery call.
-            Your goals: understand why the candidate is here, what they hope to get out of this,
-            and after getting a good sense of those earlier questions ask "on the side" where they heard about Clarvo.
+            Your name is the "Clarvo career assistant" — you help people explore
+            their goals and get matched to the right job opportunities.
+            In this phase, your goal is to learn: their current motivation and
+            direction, why they are here, what they hope to get, and where they
+            heard about Clarvo.
 
-            Tone: sit right at the border between a professional recruiter and a trusted friend —
-            warm, relaxed, and genuine, but focused and purposeful. Never stiff, never overly casual.
+            Move on to the next phase (call opening_complete) once you know these
+            things about the user. You might get there by asking, for example
+            (one per turn; skip if already clear):
+            - What's been exciting or interesting in what they've been learning
+              or doing lately?
+            - What led them to the field or direction they're in right now?
+            - What brought them here today — what do they hope to get out of
+              this?
+            - Where did they hear about Clarvo? (Lead in briefly, e.g. "Quick
+              thing — where did you hear about us?")
 
-            Rules for this task:
-            - Ask ONE question per turn. Wait for their answer before moving on.
-            - Before asking the next question, react genuinely to what they said — like a real
-              person would. A few natural sentences is fine. Think warmth, not efficiency.
-              e.g. "Oh nice, that's a good way to hear about us. A lot of people find us
-              through word of mouth actually." or "Ha, yeah that's a pretty common feeling —
-              good that you're doing something about it."
-            - Do NOT parrot back or summarise what they said. Avoid phrases like
-              "Just to confirm...", "So you said...", "To recap...", or "So to summarise...".
-              React, don't recap. Summaries are for the final task.
-            - Accept short, simple answers at face value. Only ask a follow-up if the answer is
-              genuinely ambiguous — not just brief.
-            - Keep the overall response short — this is a voice conversation, not an essay.
-            - IMPORTANT: This is just one phase of a longer conversation — never use any
-              "wrapping up", "closing out", or "that's everything I need" language. There is
-              more conversation to come after this.
-            - Once you have a clear sense of their primary objective and how they found Clarvo,
-              call opening_complete. Do NOT generate any verbal response before calling it.
-              Do not say "great", "got it", "that's helpful", or anything else. Call the function
-              silently — the next phase will handle the next response.
+            Rules:
+            - Do not send a message when you first enter this task after another
+              task was just completed; only respond after the user has spoken.
+            - React to what they said in a way that shows you heard them (reflect
+              a detail, show interest, or connect to the next topic). Then ask
+              one question. Avoid stock phrases like "Got it," "Great,"
+              "Understood" as the only reaction.
+            - Accept short answers. Keep responses short — voice conversation,
+              not an essay.
+            - This is one phase of a longer conversation — no "wrapping up" or
+              "that's everything I need" language.
+            - Once you know their primary objective and how they found Clarvo,
+              call opening_complete. Do not speak before calling it. Call
+              silently — next phase will respond.
             """,
             tools=[get_faq],
         )
 
     async def on_enter(self) -> None:
+        await _set_current_task(self._room, self._task_id)
         logger.info("[TASK] Opening — greeting and discovery")
-        await self.session.generate_reply(
-            instructions=(
-                "Warmly welcome the candidate and introduce yourself briefly as their career consultant. "
-                "Keep it natural and friendly — like you're genuinely glad they're here. "
-                "Then ask just ONE question: what brought them here today. Nothing else."
+        asyncio.create_task(
+            _deferred_on_enter_reply(
+                self.session,
+                "Give a very short introduction: what this is (a discovery "
+                "conversation to understand their goals and preferences), "
+                "what will happen (you'll ask about their background, what they "
+                "want next, and constraints so you can match them to the right "
+                "roles), and why (so job recommendations can be created for "
+                "them). Keep it to 2-3 sentences. "
+                "Do not start with 'Okay' or 'Ok'. Start with something warm "
+                "(e.g. 'Hey there!') then the intro. "
+                "Then ask ONE question: e.g. what's been exciting lately, "
+                "what led them here, or what they hope to get out of this.",
             )
         )
 
@@ -60,43 +121,47 @@ class OpeningTask(AgentTask[None]):
 
 
 class LogisticsTask(AgentTask[None]):
-    def __init__(self) -> None:
+    def __init__(self, room: Optional[Any] = None, task_id: str = "logistics") -> None:
+        self._room = room
+        self._task_id = task_id
         super().__init__(
             instructions="""
-            You are a career consultant. Your goal is to understand the candidate's
-            job search situation so you know how urgently and actively to work on their behalf.
-            Cover:
-            - How actively they are searching right now
-            - When they are looking to make a move
-            - Work authorization status if relevant
-            - What is driving them to consider a change (the "push" factor)
+            Your name is the "Clarvo career assistant". In this phase, learn
+            about their job search situation so you know how urgently and
+            actively to work on their behalf.
+
+            Move on to the next phase (call logistics_complete) once you know
+            these things about the user: how actively they are searching right
+            now; when they are looking to make a move; and what is driving them
+            to consider a change (the "push" factor). Do not ask about work
+            authorization.
 
             Rules:
-            - Ask ONE question per turn. Wait for their answer before moving on.
-            - React genuinely to what they say before moving to the next question — like a
-              real person, not a form. A few natural sentences of smalltalk is encouraged.
-            - Do NOT parrot back or summarise what they said. Avoid phrases like
-              "Just to confirm...", "So you said...", "To recap...", or "So to summarise...".
-              React, don't recap. Summaries are for the final task.
-            - Accept short, simple answers at face value. Only ask a follow-up if the answer is
-              genuinely ambiguous — not just brief.
-            - IMPORTANT: This is just one phase of a longer conversation — never use any
-              "wrapping up", "closing out", or "that's everything I need" language. There is
-              more conversation to come after this.
-            - When you have covered these areas, call logistics_complete. Do NOT generate any
-              verbal response before calling it. Do not say "great", "got it", "that's helpful",
-              or anything else. Call the function silently — the next phase will handle the next response.
+            - Do not send a message when you first enter this task after
+              another task was just completed; only respond after the user has
+              spoken.
+            - React to what they said in a way that shows you heard them
+              (reflect a detail, show interest, or connect to the next topic).
+              Then ask one question. Avoid stock phrases like "Got it," "Great,"
+              "Understood" as the only reaction. Accept short answers. Short
+              responses.
+            - One phase of a longer conversation — no "wrapping up" language.
+            - Once you know the above, call logistics_complete. Do not speak
+              before calling it. Call silently.
             """,
             tools=[get_faq],
         )
 
     async def on_enter(self) -> None:
+        await _set_current_task(self._room, self._task_id)
         logger.info("[TASK] Logistics — search intensity, timing, motivation")
-        await self.session.generate_reply(
-            instructions=(
-                "Transition naturally into understanding their job search situation. "
-                "Briefly acknowledge what they just shared if there's a natural hook, "
-                "then ask just ONE question: how actively they are searching right now."
+        asyncio.create_task(
+            _deferred_on_enter_reply(
+                self.session,
+                "Connect to what they just said (e.g. their goal or how they "
+                "found Clarvo), then ask one question: how actively they are "
+                "searching right now. No generic 'In terms of your job search…' "
+                "unless it naturally follows from their words.",
             )
         )
 
@@ -107,47 +172,34 @@ class LogisticsTask(AgentTask[None]):
 
 
 class IndustryTask(AgentTask[None]):
-    def __init__(self) -> None:
+    def __init__(self, room: Optional[Any] = None, task_id: str = "industry") -> None:
+        self._room = room
+        self._task_id = task_id
         super().__init__(
             instructions="""
-            You are a career consultant. Before diving into specifics, you need to understand
-            what industry or field the candidate wants to work in. This shapes everything —
-            location constraints, work model, compensation benchmarks, and what "a great role"
-            even looks like for them. Cover:
-            - Which industry or field they are targeting (e.g. healthcare, finance, tech,
-              education, creative, retail, logistics, public sector — anything)
-            - Whether they want to stay in their current industry or switch to something new
-            - If switching, what's drawing them to the new field
+            Your name is the "Clarvo career assistant". Before diving into specifics, you need to understand what industry or field they want to work in — it shapes location, work model, comp, and what "a great role" looks like for them.
+
+            Move on to the next phase (call industry_complete) once you know these things about the user: which industry or field they are targeting (e.g. healthcare, finance, tech, education, creative, retail, logistics, public sector); whether they want to stay in their current industry or switch; and if switching, what's drawing them to the new field.
 
             Rules:
-            - Ask ONE question per turn. Wait for their answer before moving on.
-            - React genuinely to what they say before moving to the next question — like a
-              real person, not a form. A few natural sentences of smalltalk is encouraged.
-            - Do NOT parrot back or summarise what they said. Avoid phrases like
-              "Just to confirm...", "So you said...", "To recap...", or "So to summarise...".
-              React, don't recap. Summaries are for the final task.
-            - Accept short, simple answers at face value. Only ask a follow-up if the answer is
-              genuinely ambiguous — not just brief.
-            - Keep the overall response short — this is a voice conversation, not an essay.
-            - IMPORTANT: This is just one phase of a longer conversation — never use any
-              "wrapping up", "closing out", or "that's everything I need" language. There is
-              more conversation to come after this.
-            - When you have a clear picture of their target industry, call industry_complete.
-              Do NOT generate any verbal response before calling it. Do not say "great", "got it",
-              "that's helpful", or anything else. Call the function silently — the next phase will
-              handle the next response.
+            - Do not send a message when you first enter this task after another task was just completed; only respond after the user has spoken.
+            - React to what they said in a way that shows you heard them (reflect a detail, show interest, or connect to the next topic). Then ask one question. Avoid stock phrases like "Got it," "Great," "Understood" as the only reaction. Accept short answers. Short responses.
+            - One phase of a longer conversation — no "wrapping up" language.
+            - Once you know the above, call industry_complete. Do not speak before calling it. Call silently.
             """,
             tools=[get_faq],
         )
 
     async def on_enter(self) -> None:
+        await _set_current_task(self._room, self._task_id)
         logger.info("[TASK] Industry — target field and sector")
-        await self.session.generate_reply(
-            instructions=(
-                "Transition naturally into understanding what kind of work they are looking for. "
-                "Briefly acknowledge what they just shared if there's a natural hook, "
-                "then ask just ONE question: what industry or field they are targeting. "
-                "Keep it open and curious — there's no wrong answer."
+        asyncio.create_task(
+            _deferred_on_enter_reply(
+                self.session,
+                "Connect to what they just said (e.g. their timing or "
+                "motivation), then ask one question about what industry or "
+                "field they're targeting. No generic 'In terms of the kind of "
+                "work you want…' unless it naturally follows from their words.",
             )
         )
 
@@ -158,46 +210,48 @@ class IndustryTask(AgentTask[None]):
 
 
 class LocationTask(AgentTask[None]):
-    def __init__(self) -> None:
+    def __init__(self, room: Optional[Any] = None, task_id: str = "location") -> None:
+        self._room = room
+        self._task_id = task_id
         super().__init__(
             instructions="""
-            You are a career consultant. Understanding location constraints is critical
-            for narrowing down the right opportunities for this candidate. Cover:
-            - Which cities or regions they prefer
-            - Openness to relocation
-            - Their preference on remote, hybrid, or on-site work — BUT only ask this if it is
-              actually relevant to their industry. For roles that are inherently on-site
-              (e.g. healthcare, childcare, retail, construction, hospitality) skip this question
-              or acknowledge it naturally rather than asking as if it were a real option.
-            Be practical — you need this to filter jobs accurately on their behalf.
+            Understanding location constraints is critical for narrowing down
+            the right opportunities. You need this to filter jobs accurately on
+            their behalf.
+
+            Move on to the next phase (call location_complete) once you know
+            these things about the user: which cities or regions they prefer;
+            openness to relocation; and their preference on remote, hybrid, or
+            on-site work — but only if relevant to their industry (for
+            inherently on-site roles e.g. healthcare, childcare, retail,
+            construction, hospitality, skip or acknowledge naturally).
 
             Rules:
-            - Ask ONE question per turn. Wait for their answer before moving on.
-            - React genuinely to what they say before moving to the next question — like a
-              real person, not a form. A few natural sentences of smalltalk is encouraged.
-            - Do NOT parrot back or summarise what they said. Avoid phrases like
-              "Just to confirm...", "So you said...", "To recap...", or "So to summarise...".
-              React, don't recap. Summaries are for the final task.
-            - Accept short, simple answers at face value. Only ask a follow-up if the answer is
-              genuinely ambiguous — not just brief.
-            - Keep the overall response short — this is a voice conversation, not an essay.
-            - IMPORTANT: This is just one phase of a longer conversation — never use any
-              "wrapping up", "closing out", or "that's everything I need" language. There is
-              more conversation to come after this.
-            - When covered, call location_complete. Do NOT generate any verbal response before
-              calling it. Do not say "great", "got it", "that's helpful", or anything else.
-              Call the function silently — the next phase will handle the next response.
+            - Do not send a message when you first enter this task after
+              another task was just completed; only respond after the user has
+              spoken.
+            - React to what they said in a way that shows you heard them
+              (reflect a detail, show interest, or connect to the next topic).
+              Then ask one question. Avoid stock phrases like "Got it," "Great,"
+              "Understood" as the only reaction. Accept short answers. Short
+              responses.
+            - One phase of a longer conversation — no "wrapping up" language.
+            - Once you know the above, call location_complete. Do not speak
+              before calling it. Call silently.
             """,
             tools=[get_faq],
         )
 
     async def on_enter(self) -> None:
+        await _set_current_task(self._room, self._task_id)
         logger.info("[TASK] Location — cities, relocation, remote/hybrid/onsite")
-        await self.session.generate_reply(
-            instructions=(
-                "Transition naturally into understanding their location preferences. "
-                "Briefly acknowledge what they just shared if there's a natural hook, "
-                "then ask just ONE question: which cities or regions they prefer."
+        asyncio.create_task(
+            _deferred_on_enter_reply(
+                self.session,
+                "Connect to what they just said (e.g. their industry or role), "
+                "then ask one question about which cities or regions they prefer. "
+                "No generic 'In terms of location…' unless it naturally follows "
+                "from their words.",
             )
         )
 
@@ -208,47 +262,57 @@ class LocationTask(AgentTask[None]):
 
 
 class BackgroundTask(AgentTask[None]):
-    def __init__(self) -> None:
+    def __init__(self, room: Optional[Any] = None, task_id: str = "background") -> None:
+        self._room = room
+        self._task_id = task_id
         super().__init__(
             instructions="""
-            You are a career consultant doing a deep professional background assessment.
-            The better you understand their background, the better the roles you can surface.
-            This can be any field — engineering, design, marketing, finance, sales, operations,
-            creative, legal, healthcare, or anything else. Adapt your language and questions to
-            their domain. Cover:
-            - Their most recent and relevant roles
-            - The skills and areas where they truly excel (their "superpowers")
-            - Areas they want to grow into — important for finding stretch roles
-            - Key tools, methods, or domain knowledge relevant to their field
-            Be specific where they are specific. Speak their professional language, not generic corporate jargon.
+            Your name is the "Clarvo career assistant". Deep professional
+            background — the better you understand them, the better the roles
+            you can surface. Adapt to their field (engineering, design,
+            marketing, etc.). Speak their professional language.
+
+            Move on to the next phase (call background_complete) once you know
+            these things about the user: their recent or most relevant roles;
+            skills and areas where they excel; areas they want to grow into;
+            key tools or domain knowledge; what makes work harder or drains
+            them; and what would make the next step easier. You might get there
+            by asking, for example (one per turn; skip if already clear): what
+            gives them energy in their work or what projects make them lose
+            track of time; what people usually come to them for or what feels
+            effortless for them; what their most recent role was and what they
+            did day to day; what situations make work harder or what would make
+            their next step easier. When moving to a new theme, use a
+            one-sentence bridge (e.g. "Another angle — …", "In terms of your
+            strengths…").
 
             Rules:
-            - Ask ONE question per turn. Wait for their answer before moving on.
-            - React genuinely to what they say before moving to the next question — like a
-              real person, not a form. A few natural sentences of smalltalk is encouraged.
-            - Do NOT parrot back or summarise what they said. Avoid phrases like
-              "Just to confirm...", "So you said...", "To recap...", or "So to summarise...".
-              React, don't recap. Summaries are for the final task.
-            - Accept short, simple answers at face value. Only ask a follow-up if the answer is
-              genuinely ambiguous — not just brief.
-            - Keep the overall response short — this is a voice conversation, not an essay.
-            - IMPORTANT: This is just one phase of a longer conversation — never use any
-              "wrapping up", "closing out", or "that's everything I need" language. There is
-              more conversation to come after this.
-            - When you have a solid picture, call background_complete. Do NOT generate any
-              verbal response before calling it. Do not say "great", "got it", "that's helpful",
-              or anything else. Call the function silently — the next phase will handle the next response.
+            - Do not send a message when you first enter this task after
+              another task was just completed; only respond after the user has
+              spoken.
+            - React to what they said in a way that shows you heard them
+              (reflect a detail, show interest, or connect to the next topic).
+              Then ask one question. Avoid stock phrases like "Got it," "Great,"
+              "Understood" as the only reaction. Accept short answers. Short
+              responses.
+            - One phase of a longer conversation — no "wrapping up" language.
+            - Once you know the above, call background_complete. Do not speak
+              before calling it. Call silently.
             """,
             tools=[get_faq],
         )
 
     async def on_enter(self) -> None:
+        await _set_current_task(self._room, self._task_id)
         logger.info("[TASK] Background — roles, strengths, tools/domain")
-        await self.session.generate_reply(
-            instructions=(
-                "Transition naturally into their professional background. "
-                "Briefly acknowledge what they just shared if there's a natural hook, "
-                "then ask just ONE question: what their most recent role was."
+        asyncio.create_task(
+            _deferred_on_enter_reply(
+                self.session,
+                "Connect to what they just said (e.g. their location or work "
+                "model), then ask one question: e.g. what gives them energy in "
+                "their work, or what their most recent role was. No generic "
+                "'Let's talk about your background…' unless it naturally "
+                "follows from their words.",
             )
         )
 
@@ -259,44 +323,53 @@ class BackgroundTask(AgentTask[None]):
 
 
 class CultureTask(AgentTask[None]):
-    def __init__(self) -> None:
+    def __init__(self, room: Optional[Any] = None, task_id: str = "culture") -> None:
+        self._room = room
+        self._task_id = task_id
         super().__init__(
             instructions="""
-            You are a career consultant. Culture fit is one of the biggest reasons
-            placements succeed or fail — this matters as much as the skills match.
-            Cover:
-            - Management style they thrive under
-            - Preferred team size
-            - Where they fall on the startup vs established company spectrum
-            Reference earlier answers where relevant to avoid repetition.
+            Your name is the "Clarvo career assistant". Culture fit matters as
+            much as skills for placement success.
+
+            Move on to the next phase (call culture_complete) once you know
+            these things about the user: what management style they thrive
+            under; preferred team size; where they fall on startup vs
+            established company; how they like to support or guide others; and
+            how they contribute to team decisions. You might get there by
+            asking, for example (one per turn; skip if already clear): what
+            kind of teamwork makes them feel at their best; what environment
+            helps them do their best work; how they like to support others or
+            how they contribute when the team makes decisions. When moving to a
+            new theme, use a one-sentence bridge (e.g. "In terms of how you
+            like to work…").
 
             Rules:
-            - Ask ONE question per turn. Wait for their answer before moving on.
-            - React genuinely to what they say before moving to the next question — like a
-              real person, not a form. A few natural sentences of smalltalk is encouraged.
-            - Do NOT parrot back or summarise what they said. Avoid phrases like
-              "Just to confirm...", "So you said...", "To recap...", or "So to summarise...".
-              React, don't recap. Summaries are for the final task.
-            - Accept short, simple answers at face value. Only ask a follow-up if the answer is
-              genuinely ambiguous — not just brief.
-            - Keep the overall response short — this is a voice conversation, not an essay.
-            - IMPORTANT: This is just one phase of a longer conversation — never use any
-              "wrapping up", "closing out", or "that's everything I need" language. There is
-              more conversation to come after this.
-            - When covered, call culture_complete. Do NOT generate any verbal response before
-              calling it. Do not say "great", "got it", "that's helpful", or anything else.
-              Call the function silently — the next phase will handle the next response.
+            - Do not send a message when you first enter this task after
+              another task was just completed; only respond after the user has
+              spoken.
+            - React to what they said in a way that shows you heard them
+              (reflect a detail, show interest, or connect to the next topic).
+              Then ask one question. Avoid stock phrases like "Got it," "Great,"
+              "Understood" as the only reaction. Accept short answers. Short
+              responses.
+            - One phase of a longer conversation — no "wrapping up" language.
+            - Once you know the above, call culture_complete. Do not speak
+              before calling it. Call silently.
             """,
             tools=[get_faq],
         )
 
     async def on_enter(self) -> None:
+        await _set_current_task(self._room, self._task_id)
         logger.info("[TASK] Culture — management style, team size, startup vs corp")
-        await self.session.generate_reply(
-            instructions=(
-                "Transition naturally into culture fit. "
-                "Briefly acknowledge what they just shared if there's a natural hook, "
-                "then ask just ONE question: what kind of management style they thrive under."
+        asyncio.create_task(
+            _deferred_on_enter_reply(
+                self.session,
+                "Connect to what they just said (e.g. their strengths or "
+                "role), then ask one question: e.g. what kind of teamwork "
+                "works best for them, or what management style they thrive "
+                "under. No generic 'Let's talk about the kind of "
+                "environment…' unless it naturally follows from their words.",
             )
         )
 
@@ -307,45 +380,58 @@ class CultureTask(AgentTask[None]):
 
 
 class ValueVisionTask(AgentTask[None]):
-    def __init__(self) -> None:
+    def __init__(self, room: Optional[Any] = None, task_id: str = "value_vision") -> None:
+        self._room = room
+        self._task_id = task_id
         super().__init__(
             instructions="""
-            You are a career consultant. You need comp and vision data to make sure
-            you only surface roles worth their time — and to advocate for them in negotiations.
-            Cover:
-            - Their compensation expectations (a range is fine — reassure them this helps you filter)
-            - Flexibility on comp vs other factors like equity, benefits, or role scope
-            - Where they see themselves in three to five years — important for finding roles with growth
-            Be warm and direct. Frame this as you working on their behalf, not an interrogation.
+            Your name is the "Clarvo career assistant". You need comp and
+            vision to surface roles worth their time and advocate for them.
+
+            Move on to the next phase (call value_vision_complete) once you know
+            these things about the user: their compensation expectations (a
+            range is fine; reassure this helps you filter); how they weigh comp
+            vs equity, benefits, or role scope; where they see themselves in
+            the next few years (ask about one timeframe only, e.g. 3-5 years —
+            do not also ask about 10-15 years or longer term); and what matters
+            most to them in how they work. You might get there by asking, for
+            example (one per turn; skip if already clear): what are their
+            compensation expectations; how they weigh comp vs other factors;
+            where they see themselves in the next few years or what
+            problems/causes they'd love to be part of (one career-vision
+            question only; do not ask both a 3–5 year and a 10–15 year goal);
+            what matters most in the way they work or what meaningful work
+            means to them. When moving to a new theme, use a one-sentence
+            bridge (e.g. "In terms of where you're headed…"). Warm and direct —
+            you're on their side.
 
             Rules:
-            - Ask ONE question per turn. Wait for their answer before moving on.
-            - React genuinely to what they say before moving to the next question — like a
-              real person, not a form. A few natural sentences of smalltalk is encouraged.
-            - Do NOT parrot back or summarise what they said. Avoid phrases like
-              "Just to confirm...", "So you said...", "To recap...", or "So to summarise...".
-              React, don't recap. Summaries are for the final task.
-            - Accept short, simple answers at face value. Only ask a follow-up if the answer is
-              genuinely ambiguous — not just brief.
-            - Keep the overall response short — this is a voice conversation, not an essay.
-            - IMPORTANT: This is just one phase of a longer conversation — never use any
-              "wrapping up", "closing out", or "that's everything I need" language. There is
-              more conversation to come after this.
-            - When covered, call value_vision_complete. Do NOT generate any verbal response
-              before calling it. Do not say "great", "got it", "that's helpful", or anything else.
-              Call the function silently — the next phase will handle the next response.
+            - Do not send a message when you first enter this task after
+              another task was just completed; only respond after the user has
+              spoken.
+            - React to what they said in a way that shows you heard them
+              (reflect a detail, show interest, or connect to the next topic).
+              Then ask one question. Avoid stock phrases like "Got it," "Great,"
+              "Understood" as the only reaction. Accept short answers. Short
+              responses.
+            - One phase of a longer conversation — no "wrapping up" language.
+            - Once you know the above, call value_vision_complete. Do not speak
+              before calling it. Call silently.
             """,
             tools=[get_faq],
         )
 
     async def on_enter(self) -> None:
+        await _set_current_task(self._room, self._task_id)
         logger.info("[TASK] Value & Vision — compensation, career goals")
-        await self.session.generate_reply(
-            instructions=(
-                "Transition naturally into comp and career vision. "
-                "Briefly acknowledge what they just shared if there's a natural hook, "
-                "then frame it warmly — you need this to filter roles on their behalf. "
-                "Ask just ONE question: what their compensation expectations are."
+        asyncio.create_task(
+            _deferred_on_enter_reply(
+                self.session,
+                "Connect to what they just said (e.g. their culture or team "
+                "preferences), then ask one question: e.g. compensation "
+                "expectations, or what matters most to them in how they work. "
+                "No generic 'To surface roles worth your time…' unless it "
+                "naturally follows from their words.",
             )
         )
 
@@ -356,32 +442,53 @@ class ValueVisionTask(AgentTask[None]):
 
 
 class AlignmentTask(AgentTask[None]):
-    def __init__(self) -> None:
+    def __init__(self, room: Optional[Any] = None, task_id: str = "alignment") -> None:
+        self._room = room
+        self._task_id = task_id
         super().__init__(
             instructions="""
-            You are a career consultant wrapping up this discovery session.
-            Your job now is to confirm you have what you need to go and find them the right roles.
-            Cover:
-            - A warm, natural summary of what you heard — their background, priorities, and constraints
-            - Confirm the hard constraints (location, comp, work model) so there are no surprises later
-            - Ask if the summary sounds right or if they want to correct anything
-            - Once they confirm, close warmly: tell them that job recommendations are now being created
-              based on everything they shared, and that the results will appear shortly on their
-              "opportunities" page. Say a genuine goodbye.
-            Call alignment_complete once they have confirmed the summary and you have said goodbye.
+            Your name is the "Clarvo career assistant". Wrapping up: deliver a
+            brief summary, get confirmation, then close the call properly.
+            Do NOT ask extra "final" questions (e.g. "Who else should I talk
+            to?", "Anything else to share?"). Stick to: summary → ask if it
+            sounds right → when they confirm or say goodbye, give the closing
+            once and stop.
+            If the user corrects one or two details (e.g. salary range, timeline
+            for management): in the SAME message, (1) briefly acknowledge the
+            correction (e.g. "Noted, 3000–3500." or "Got it, 10 years for a
+            management role."), then (2) immediately give the full closing: one
+            short warm sentence, then that we've explored their goals, job
+            recommendations will be created, they can close the call and go to
+            the opportunities page, jobs will appear shortly, goodbye. Do not
+            send only "Noted" and wait for another user message — always pair
+            the correction acknowledgment with the closing in one message. Then
+            call alignment_complete.
+            When they confirm the summary (e.g. "sounds good", "that's right",
+            "thank you", "bye") do NOT repeat the recap. Give the closing in
+            one message: one short, warm sentence, then briefly refer back to
+            the start (we said we'd explore your goals and match you — we've
+            done that). Say that job recommendations will now be created for
+            them. Tell them they can close the call and go to the opportunities
+            page, and that jobs will appear there shortly. Then say goodbye.
+            Call alignment_complete once you have said this closing and goodbye.
             """,
             tools=[get_faq],
         )
 
     async def on_enter(self) -> None:
+        await _set_current_task(self._room, self._task_id)
         logger.info("[TASK] Alignment — summary, confirm, close")
-        await self.session.generate_reply(
-            instructions=(
-                "The discovery phase is complete. Use ONLY the captured insights listed below "
-                "as the basis for your summary — do not invent or add anything not in the list. "
-                "Deliver a warm, natural summary covering their background, what they are great at, "
-                "what they want next, and their hard constraints on location, comp, and work model. "
-                "Then ask if the summary sounds right and if they want to add or correct anything.\n\n"
+        asyncio.create_task(
+            _deferred_on_enter_reply(
+                self.session,
+                "Use ONLY the captured insights as the basis for your summary "
+                "— do not add anything not in the list. "
+                "Deliver a short, warm summary: background, what they're great "
+                "at, what they want next, hard constraints (location, comp, "
+                "work model). "
+                "Then ask if the summary sounds right. Do not ask any other "
+                "questions (no 'who else should I talk to', 'anything else to "
+                "share', etc.).",
             )
         )
 
