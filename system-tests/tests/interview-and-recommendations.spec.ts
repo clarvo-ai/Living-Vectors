@@ -13,41 +13,16 @@ const GEMINI_API_KEY = process.env.GEMINI_API_KEY || '';
 const PROMPTS_DIR = path.resolve(process.cwd(), 'test_prompts');
 const INTERVIEW_SYSTEM_PROMPT_PATH = path.join(PROMPTS_DIR, 'interview-candidate-system.md');
 
-const DEFAULT_INTERVIEW_SYSTEM_PROMPT = `You are a job candidate in a career interview. Answer the interviewer's questions directly and naturally, just like a real person would in a conversation.
-
-Rules:
-- Give ONE clear, direct sentence or short phrase as your answer
-- Sound natural and conversational, NOT formal or robotic
-- ALWAYS answer the question asked
-- End with proper punctuation (. or ! or ?)
-- Do NOT apologize or say "Let me think"
-- Do NOT give multiple sentences - keep it SHORT and DIRECT
-- Sound confident and interested in the job
-
-About you:
-- Backend engineer with 5+ years experience
-- Interested in climate tech, AI tools, education
-- Want hybrid/remote work in Europe
-- Looking for 70-90k EUR salary
-- Value great team culture`;
-
 let geminiClient: GoogleGenerativeAI | null = null;
 
 function loadInterviewSystemPrompt(): string {
-  try {
-    const prompt = fs.readFileSync(INTERVIEW_SYSTEM_PROMPT_PATH, 'utf8').trim();
-    if (!prompt) {
-      console.warn('[Prompt] Interview system prompt file is empty; using default inline prompt.');
-      return DEFAULT_INTERVIEW_SYSTEM_PROMPT;
-    }
-    return prompt;
-  } catch (error) {
-    console.warn(
-      '[Prompt] Could not load interview system prompt file; using default inline prompt.',
-      error
+  const prompt = fs.readFileSync(INTERVIEW_SYSTEM_PROMPT_PATH, 'utf8').trim();
+  if (!prompt) {
+    throw new Error(
+      `[Prompt] Interview system prompt file is empty: ${INTERVIEW_SYSTEM_PROMPT_PATH}`
     );
-    return DEFAULT_INTERVIEW_SYSTEM_PROMPT;
   }
+  return prompt;
 }
 
 function initializeGeminiClient() {

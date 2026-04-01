@@ -88,18 +88,42 @@ Tests the main user journey:
 
 Tests user profile editing:
 
-1. Display profile information
-2. Update name and phone number
-3. Save changes and verify persistence
-4. Validate phone number format
-5. Handle errors gracefully
+1. Update name and phone number
+2. Save changes successfully
+3. Verify saved data persists via profile API
 
 **Key scenarios:**
 
 - Update both fields
-- Partial updates (name only)
-- Invalid input validation
-- Save/cancel operations
+- Persistence after save and route transition
+
+## Authentication in E2E
+
+System tests do not run through Google OAuth UI. They use a seeded NextAuth session.
+
+### How it works
+
+1. Seed a test user and session in the database:
+
+```bash
+npm run seed:test-user
+```
+
+2. Tests inject the same session token as a `next-auth.session-token` cookie.
+
+3. Protected routes (for example, dashboard pages) are then accessed as an authenticated user.
+
+### Required environment variables
+
+```bash
+TEST_USER_EMAIL=systest@livingvectors.test
+TEST_SESSION_TOKEN=lv-e2e-session-token
+```
+
+`TEST_SESSION_TOKEN` must match both:
+
+- The session seeded by `scripts/create-test-user.cjs`
+- The cookie value used in test files
 
 ## Test Data
 
