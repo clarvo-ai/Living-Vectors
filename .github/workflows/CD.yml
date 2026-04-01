@@ -375,7 +375,7 @@ jobs:
           region: ${{ env.REGION }}
           project_id: ${{ env.PROJECT_ID }}
           flags: |
-            --no-allow-unauthenticated
+            --allow-unauthenticated
             --ingress=all
             --network=default
             --subnet=default
