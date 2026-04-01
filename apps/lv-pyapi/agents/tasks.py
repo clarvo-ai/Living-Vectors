@@ -83,7 +83,7 @@ def _build_insight_block(insights: list[str]) -> str:
 
 
 class OpeningTask(AgentTask[None]):
-    def __init__(self, user_id: str, insights: list[str] | None = None, task_id: str = "opening") -> None:
+    def __init__(self, user_id: str, insights: list[str] | None = None, task_id: str = "opening", is_returning: bool = False) -> None:
         self._task_id = task_id
         self.user_id = user_id
         super().__init__(
@@ -150,9 +150,10 @@ class OpeningTask(AgentTask[None]):
 
 
 class LogisticsTask(AgentTask[None]):
-    def __init__(self, user_id: str, insights: list[str] | None = None, task_id: str = "logistics") -> None:
+    def __init__(self, user_id: str, insights: list[str] | None = None, task_id: str = "logistics", is_returning: bool = False) -> None:
         self._task_id = task_id
         self.user_id = user_id
+        self.is_returning = is_returning
         super().__init__(
             instructions="""
             Your name is the "Clarvo career assistant". In this phase, learn
@@ -184,14 +185,24 @@ class LogisticsTask(AgentTask[None]):
     async def on_enter(self) -> None:
         await _set_current_task(self.user_id, self._task_id)
         logger.info("[TASK] Logistics — search intensity, timing, motivation")
-        asyncio.create_task(
-            _deferred_on_enter_reply(
-                self.session,
+        
+        if self.is_returning:
+            instructions = (
+                "Welcome them back warmly to the interview and mention that you're going to continue where you left off. "
+                "Then ask one question: how actively they are "
+                "searching right now. No generic 'In terms of your job search…' "
+                "unless it naturally follows from their words."
+            )
+        else:
+            instructions = (
                 "Connect to what they just said (e.g. their goal or how they "
                 "found Clarvo), then ask one question: how actively they are "
                 "searching right now. No generic 'In terms of your job search…' "
-                "unless it naturally follows from their words.",
+                "unless it naturally follows from their words."
             )
+        
+        asyncio.create_task(
+            _deferred_on_enter_reply(self.session, instructions)
         )
 
     @function_tool
@@ -202,9 +213,10 @@ class LogisticsTask(AgentTask[None]):
 
 
 class IndustryTask(AgentTask[None]):
-    def __init__(self, user_id: str, insights: list[str] | None = None, task_id: str = "industry") -> None:
+    def __init__(self, user_id: str, insights: list[str] | None = None, task_id: str = "industry", is_returning: bool = False) -> None:
         self._task_id = task_id
         self.user_id = user_id
+        self.is_returning = is_returning
         super().__init__(
             instructions="""
             Your name is the "Clarvo career assistant". Before diving into specifics, you need to understand what industry or field they want to work in — it shapes location, work model, comp, and what "a great role" looks like for them.
@@ -223,14 +235,24 @@ class IndustryTask(AgentTask[None]):
     async def on_enter(self) -> None:
         await _set_current_task(self.user_id, self._task_id)
         logger.info("[TASK] Industry — target field and sector")
-        asyncio.create_task(
-            _deferred_on_enter_reply(
-                self.session,
+        
+        if self.is_returning:
+            instructions = (
+                "Welcome them back warmly to the interview and mention that you're going to continue where you left off. "
+                "Then ask one question about what industry or "
+                "field they're targeting. No generic 'In terms of the kind of "
+                "work you want…' unless it naturally follows from their words."
+            )
+        else:
+            instructions = (
                 "Connect to what they just said (e.g. their timing or "
                 "motivation), then ask one question about what industry or "
                 "field they're targeting. No generic 'In terms of the kind of "
-                "work you want…' unless it naturally follows from their words.",
+                "work you want…' unless it naturally follows from their words."
             )
+        
+        asyncio.create_task(
+            _deferred_on_enter_reply(self.session, instructions)
         )
 
     @function_tool
@@ -241,9 +263,10 @@ class IndustryTask(AgentTask[None]):
 
 
 class LocationTask(AgentTask[None]):
-    def __init__(self, user_id: str, insights: list[str] | None = None, task_id: str = "location") -> None:
+    def __init__(self, user_id: str, insights: list[str] | None = None, task_id: str = "location", is_returning: bool = False) -> None:
         self._task_id = task_id
         self.user_id = user_id
+        self.is_returning = is_returning
         super().__init__(
             instructions="""
             Understanding location constraints is critical for narrowing down
@@ -276,14 +299,24 @@ class LocationTask(AgentTask[None]):
     async def on_enter(self) -> None:
         await _set_current_task(self.user_id, self._task_id)
         logger.info("[TASK] Location — cities, relocation, remote/hybrid/onsite")
-        asyncio.create_task(
-            _deferred_on_enter_reply(
-                self.session,
+        
+        if self.is_returning:
+            instructions = (
+                "Welcome them back warmly to the interview and mention that you're going to continue where you left off. "
+                "Then ask one question about which cities or regions they prefer. "
+                "No generic 'In terms of location…' unless it naturally follows "
+                "from their words."
+            )
+        else:
+            instructions = (
                 "Connect to what they just said (e.g. their industry or role), "
                 "then ask one question about which cities or regions they prefer. "
                 "No generic 'In terms of location…' unless it naturally follows "
-                "from their words.",
+                "from their words."
             )
+        
+        asyncio.create_task(
+            _deferred_on_enter_reply(self.session, instructions)
         )
 
     @function_tool
@@ -294,9 +327,10 @@ class LocationTask(AgentTask[None]):
 
 
 class BackgroundTask(AgentTask[None]):
-    def __init__(self, user_id: str, insights: list[str] | None = None, task_id: str = "background") -> None:
+    def __init__(self, user_id: str, insights: list[str] | None = None, task_id: str = "background", is_returning: bool = False) -> None:
         self._task_id = task_id
         self.user_id = user_id
+        self.is_returning = is_returning
         super().__init__(
             instructions="""
             Your name is the "Clarvo career assistant". Deep professional
@@ -337,15 +371,26 @@ class BackgroundTask(AgentTask[None]):
     async def on_enter(self) -> None:
         await _set_current_task(self.user_id, self._task_id)
         logger.info("[TASK] Background — roles, strengths, tools/domain")
-        asyncio.create_task(
-            _deferred_on_enter_reply(
-                self.session,
+        
+        if self.is_returning:
+            instructions = (
+                "Welcome them back warmly to the interview and mention that you're going to continue where you left off. "
+                "Then ask one question: e.g. what gives them energy in "
+                "their work, or what their most recent role was. No generic "
+                "'Let's talk about your background…' unless it naturally "
+                "follows from their words."
+            )
+        else:
+            instructions = (
                 "Connect to what they just said (e.g. their location or work "
                 "model), then ask one question: e.g. what gives them energy in "
                 "their work, or what their most recent role was. No generic "
                 "'Let's talk about your background…' unless it naturally "
-                "follows from their words.",
+                "follows from their words."
             )
+        
+        asyncio.create_task(
+            _deferred_on_enter_reply(self.session, instructions)
         )
 
     @function_tool
@@ -356,9 +401,10 @@ class BackgroundTask(AgentTask[None]):
 
 
 class CultureTask(AgentTask[None]):
-    def __init__(self, user_id: str, insights: list[str] | None = None, task_id: str = "culture") -> None:
+    def __init__(self, user_id: str, insights: list[str] | None = None, task_id: str = "culture", is_returning: bool = False) -> None:
         self._task_id = task_id
         self.user_id = user_id
+        self.is_returning = is_returning
         super().__init__(
             instructions="""
             Your name is the "Clarvo career assistant". Culture fit matters as
@@ -395,15 +441,26 @@ class CultureTask(AgentTask[None]):
     async def on_enter(self) -> None:
         await _set_current_task(self.user_id, self._task_id)
         logger.info("[TASK] Culture — management style, team size, startup vs corp")
-        asyncio.create_task(
-            _deferred_on_enter_reply(
-                self.session,
+        
+        if self.is_returning:
+            instructions = (
+                "Welcome them back warmly to the interview and mention that you're going to continue where you left off. "
+                "Then ask one question: e.g. what kind of teamwork "
+                "works best for them, or what management style they thrive "
+                "under. No generic 'Let's talk about the kind of "
+                "environment…' unless it naturally follows from their words."
+            )
+        else:
+            instructions = (
                 "Connect to what they just said (e.g. their strengths or "
                 "role), then ask one question: e.g. what kind of teamwork "
                 "works best for them, or what management style they thrive "
                 "under. No generic 'Let's talk about the kind of "
-                "environment…' unless it naturally follows from their words.",
+                "environment…' unless it naturally follows from their words."
             )
+        
+        asyncio.create_task(
+            _deferred_on_enter_reply(self.session, instructions)
         )
 
     @function_tool
@@ -414,9 +471,10 @@ class CultureTask(AgentTask[None]):
 
 
 class ValueVisionTask(AgentTask[None]):
-    def __init__(self, user_id: str, insights: list[str] | None = None, task_id: str = "value_vision") -> None:
+    def __init__(self, user_id: str, insights: list[str] | None = None, task_id: str = "value_vision", is_returning: bool = False) -> None:
         self._task_id = task_id
         self.user_id = user_id
+        self.is_returning = is_returning
         super().__init__(
             instructions="""
             Your name is the "Clarvo career assistant". You need comp and
@@ -458,15 +516,26 @@ class ValueVisionTask(AgentTask[None]):
     async def on_enter(self) -> None:
         await _set_current_task(self.user_id, self._task_id)
         logger.info("[TASK] Value & Vision — compensation, career goals")
-        asyncio.create_task(
-            _deferred_on_enter_reply(
-                self.session,
+        
+        if self.is_returning:
+            instructions = (
+                "Welcome them back warmly to the interview and mention that you're going to continue where you left off. "
+                "Then ask one question: e.g. compensation "
+                "expectations, or what matters most to them in how they work. "
+                "No generic 'To surface roles worth your time…' unless it "
+                "naturally follows from their words."
+            )
+        else:
+            instructions = (
                 "Connect to what they just said (e.g. their culture or team "
                 "preferences), then ask one question: e.g. compensation "
                 "expectations, or what matters most to them in how they work. "
                 "No generic 'To surface roles worth your time…' unless it "
-                "naturally follows from their words.",
+                "naturally follows from their words."
             )
+        
+        asyncio.create_task(
+            _deferred_on_enter_reply(self.session, instructions)
         )
 
     @function_tool
@@ -477,9 +546,10 @@ class ValueVisionTask(AgentTask[None]):
 
 
 class AlignmentTask(AgentTask[None]):
-    def __init__(self, user_id: str, insights: list[str] | None = None, task_id: str = "alignment") -> None:
+    def __init__(self, user_id: str, insights: list[str] | None = None, task_id: str = "alignment", is_returning: bool = False) -> None:
         self._task_id = task_id
         self.user_id = user_id
+        self.is_returning = is_returning
         super().__init__(
             instructions="""
             Your name is the "Clarvo career assistant". Wrapping up: deliver a
@@ -509,9 +579,10 @@ class AlignmentTask(AgentTask[None]):
     async def on_enter(self) -> None:
         await _set_current_task(self.user_id, self._task_id)
         logger.info("[TASK] Alignment — summary, confirm, close")
-        asyncio.create_task(
-            _deferred_on_enter_reply(
-                self.session,
+        
+        if self.is_returning:
+            instructions = (
+                "Welcome them back warmly to the interview and mention that you're going to continue where you left off. "
                 "Use ONLY the captured insights as the basis for your summary "
                 "— do not add anything not in the list. "
                 "Deliver a short, warm summary: background, what they're great "
@@ -519,8 +590,22 @@ class AlignmentTask(AgentTask[None]):
                 "work model). "
                 "Then ask if the summary sounds right. Do not ask any other "
                 "questions (no 'who else should I talk to', 'anything else to "
-                "share', etc.).",
+                "share', etc.)."
             )
+        else:
+            instructions = (
+                "Use ONLY the captured insights as the basis for your summary "
+                "— do not add anything not in the list. "
+                "Deliver a short, warm summary: background, what they're great "
+                "at, what they want next, hard constraints (location, comp, "
+                "work model). "
+                "Then ask if the summary sounds right. Do not ask any other "
+                "questions (no 'who else should I talk to', 'anything else to "
+                "share', etc.)."
+            )
+        
+        asyncio.create_task(
+            _deferred_on_enter_reply(self.session, instructions)
         )
 
     @function_tool

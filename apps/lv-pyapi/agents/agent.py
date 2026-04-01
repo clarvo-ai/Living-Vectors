@@ -119,21 +119,35 @@ class CareerAssistant(Agent):
             return
 
         all_tasks = [
-            ("opening",      lambda: OpeningTask(self.user_id, self.user_insights),     "Why the candidate is here and how they found Clarvo"),
-            ("logistics",    lambda: LogisticsTask(self.user_id, self.user_insights),   "Job search logistics, timing, and motivation to leave"),
-            ("industry",     lambda: IndustryTask(self.user_id, self.user_insights),    "Target industry or field the candidate wants to work in"),
-            ("location",     lambda: LocationTask(self.user_id, self.user_insights),    "Preferred cities and remote/hybrid/onsite preferences"),
-            ("background",   lambda: BackgroundTask(self.user_id, self.user_insights),  "Work experience, strengths, and domain knowledge"),
-            ("culture",      lambda: CultureTask(self.user_id, self.user_insights),     "Team size, management style, and company culture fit"),
-            ("value_vision", lambda: ValueVisionTask(self.user_id, self.user_insights), "Compensation expectations and career vision"),
-            ("alignment",    lambda: AlignmentTask(self.user_id, self.user_insights),   "Summary confirmation and closing"),
+            ("opening",      OpeningTask,       "Why the candidate is here and how they found Clarvo"),
+            ("logistics",    LogisticsTask,     "Job search logistics, timing, and motivation to leave"),
+            ("industry",     IndustryTask,      "Target industry or field the candidate wants to work in"),
+            ("location",     LocationTask,      "Preferred cities and remote/hybrid/onsite preferences"),
+            ("background",   BackgroundTask,    "Work experience, strengths, and domain knowledge"),
+            ("culture",      CultureTask,       "Team size, management style, and company culture fit"),
+            ("value_vision", ValueVisionTask,   "Compensation expectations and career vision"),
+            ("alignment",    AlignmentTask,     "Summary confirmation and closing"),
         ]
 
         task_group = TaskGroup(chat_ctx=self.chat_ctx)
 
-        for task_id, task_fn, task_desc in all_tasks:
+        # Find the first incomplete task to mark it as returning
+        first_incomplete_idx = None
+        for idx, (task_id, _, _) in enumerate(all_tasks):
             if task_id not in self.completed_tasks:
-                task_group.add(task_fn, id=task_id, description=task_desc)
+                first_incomplete_idx = idx
+                break
+
+        for idx, (task_id, task_class, task_desc) in enumerate(all_tasks):
+            if task_id not in self.completed_tasks:
+                is_returning = (idx == first_incomplete_idx) and bool(self.completed_tasks)
+                task_group.add(
+                    lambda task_cls=task_class, is_ret=is_returning: task_cls(
+                        self.user_id, self.user_insights, is_returning=is_ret
+                    ),
+                    id=task_id,
+                    description=task_desc
+                )
 
         await task_group
 
