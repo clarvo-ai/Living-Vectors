@@ -231,7 +231,7 @@ jobs:
           region: ${{ env.REGION }}
           project_id: ${{ env.PROJECT_ID }}
           flags: |
-            --no-allow-unauthenticated
+            --allow-unauthenticated
             --ingress=internal
             --network=default
             --subnet=default
@@ -250,7 +250,7 @@ jobs:
           region: ${{ env.REGION }}
           project_id: ${{ env.PROJECT_ID }}
           flags: |
-            --no-allow-unauthenticated
+            --allow-unauthenticated
             --ingress=internal
             --network=default
             --subnet=default
@@ -277,7 +277,7 @@ jobs:
           region: ${{ env.REGION }}
           project_id: ${{ env.PROJECT_ID }}
           flags: |
-            --no-allow-unauthenticated
+            --allow-unauthenticated
             --ingress=internal
             --network=default
             --subnet=default
@@ -352,7 +352,7 @@ jobs:
           region: ${{ env.REGION }}
           project_id: ${{ env.PROJECT_ID }}
           flags: |
-            --no-allow-unauthenticated
+            --allow-unauthenticated
             --ingress=internal
             --network=default
             --subnet=default
