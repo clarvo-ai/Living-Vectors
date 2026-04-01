@@ -32,19 +32,6 @@
   "cursorpyright.analysis.inlayHints.functionReturnTypes": true,
   "cursorpyright.analysis.inlayHints.variableTypes": true,
   "cursorpyright.analysis.typeCheckingMode": "basic",
-  "python.languageServer": "None",
-  "sqltools.connections": [
-    {
-      "ssh": "Disabled",
-      "previewLimit": 50,
-      "server": "localhost",
-      "port": 3772,
-      "driver": "PostgreSQL",
-      "name": "lv",
-      "database": "postgres",
-      "username": "postgres",
-      "password": "postgres"
-    }
-  ]
+  "python.languageServer": "None"
   // "python.terminal.activateEnvironment": false
 }

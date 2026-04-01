@@ -10,14 +10,9 @@ from openai import OpenAI
 from dotenv import load_dotenv
 
 load_dotenv()
-OPENAI_API_KEY = os.environ.get("OPENAI_API_KEY")
-if OPENAI_API_KEY is None:
-    raise ValueError("OPENAI_API_KEY environment variable is not set")
 
 # OpenAI embedding model, default dimensions is 1536 for text-embedding-3-small
 EMBEDDING_MODEL = "text-embedding-3-small"
-
-client = OpenAI(api_key=OPENAI_API_KEY)
 
 def get_embedding(text: str) -> List[float]:
     """
@@ -30,11 +25,19 @@ def get_embedding(text: str) -> List[float]:
         List of 1536 floats representing the embedding vector
         
     Raises:
-        ValueError: If text is empty
+        ValueError: If text is empty or OPENAI_API_KEY not set
         Exception: If OpenAI API call fails
     """
     if not text or not text.strip():
         raise ValueError("Text cannot be empty")
+    
+    # Check for API key at runtime
+    api_key = os.environ.get("OPENAI_API_KEY")
+    if not api_key:
+        raise ValueError("OPENAI_API_KEY environment variable is not set")
+    
+    # Create client
+    client = OpenAI(api_key=api_key)
     
     # Call OpenAI embedding API
     response = client.embeddings.create(
