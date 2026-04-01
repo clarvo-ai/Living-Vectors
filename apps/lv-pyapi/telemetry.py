@@ -18,6 +18,23 @@ from opentelemetry.instrumentation.logging import LoggingInstrumentor
 
 logger = logging.getLogger(__name__)
 
+def _ensure_console_logging() -> None:
+    """
+    Ensure logs are visible on stdout/stderr even when OpenTelemetry logging
+    instrumentation is enabled.
+    """
+    root_logger = logging.getLogger()
+    has_stream_handler = any(isinstance(h, logging.StreamHandler) for h in root_logger.handlers)
+    if has_stream_handler:
+        return
+
+    stream_handler = logging.StreamHandler()
+    stream_handler.setLevel(logging.INFO)
+    stream_handler.setFormatter(
+        logging.Formatter("%(asctime)s %(levelname)s %(name)s %(message)s")
+    )
+    root_logger.addHandler(stream_handler)
+
 
 def setup_telemetry(app=None, engine=None) -> None:
     endpoint = os.getenv("OTEL_EXPORTER_OTLP_ENDPOINT", "http://otel-collector:4318")
@@ -56,6 +73,7 @@ def setup_telemetry(app=None, engine=None) -> None:
     root_logger = logging.getLogger()
     root_logger.setLevel(logging.INFO)
     root_logger.addHandler(otel_handler)
+    _ensure_console_logging()
 
     if app is not None:
         from opentelemetry.instrumentation.fastapi import FastAPIInstrumentor

@@ -363,7 +363,7 @@ jobs:
           region: ${{ env.REGION }}
           project_id: ${{ env.PROJECT_ID }}
           flags: |
-            --allow-unauthenticated
+            --no-allow-unauthenticated
             --ingress=all
             --memory=512Mi
             --cpu=1
