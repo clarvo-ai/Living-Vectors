@@ -583,8 +583,9 @@ class AlignmentTask(AgentTask[None]):
         if self.is_returning:
             instructions = (
                 "Welcome them back warmly to the interview and mention that you're going to continue where you left off. "
-                "Use ONLY the captured insights as the basis for your summary "
-                "— do not add anything not in the list. "
+                "Use the captured insights from previous conversations and chat history as the basis for your summary, "
+                "incorporating any corrections or updates to the previous list of insights. "
+                "DO NOT make up new information that isn't in the conversation history."
                 "Deliver a short, warm summary: background, what they're great "
                 "at, what they want next, hard constraints (location, comp, "
                 "work model). "
@@ -594,8 +595,9 @@ class AlignmentTask(AgentTask[None]):
             )
         else:
             instructions = (
-                "Use ONLY the captured insights as the basis for your summary "
-                "— do not add anything not in the list. "
+                "Use the captured insights from previous conversations and chat history as the basis for your summary, "
+                "incorporating any corrections or updates to the previous list of insights. "
+                "DO NOT make up new information that isn't in the conversation history."
                 "Deliver a short, warm summary: background, what they're great "
                 "at, what they want next, hard constraints (location, comp, "
                 "work model). "
