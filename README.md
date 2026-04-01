@@ -201,9 +201,19 @@ lk dispatch create \
    - Open https://agents-playground.livekit.io/ (Manual)
    - Set the server URL to `http://localhost:7880` and paste the generated token
 
-## 4. Observability Stack (Grafana + Prometheus + Loki + Tempo + OTel Collector)
+## 4. Observability Stack (LGTM: Grafana + Loki + Tempo + Mimir + OTel Collector)
 
-The repo includes an observability profile in `docker-compose.yml` for local tracing, logging, and metrics.
+Local observability runs via the `observability` profile in `docker-compose.yml`.
+
+- **Traces**: app → OTel Collector (OTLP) → Tempo → Grafana
+- **Logs**: app → OTel Collector → Loki → Grafana
+- **Metrics**: OTel Collector metrics endpoint + Grafana queries Mimir as the Prometheus-compatible datasource
+
+### One-time setup (Grafana credentials)
+
+```bash
+cp observability/.env.example observability/.env.grafana
+```
 
 ### Start the stack
 
@@ -217,17 +227,19 @@ docker compose --profile observability up -d
 docker compose --profile lv-web --profile observability up -d --build
 ```
 
-### Access UIs
+### Access UIs / endpoints
 
-- Grafana: http://localhost:3001
-- Prometheus: http://localhost:9090
-- Loki API: http://localhost:3100
-- Tempo API: http://localhost:3200
-- OTel Collector OTLP endpoints:
+- **Grafana UI**: `http://localhost:3001`
+  - Login from `observability/.env.grafana` (defaults are `admin` / `changeme`)
+- **Loki HTTP API**: `http://localhost:3100`
+- **Tempo HTTP API**: `http://localhost:3200`
+- **Mimir HTTP API / Prometheus-compatible endpoint**: `http://localhost:9009`
+- **OTel Collector OTLP ingest**:
   - gRPC: `localhost:4317`
   - HTTP: `http://localhost:4318`
+- **OTel Collector Prometheus scrape endpoint**: `http://localhost:8889/metrics`
 
-Grafana datasources and dashboards are provisioned from `observability/grafana/provisioning`.
+Grafana datasources + dashboards are provisioned from `observability/grafana/provisioning` (including the pre-wired Loki/Tempo/Mimir datasources and dashboards).
 
 ### Common commands
 
