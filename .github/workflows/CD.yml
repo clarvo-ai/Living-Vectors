@@ -234,7 +234,7 @@ jobs:
             --no-allow-unauthenticated
             --ingress=internal
             --network=default
-            --subnet=europe-north1
+            --subnet=default
             --vpc-egress=all-traffic
             --memory=512Mi
             --cpu=1
@@ -253,7 +253,7 @@ jobs:
             --no-allow-unauthenticated
             --ingress=internal
             --network=default
-            --subnet=europe-north1
+            --subnet=default
             --vpc-egress=all-traffic
             --memory=1Gi
             --cpu=1
@@ -280,7 +280,7 @@ jobs:
             --no-allow-unauthenticated
             --ingress=internal
             --network=default
-            --subnet=europe-north1
+            --subnet=default
             --vpc-egress=all-traffic
             --memory=512Mi
             --cpu=1
@@ -355,7 +355,7 @@ jobs:
             --no-allow-unauthenticated
             --ingress=internal
             --network=default
-            --subnet=europe-north1
+            --subnet=default
             --vpc-egress=all-traffic
             --memory=256Mi
             --cpu=1
@@ -378,7 +378,7 @@ jobs:
             --no-allow-unauthenticated
             --ingress=all
             --network=default
-            --subnet=europe-north1
+            --subnet=default
             --vpc-egress=all-traffic
             --memory=512Mi
             --cpu=1
