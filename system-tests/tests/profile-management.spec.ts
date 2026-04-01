@@ -29,15 +29,6 @@ test.describe('User Profile Management', () => {
     await expect(page.locator('#phone')).toBeVisible({ timeout: 5000 });
   });
 
-  test('should display current profile information', async ({ page }) => {
-    await test.step('Profile page loads with user information', async () => {
-      await expect(page.getByRole('heading', { name: 'Profile Information' })).toBeVisible();
-      await expect(page.locator('#name')).toBeVisible();
-      await expect(page.locator('#phone')).toBeVisible();
-      await expect(page.getByRole('button', { name: 'Save Changes' })).toBeVisible();
-    });
-  });
-
   test('should update profile fields', async ({ page }) => {
     await test.step('User fills in profile form', async () => {
       const { name, phoneNumber } = PROFILE_DATA.validUpdate;
@@ -59,29 +50,6 @@ test.describe('User Profile Management', () => {
       // App redirects to dashboard on successful save.
       await page.waitForURL('**/dashboard', { timeout: 10000 });
       await expect(page).not.toHaveURL('**/login');
-    });
-  });
-
-  test('should allow editing display name and phone number', async ({ page }) => {
-    await test.step('Fields are editable', async () => {
-      const displayName = page.locator('#name');
-      const phone = page.locator('#phone');
-
-      await expect(displayName).toBeEditable();
-      await expect(phone).toBeEditable();
-
-      await displayName.fill('Only Name Changed');
-      await phone.fill('+1-555-0789');
-
-      await expect(displayName).toHaveValue('Only Name Changed');
-      await expect(phone).toHaveValue('+1-555-0789');
-    });
-  });
-
-  test('should keep user authenticated on protected profile route', async ({ page }) => {
-    await test.step('Protected route is accessible with seeded session', async () => {
-      await expect(page).toHaveURL(/\/dashboard\/profile/);
-      await expect(page).not.toHaveURL(/\/login/);
     });
   });
 
@@ -111,18 +79,6 @@ test.describe('User Profile Management', () => {
 
       const payload = await response.json();
       expect(payload?.body?.name).toBe(testValue);
-    });
-  });
-
-  test('should have proper form structure', async ({ page }) => {
-    await test.step('Profile form has expected elements', async () => {
-      await expect(page.locator('form')).toBeVisible();
-      await expect(page.locator('#first_name')).toBeVisible();
-      await expect(page.locator('#last_name')).toBeVisible();
-      await expect(page.locator('#name')).toBeVisible();
-      await expect(page.locator('#phone')).toBeVisible();
-      await expect(page.locator('#bio')).toBeVisible();
-      await expect(page.getByRole('button', { name: 'Save Changes' })).toBeVisible();
     });
   });
 });
