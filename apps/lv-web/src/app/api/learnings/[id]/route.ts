@@ -30,6 +30,38 @@ export async function PATCH(
       return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
     }
 
+    // PATCH supports two modes:
+    // 1) { summary: string } => update learning summary text
+    // 2) empty body / no summary => soft delete (backward compatible)
+    const rawBody = await _req.text();
+    let body: unknown = {};
+
+    if (rawBody) {
+      try {
+        body = JSON.parse(rawBody);
+      } catch {
+        return NextResponse.json({ error: 'Bad request' }, { status: 400 });
+      }
+    }
+
+    const hasSummaryField =
+      typeof body === 'object' && body !== null && Object.prototype.hasOwnProperty.call(body, 'summary');
+
+    if (hasSummaryField) {
+      const summary = (body as { summary?: unknown }).summary;
+
+      if (typeof summary !== 'string' || !summary.trim()) {
+        return NextResponse.json({ error: 'Bad request' }, { status: 400 });
+      }
+
+      await prisma.learning.update({
+        where: { id },
+        data: { summary: summary.trim() },
+      });
+
+      return NextResponse.json({ status: 200 });
+    }
+
     await prisma.learning.update({
       where: { id },
       data: { soft_delete: true },

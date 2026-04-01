@@ -1,23 +1,23 @@
 'use client';
 
 import type { Learning } from '@/app/api/learnings/route';
-import { generateUserEmbedding } from '@/lib/services/pyapi';
+import { deleteUserEmbedding, generateUserEmbedding } from '@/lib/services/pyapi';
 import {
-    DndContext,
-    DragEndEvent,
-    KeyboardSensor,
-    PointerSensor,
-    closestCenter,
-    useSensor,
-    useSensors,
+  DndContext,
+  DragEndEvent,
+  KeyboardSensor,
+  PointerSensor,
+  closestCenter,
+  useSensor,
+  useSensors,
 } from '@dnd-kit/core';
 import { restrictToVerticalAxis, restrictToWindowEdges } from '@dnd-kit/modifiers';
 import {
-    SortableContext,
-    arrayMove,
-    sortableKeyboardCoordinates,
-    useSortable,
-    verticalListSortingStrategy,
+  SortableContext,
+  arrayMove,
+  sortableKeyboardCoordinates,
+  useSortable,
+  verticalListSortingStrategy,
 } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
 import { useSession } from 'next-auth/react';
@@ -353,9 +353,14 @@ export default function EditPage() {
     if (!session?.user?.id) return;
     setIsConfirming(true);
     try {
+      const normalizedCriteria = criteria.map((criterion) => ({
+        ...criterion,
+        criteriaText: criterion.criteriaText.trim(),
+      }));
+
       // Save any manually added criteria (those without an id) to the DB
-      const unsaved = criteria.filter((c) => !c.id && c.criteriaText.trim());
-      let updatedCriteria = criteria;
+      const unsaved = normalizedCriteria.filter((c) => !c.id && c.criteriaText);
+      let updatedCriteria = normalizedCriteria;
       if (unsaved.length > 0) {
         const saved = await Promise.all(
           unsaved.map((c) =>
@@ -363,23 +368,45 @@ export default function EditPage() {
               method: 'POST',
               headers: { 'Content-Type': 'application/json' },
               body: JSON.stringify({
-                summary: c.criteriaText.trim(),
+                summary: c.criteriaText,
                 messages: ['manually added learning from edit criterion page'], //This makes the embedding worse but is here only temporarily for easier understanding. Let's edit this out when we better the matching algorithm
               }),
-            }).then((res) => res.json())
+            }).then(async (res) => {
+              if (!res.ok) {
+                throw new Error(`Failed to create learning (${res.status})`);
+              }
+              return res.json();
+            })
           )
         );
         // Assign the new ids back so they behave like persisted criteria
         let unsavedIndex = 0;
-        updatedCriteria = criteria.map((c) => {
-          if (!c.id && c.criteriaText.trim()) {
+        updatedCriteria = normalizedCriteria.map((c) => {
+          if (!c.id && c.criteriaText) {
             const newId = saved[unsavedIndex]?.body?.id;
             unsavedIndex++;
             return newId ? { ...c, id: newId } : c;
           }
           return c;
         });
-        setCriteria(updatedCriteria);
+      }
+
+      // Persist text for all existing learnings
+      const existingCriteria = updatedCriteria.filter((c) => c.id);
+      if (existingCriteria.length > 0) {
+        await Promise.all(
+          existingCriteria.map(async (criterion) => {
+            const response = await fetch(`/api/learnings/${criterion.id}`, {
+              method: 'PATCH',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ summary: criterion.criteriaText }),
+            });
+
+            if (!response.ok) {
+              throw new Error(`Failed to update learning ${criterion.id} (${response.status})`);
+            }
+          })
+        );
       }
 
       // Persist the current drag order for all criteria that have an id
@@ -387,13 +414,20 @@ export default function EditPage() {
         .filter((c) => c.id)
         .map((c, index) => ({ id: c.id as string, order_index: index }));
       if (orderPayload.length > 0) {
-        await fetch('/api/learnings/order', {
+        const orderResponse = await fetch('/api/learnings/order', {
           method: 'PATCH',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify(orderPayload),
         });
+
+        if (!orderResponse.ok) {
+          throw new Error(`Failed to update learning order (${orderResponse.status})`);
+        }
       }
 
+      setCriteria(updatedCriteria);
+
+      await deleteUserEmbedding(session.user.id);
       await generateUserEmbedding(session.user.id);
     } catch (error) {
       console.error('Failed to confirm:', error);
