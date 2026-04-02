@@ -13,7 +13,6 @@ from livekit.agents.beta.workflows import TaskGroup
 from livekit.plugins import elevenlabs, google, silero, noise_cancellation
 from livekit.plugins.elevenlabs import TTS, VoiceSettings
 
-from database import SessionLocal
 from helper import fetch_completed_tasks, fetch_user_insights
 
 from faq import get_faq
