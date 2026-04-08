@@ -65,6 +65,10 @@ yarn-error.log*
 
 # credentials
 google-credentials.json
+*-credentials.json
+swp-*.json
+*.key
+service-account*.json
 
 # vercel
 .vercel

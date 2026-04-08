@@ -1,61 +1,67 @@
-from fastapi import FastAPI, Depends, HTTPException, Body, BackgroundTasks, UploadFile, File, Response, Header
+from fastapi import FastAPI, Depends, HTTPException, Body, BackgroundTasks, UploadFile, File, Response, Header, Request
+from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import JSONResponse
 from sqlalchemy.orm import Session
 from sqlalchemy import select, func
 from typing import List, Optional
+from pydantic import BaseModel, Field
+from slowapi import Limiter, _rate_limit_exceeded_handler
+from slowapi.util import get_remote_address
+from slowapi.errors import RateLimitExceeded
 import uvicorn
 import os
-from dotenv import load_dotenv
-from fastapi.middleware.cors import CORSMiddleware
-from google import genai
+import json
 import logging
+from pathlib import Path
+from dotenv import load_dotenv
 
 from database import get_db, SessionLocal
-from python_utils.sqlalchemy_models import User, UserEmbedding, Job, CompletedTask, Learning
+from python_utils.sqlalchemy_models import User, UserEmbedding, Job, CompletedTask, Learning, MessageSender
 from message_save import save_message
-from python_utils.sqlalchemy_models import User, MessageSender
-from fastapi.responses import JSONResponse
 from gemini_client import client
 from user_embedding import generate_user_embedding
 from job_embedding import generate_missing_embeddings
 from job_recommendations import save_job_recommendations, get_job_recommendations, recompute_recommendations, query_job_matches
-from pydantic import BaseModel
 from store_jobs import process_file
 from learnings import process_learnings
 
-import json
-from pathlib import Path
-
 logging.basicConfig(level=logging.INFO)
 
-#Load questions at backend startup:
 QUESTIONS_PATH = Path(__file__).parent.parent.parent / "packages" / "shared-data" / "career-conversation-questions.json"
 with open(QUESTIONS_PATH) as f:
     CAREER_QUESTIONS = json.load(f)
 
-# Create FastAPI app
+limiter = Limiter(key_func=get_remote_address)
+
 app = FastAPI(title="LV PyAPI", description="Living Vectors Python API", version="1.0.0")
+app.state.limiter = limiter
+app.add_exception_handler(RateLimitExceeded, _rate_limit_exceeded_handler)
+
 allowed_origins = [origin.strip() for origin in os.getenv("FRONTEND_ORIGINS", "").split(",") if origin.strip()]
 
 app.add_middleware(
     CORSMiddleware,
-    allow_origins= allowed_origins or ["http://localhost:3045", "https://yourfrontend.com"],
+    allow_origins=allowed_origins or ["http://localhost:3045"],
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
 )
 
+MAX_TRANSCRIPT_LENGTH = 500_000
+
 @app.get("/")
-async def hello():
-    """Simple hello endpoint"""
-    return {"message": "Hello from LV PyAPI! 🚀"}
+@limiter.limit("60/minute")
+async def hello(request: Request):
+    return {"message": "Hello from LV PyAPI!"}
 
 @app.get("/health")
-async def health_check():
-    """Health check endpoint"""
+@limiter.limit("60/minute")
+async def health_check(request: Request):
     return {"status": "healthy", "service": "lv-pyapi"}
 
 @app.get("/users/{user_id}")
-async def get_user(user_id: str, db: Session = Depends(get_db)):
+@limiter.limit("30/minute")
+async def get_user(request: Request, user_id: str, db: Session = Depends(get_db)):
     """Get a specific user by ID"""
     try:
         # Query specific user by ID
@@ -80,7 +86,8 @@ async def get_user(user_id: str, db: Session = Depends(get_db)):
 # ============== EMBEDDING & JOB MATCHING ENDPOINTS ==============
 
 @app.post("/api/upload-jobs")
-async def upload_jobs(filename: str = Body(..., embed=True), background_tasks: BackgroundTasks = None):
+@limiter.limit("5/minute")
+async def upload_jobs(request: Request, filename: str = Body(..., embed=True, max_length=500), background_tasks: BackgroundTasks = None):
     """Endpoint to upload job listings"""
     try:
         result = process_file(filename)
@@ -94,7 +101,8 @@ async def upload_jobs(filename: str = Body(..., embed=True), background_tasks: B
         )
 
 @app.post("/api/users/{user_id}/generate-embedding")
-async def generate_embedding_endpoint(user_id: str, background_tasks: BackgroundTasks, db: Session = Depends(get_db)):
+@limiter.limit("5/minute")
+async def generate_embedding_endpoint(request: Request, user_id: str, background_tasks: BackgroundTasks, db: Session = Depends(get_db)):
     """
     Generate embedding for a user from their learnings.
     
@@ -114,11 +122,13 @@ async def generate_embedding_endpoint(user_id: str, background_tasks: Background
         raise HTTPException(status_code=500, detail=str(e))
 
 @app.get("/api/jobs/match")
+@limiter.limit("30/minute")
 async def match_jobs(
+    request: Request,
     user_id: str,
     page: int = 1,
     per_page: int = 20,
-    db: Session = Depends(get_db)
+    db: Session = Depends(get_db),
 ):
     """
     Get jobs matched to user, sorted by similarity.
@@ -134,7 +144,7 @@ async def match_jobs(
     Returns:
         Paginated list of jobs with similarity scores
     """
-    # Get user embedding, generating it on-the-fly if missing
+    per_page = min(per_page, 100)
     user_emb = db.query(UserEmbedding).filter_by(userId=user_id).first()
     if not user_emb:
         user_emb = generate_user_embedding(user_id, db)
@@ -210,14 +220,17 @@ async def match_jobs(
     }
 
 @app.get("/api/jobs")
+@limiter.limit("30/minute")
 async def list_jobs(
+    request: Request,
     page: int = 1,
     per_page: int = 20,
-    db: Session = Depends(get_db)
+    db: Session = Depends(get_db),
 ):
     """
     List all jobs (without matching, just browsing).
     """
+    per_page = min(per_page, 100)
     offset = (page - 1) * per_page
     jobs = db.query(Job).offset(offset).limit(per_page).all()
     
@@ -239,20 +252,22 @@ async def list_jobs(
 
 # Pydantic models for job recommendations
 class JobRecommendationItem(BaseModel):
-    job_id: str
+    job_id: str = Field(..., max_length=100)
     score: float | None = None
-    timestamp: str | None = None
+    timestamp: str | None = Field(default=None, max_length=100)
 
 
 class SaveJobRecommendationsRequest(BaseModel):
-    recommendations: list[JobRecommendationItem]
+    recommendations: list[JobRecommendationItem] = Field(..., max_length=500)
 
 
 @app.post("/api/users/{user_id}/job-recommendations")
+@limiter.limit("10/minute")
 async def save_user_job_recommendations(
+    request: Request,
     user_id: str,
-    request: SaveJobRecommendationsRequest,
-    db: Session = Depends(get_db)
+    payload: SaveJobRecommendationsRequest,
+    db: Session = Depends(get_db),
 ):
     """
     Save job recommendations for a user.
@@ -260,7 +275,7 @@ async def save_user_job_recommendations(
     This endpoint is called after the matching algorithm computes top job matches.
     """
     try:
-        recs = [rec.model_dump() for rec in request.recommendations]
+        recs = [rec.model_dump() for rec in payload.recommendations]
         count = save_job_recommendations(db, user_id, recs)
         return {
             "message": f"Saved {count} job recommendations",
@@ -273,10 +288,12 @@ async def save_user_job_recommendations(
 
 
 @app.get("/api/users/{user_id}/job-recommendations")
+@limiter.limit("30/minute")
 async def get_user_job_recommendations(
+    request: Request,
     user_id: str,
     limit: int | None = None,
-    db: Session = Depends(get_db)
+    db: Session = Depends(get_db),
 ):
     """Get job recommendations for a user"""
     try:
@@ -291,7 +308,8 @@ async def get_user_job_recommendations(
         raise HTTPException(status_code=500, detail=str(e))
 
 @app.post("/api/jobs/generate-embeddings")
-async def batch_generate_job_embeddings(background_tasks: BackgroundTasks):
+@limiter.limit("5/minute")
+async def batch_generate_job_embeddings(request: Request, background_tasks: BackgroundTasks):
     """
     Manually trigger embedding generation for all jobs missing one.
 
@@ -300,13 +318,14 @@ async def batch_generate_job_embeddings(background_tasks: BackgroundTasks):
     background_tasks.add_task(generate_missing_embeddings)
     return {"status": 200, "message": "Embedding generation started in background"}
 
-#Pydantic model for agent <-> backend communication
 class TranscriptPayload(BaseModel):
-    user_id: str
-    transcript: str
+    user_id: str = Field(..., max_length=100)
+    transcript: str = Field(..., max_length=MAX_TRANSCRIPT_LENGTH)
 
 @app.post("/internal/process-transcript")
+@limiter.limit("20/minute")
 async def internal_process_transcript(
+    request: Request,
     payload: TranscriptPayload,
     background_tasks: BackgroundTasks,
     x_internal_secret: str = Header(...),
@@ -323,10 +342,12 @@ async def internal_process_transcript(
 
 
 @app.get("/internal/users/{user_id}/completed-tasks")
+@limiter.limit("20/minute")
 async def get_completed_tasks(
+    request: Request,
     user_id: str,
     x_internal_secret: str = Header(...),
-    db: Session = Depends(get_db)
+    db: Session = Depends(get_db),
 ):
     """
     Fetch list of completed task IDs for a user.
@@ -348,10 +369,12 @@ async def get_completed_tasks(
 
 
 @app.get("/internal/users/{user_id}/insights")
+@limiter.limit("20/minute")
 async def get_user_insights(
+    request: Request,
     user_id: str,
     x_internal_secret: str = Header(...),
-    db: Session = Depends(get_db)
+    db: Session = Depends(get_db),
 ):
     """
     Fetch user learnings/insights for context during conversation.
@@ -374,11 +397,13 @@ async def get_user_insights(
 
 
 @app.post("/internal/users/{user_id}/completed-tasks")
+@limiter.limit("20/minute")
 async def mark_task_completed(
+    request: Request,
     user_id: str,
-    task_id: str = Body(..., embed=True),
+    task_id: str = Body(..., embed=True, max_length=100),
     x_internal_secret: str = Header(...),
-    db: Session = Depends(get_db)
+    db: Session = Depends(get_db),
 ):
     """
     Mark a task as completed for a user.
