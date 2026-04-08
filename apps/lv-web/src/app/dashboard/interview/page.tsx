@@ -21,6 +21,8 @@ export default function InterviewPage() {
   });
   const [showEndInterviewDialog, setShowEndInterviewDialog] = useState(false);
   const [hasStarted, setHasStarted] = useState(false);
+  const [completedTasksCount, setCompletedTasksCount] = useState(0);
+  const [isLoadingTasks, setIsLoadingTasks] = useState(true);
 
   // Require auth
   useEffect(() => {
@@ -28,6 +30,29 @@ export default function InterviewPage() {
       router.push('/login');
     }
   }, [status, router]);
+
+  // Fetch completed tasks
+  useEffect(() => {
+    if (session?.user?.id) {
+      fetchCompletedTasks();
+    } else {
+      setIsLoadingTasks(false);
+    }
+  }, [session?.user?.id]);
+
+  const fetchCompletedTasks = async () => {
+    try {
+      const response = await fetch('/api/interview/completed-tasks');
+      if (response.ok) {
+        const data = await response.json();
+        setCompletedTasksCount(data.count || 0);
+      }
+    } catch (error) {
+      console.error('Error fetching completed tasks:', error);
+    } finally {
+      setIsLoadingTasks(false);
+    }
+  };
 
   const handleEndInterview = () => {
     sessionStorage.removeItem('interview-messages');
@@ -62,9 +87,19 @@ export default function InterviewPage() {
       onEndInterview={handleEndInterview}
       hasStarted={hasStarted}
     />
+  ) : isLoadingTasks ? (
+    <div className="min-h-screen flex items-center justify-center">
+      <div
+        data-testid="loading-spinner"
+        className="animate-spin rounded-full h-32 w-32 border-b-2 border-gray-900"
+      ></div>
+    </div>
   ) : (
     <div className="h-full flex flex-col">
-      <InterviewStartScreen onStart={() => setHasStarted(true)} />
+      <InterviewStartScreen
+        onStart={() => setHasStarted(true)}
+        completedTasksCount={completedTasksCount}
+      />
     </div>
   );
 }

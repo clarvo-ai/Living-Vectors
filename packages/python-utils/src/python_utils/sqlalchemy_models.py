@@ -84,6 +84,19 @@ class Authenticator(Base):
     user: Mapped["User"] = relationship("User", back_populates="authenticator", uselist=False)
 
 
+class CompletedTask(Base):
+    __tablename__ = "CompletedTask"
+    __table_args__ = {'schema': 'public'}
+
+    id: Mapped[UUID] = mapped_column(PostgresUUID(as_uuid=True), primary_key=True, nullable=False, server_default=text("gen_random_uuid()"))
+    userId: Mapped[UUID] = mapped_column(PostgresUUID(as_uuid=True), ForeignKey("public.User.id"), nullable=False)
+    taskId: Mapped[str] = mapped_column(Text, nullable=False)
+    completedAt: Mapped[datetime] = mapped_column(TIMESTAMP, nullable=False)
+
+    # Relationships
+    user: Mapped["User"] = relationship("User", back_populates="completedTask", uselist=False)
+
+
 class ConversationMessage(Base):
     __tablename__ = "ConversationMessage"
     __table_args__ = {'schema': 'public'}
@@ -238,13 +251,14 @@ class User(Base):
     role: Mapped[UserRole] = mapped_column(Enum(UserRole), nullable=False, default=UserRole.USER)
 
     # Relationships
+    completedTask: Mapped[List["CompletedTask"]] = relationship("CompletedTask", back_populates="user")
     account: Mapped[List["Account"]] = relationship("Account", back_populates="user")
     session: Mapped[List["Session"]] = relationship("Session", back_populates="user")
     authenticator: Mapped[List["Authenticator"]] = relationship("Authenticator", back_populates="user")
     conversationMessage: Mapped[List["ConversationMessage"]] = relationship("ConversationMessage", back_populates="user")
-    learning: Mapped[List["Learning"]] = relationship("Learning", back_populates="user")
     jobRecommendation: Mapped[List["JobRecommendation"]] = relationship("JobRecommendation", back_populates="user")
     userEmbedding: Mapped["UserEmbedding"] = relationship("UserEmbedding", back_populates="user", uselist=False)
+    learning: Mapped[List["Learning"]] = relationship("Learning", back_populates="user")
 
 
 class UserEmbedding(Base):
