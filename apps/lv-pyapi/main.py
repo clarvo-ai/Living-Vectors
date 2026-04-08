@@ -87,7 +87,11 @@ async def get_user(request: Request, user_id: str, db: Session = Depends(get_db)
 
 @app.post("/api/upload-jobs")
 @limiter.limit("5/minute")
-async def upload_jobs(request: Request, filename: str = Body(..., embed=True, max_length=500), background_tasks: BackgroundTasks = None):
+async def upload_jobs(
+    request: Request,
+    background_tasks: BackgroundTasks,
+    filename: str = Body(..., embed=True, max_length=500),
+):
     """Endpoint to upload job listings"""
     try:
         result = process_file(filename)
