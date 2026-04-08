@@ -3,6 +3,7 @@
 import {
   useChat,
   useLocalParticipant,
+  useRoomInfo,
   useSessionContext,
   useSessionMessages,
 } from '@livekit/components-react';
@@ -38,6 +39,19 @@ export function InterviewContent({
   const { messages } = useSessionMessages(session);
   const { send } = useChat();
   const { isMicrophoneEnabled, localParticipant } = useLocalParticipant();
+  const { metadata } = useRoomInfo();
+
+  // Redirect when the agent signals the interview is over
+  useEffect(() => {
+    try {
+      const meta = JSON.parse(metadata ?? '{}');
+      if (meta.interview_ongoing === false) {
+        setTimeout(() => {
+          window.location.href = '/dashboard/opportunities';
+        }, 1000);
+      }
+    } catch {}
+  }, [metadata]);
 
   const toggleMute = async () => {
     if (localParticipant) {

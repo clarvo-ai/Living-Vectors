@@ -1,15 +1,22 @@
+import json
 import logging
 import os
 import sys
 from dotenv import load_dotenv
 import asyncio
+from typing import List
 
 import requests
-from livekit import agents
+from livekit import agents, api as lkapi
 from livekit.agents import AgentServer, AgentSession, Agent, JobProcess, room_io
 from livekit.agents.beta.workflows import TaskGroup
 from livekit.plugins import elevenlabs, google, silero, noise_cancellation
 from livekit.plugins.elevenlabs import TTS, VoiceSettings
+
+from database import SessionLocal
+from helper import fetch_completed_tasks, fetch_user_insights
+
+from faq import get_faq
 
 from tasks import (
     OpeningTask,
@@ -19,7 +26,7 @@ from tasks import (
     BackgroundTask,
     CultureTask,
     ValueVisionTask,
-    AlignmentTask,
+    AlignmentTask
 )
 
 load_dotenv(".env.local")
@@ -28,6 +35,8 @@ ELEVENLABS_API_KEY = os.environ.get("ELEVENLABS_API_KEY")
 GOOGLE_API_KEY = os.environ.get("GEMINI_API_KEY")
 AGENT_NAME = os.environ.get("LIVEKIT_AGENT_NAME", "lv-voice-agent")
 LIVEKIT_URL = os.environ.get("LIVEKIT_URL", "ws://127.0.0.1:7880")
+LIVEKIT_API_KEY = os.environ.get("LIVEKIT_API_KEY")
+LIVEKIT_API_SECRET = os.environ.get("LIVEKIT_API_SECRET")
 BACKEND_URL = os.environ.get("BACKEND_URL", "")
 INTERNAL_API_SECRET = os.environ.get("INTERNAL_API_SECRET", "")
 
@@ -44,65 +53,120 @@ def prewarm(proc: JobProcess) -> None:
 
 
 class CareerAssistant(Agent):
-    def __init__(self, room=None) -> None:
-        self._room = room
-        super().__init__(
-            instructions="""
+    DISCOVERY_TASKS = {"opening", "logistics", "industry", "location", "background", "culture", "value_vision", "alignment"}
+
+    def __init__(self, user_id: str, completed_tasks: List[str], user_insights: List[str]) -> None:
+        self.user_id = user_id
+        self.completed_tasks = completed_tasks
+        self.user_insights = user_insights
+        self.all_completed = self.DISCOVERY_TASKS.issubset(set(completed_tasks))
+
+        insight_text = ""
+        if self.user_insights:
+            lines = "\n".join(f"- {s}" for s in self.user_insights)
+            insight_text = f"\n\nHere is what we know about the user from previous conversations:\n{lines}"
+
+        instructions = f"""
             You are an AI assistant for the Living Vectors platform,
-            specializing in career guidance.
-            You help people explore their strengths, motivations, and what they
-            want next, then use that to surface matching job opportunities —
-            guidance and matching, not applications or form-filling.
-            Your mission is to do this through thoughtful, structured
-            conversations that are natural, supportive, and coach-like.
+            specializing in career guidance. You are speaking with a candidate whose full discovery call
+            is already on file. You know their background, preferences, and goals well.
 
-            In this conversation your job is to get to know this person deeply:
-            their background, what they are great at, what they want next, and
-            what matters to them. After this conversation, you will use what
-            you learn to surface the best matching job opportunities for them
-            from external sources.
-            You are on their side. Make them feel heard. Speak conversationally.
-            Reference earlier answers to avoid repeating questions. Be concise —
-            this is a voice conversation, not a written form.
-            Stay friendly and conversational, but do not start messages with
-            "Okay", "Ok," or similar — open with something warm and direct
-            (e.g. "Hey there!", "This will be a quick discovery conversation…").
+            Your role now is to be a helpful, conversational career advisor:
+            - Be concise — this is a voice conversation, not a written form.
+            - Answer any questions they have about their job search, roles, the market, etc.
+            - If they mention something has changed (location, comp, what they want), note it
+              and explore it naturally — one question at a time.
+            - Keep replies short and conversational. This is a voice call.
+            - Do NOT re-run the discovery interview. Do NOT ask unprompted questions.
+            
+            {insight_text}
 
-            Before asking the next question, briefly show you heard them: one
-            short reflection, show curiosity, or connect their answer to why
-            you're asking next. Do not repeat their exact words back (e.g. avoid
-            saying the same thing two ways like "you contribute by thinking and
-            providing ideas" and "you like to think and provide your ideas").
-            One brief acknowledgment is enough, then ask the next question.
-            Avoid generic acknowledgments only (e.g. not just "Got it" or "Ok,
-            great"). When changing topic, bridge from what they said (e.g.
-            "Since you're staying in tech, what kind of role are you aiming
-            for?") instead of a generic signpost like "Let's talk about
-            location."
+            For factual questions about this service, interview, or data handling, use get_faq and answer from those entries.
+            If the user asks a FAQ type-question answer it ONLY if you know the answer. Do not hallucinate.
+            """
 
-            Do not assume the candidate is in any particular country (e.g. the
-            US). Keep the conversation location-neutral until they have told you
-            where they are or where they want to work.
-
-            Do not use "finally", "last question", "one last thing", or similar
-            closing language when asking a question unless you are in the final
-            phase (summary and closing). Every other phase is only one part of
-            a longer conversation.
-            """,
-        )
+        super().__init__(instructions=instructions, tools=[get_faq])
 
     async def on_enter(self) -> None:
+        if not self.all_completed:
+            # Mark interview as ongoing at the start of discovery
+            try:
+                async with lkapi.LiveKitAPI(LIVEKIT_URL, LIVEKIT_API_KEY, LIVEKIT_API_SECRET) as lk:
+                    await lk.room.update_room_metadata(lkapi.UpdateRoomMetadataRequest(
+                        room=f"interview-{self.user_id}",
+                        metadata=json.dumps({"interview_ongoing": True}),
+                    ))
+                logger.info(f"[AGENT] Room metadata set to interview_ongoing=true for interview-{self.user_id}")
+            except Exception as e:
+                logger.error(f"[AGENT] Failed to set room metadata: {e}")
+        
+        if self.all_completed:
+            logger.info("[AGENT] Returning user — skipping TaskGroup, starting free-form check-in")
+
+            try:
+                async with lkapi.LiveKitAPI(LIVEKIT_URL, LIVEKIT_API_KEY, LIVEKIT_API_SECRET) as lk:
+                    await lk.room.update_room_metadata(lkapi.UpdateRoomMetadataRequest(
+                        room=f"interview-{self.user_id}",
+                        metadata=json.dumps({"current_task": "post-interview"}),
+                    ))
+                logger.info(f"[AGENT] Room metadata set to interview_ongoing=true for interview-{self.user_id}")
+            except Exception as e:
+                logger.error(f"[AGENT] Failed to set room metadata: {e}")
+
+            await self.session.generate_reply(
+                instructions=(
+                    "Welcome the candidate back warmly — you know them already. "
+                    "Then ask just ONE open question: whether anything has changed since you last spoke, "
+                    "or if there is anything on their mind."
+                )
+            )
+            return
+
+        all_tasks = [
+            ("opening",      OpeningTask,       "Why the candidate is here and how they found Clarvo"),
+            ("logistics",    LogisticsTask,     "Job search logistics, timing, and motivation to leave"),
+            ("industry",     IndustryTask,      "Target industry or field the candidate wants to work in"),
+            ("location",     LocationTask,      "Preferred cities and remote/hybrid/onsite preferences"),
+            ("background",   BackgroundTask,    "Work experience, strengths, and domain knowledge"),
+            ("culture",      CultureTask,       "Team size, management style, and company culture fit"),
+            ("value_vision", ValueVisionTask,   "Compensation expectations and career vision"),
+            ("alignment",    AlignmentTask,     "Summary confirmation and closing"),
+        ]
+
         task_group = TaskGroup(chat_ctx=self.chat_ctx)
-        room = self._room
-        task_group.add(lambda: OpeningTask(room, "opening"),      id="opening",      description="Why the candidate is here and how they found Clarvo")
-        task_group.add(lambda: LogisticsTask(room, "logistics"),    id="logistics",    description="Job search logistics, timing, and motivation to leave")
-        task_group.add(lambda: IndustryTask(room, "industry"),     id="industry",     description="Target industry or field the candidate wants to work in")
-        task_group.add(lambda: LocationTask(room, "location"),     id="location",     description="Preferred cities and remote/hybrid/onsite preferences")
-        task_group.add(lambda: BackgroundTask(room, "background"),   id="background",   description="Work experience, strengths, and domain knowledge")
-        task_group.add(lambda: CultureTask(room, "culture"),      id="culture",      description="Team size, management style, and company culture fit")
-        task_group.add(lambda: ValueVisionTask(room, "value_vision"),  id="value_vision", description="Compensation expectations and career vision")
-        task_group.add(lambda: AlignmentTask(room, "alignment"),    id="alignment",    description="Summary confirmation and closing")
+
+        # Find the first incomplete task to mark it as returning
+        first_incomplete_idx = None
+        for idx, (task_id, _, _) in enumerate(all_tasks):
+            if task_id not in self.completed_tasks:
+                first_incomplete_idx = idx
+                break
+
+        for idx, (task_id, task_class, task_desc) in enumerate(all_tasks):
+            if task_id not in self.completed_tasks:
+                is_returning = (idx == first_incomplete_idx) and bool(self.completed_tasks)
+                task_group.add(
+                    lambda task_cls=task_class, is_ret=is_returning: task_cls(
+                        self.user_id, self.user_insights, is_returning=is_ret
+                    ),
+                    id=task_id,
+                    description=task_desc
+                )
+
         await task_group
+
+        logger.info(f"[AGENT] TaskGroup for room interview-{self.user_id} completed.")
+        
+        # Update metadata to signal interview complete
+        try:
+            async with lkapi.LiveKitAPI(LIVEKIT_URL, LIVEKIT_API_KEY, LIVEKIT_API_SECRET) as lk:
+                await lk.room.update_room_metadata(lkapi.UpdateRoomMetadataRequest(
+                    room=f"interview-{self.user_id}",
+                    metadata=json.dumps({"interview_ongoing": False}),
+                ))
+            logger.info(f"[AGENT] Room metadata set to interview_ongoing=false for interview-{self.user_id}")
+        except Exception as e:
+            logger.error(f"[AGENT] Failed to update room metadata: {e}")
 
 
 server = AgentServer()
@@ -137,9 +201,12 @@ async def my_agent(ctx: agents.JobContext):
     user_id = ctx.room.name.removeprefix("interview-")
     logger.info(f"Session user: {user_id}")
 
+    completed_tasks = fetch_completed_tasks(user_id)
+    user_insights = fetch_user_insights(user_id)
+
     await session.start(
         room=ctx.room,
-        agent=CareerAssistant(room=ctx.room),
+        agent=CareerAssistant(user_id, completed_tasks, user_insights),
         room_options=room_io.RoomOptions(
             audio_input=room_io.AudioInputOptions(
                 noise_cancellation=noise_cancellation.NC(),
@@ -148,7 +215,6 @@ async def my_agent(ctx: agents.JobContext):
             delete_room_on_close=True,
         ),
     )
-    logger.info("Agent started")
 
     @session.on("close")
     def on_close():
