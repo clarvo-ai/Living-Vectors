@@ -185,7 +185,6 @@ async def my_agent(ctx: agents.JobContext):
         )
     )
 
-
     session = AgentSession(
         vad=ctx.proc.userdata["vad"],
         stt=elevenlabs.STT(api_key=ELEVENLABS_API_KEY),
