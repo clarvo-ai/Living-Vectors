@@ -1,4 +1,4 @@
-import { AccessToken, RoomServiceClient, VideoGrant } from 'livekit-server-sdk';
+import { AccessToken, VideoGrant } from 'livekit-server-sdk';
 import { NextRequest, NextResponse } from 'next/server';
 
 export async function POST(request: NextRequest) {
@@ -15,18 +15,6 @@ export async function POST(request: NextRequest) {
 
     if (!apiKey || !apiSecret || !liveKitUrl) {
       return NextResponse.json({ error: 'Missing LiveKit credentials' }, { status: 500 });
-    }
-
-    // Delete any existing room before issuing the token.
-    // Without this, a user who rejoins quickly may land in the old room
-    // (whose deletion is still in-flight on LiveKit Cloud), and LiveKit
-    // won't re-dispatch the agent to a room it already considers "handled".
-    // Deleting here makes the join always create a fresh room → reliable agent dispatch.
-    try {
-      const roomService = new RoomServiceClient(liveKitUrl, apiKey, apiSecret);
-      await roomService.deleteRoom(roomName);
-    } catch {
-      // Room didn't exist or was already deleted — that's fine, carry on.
     }
 
     // Generate access token for the participant
