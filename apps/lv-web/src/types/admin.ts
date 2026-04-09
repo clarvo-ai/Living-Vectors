@@ -40,3 +40,12 @@ export interface LearningConnection {
   createdAt: string;
   messages: string[];
 }
+
+/**
+ * Stats returned by GET /api/admin/job-embeddings/stats
+ */
+export interface AdminJobEmbeddingStats {
+  totalJobs: number;
+  jobsWithEmbeddings: number;
+  missingEmbeddings: number;
+}
