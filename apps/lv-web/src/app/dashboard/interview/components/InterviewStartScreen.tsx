@@ -2,21 +2,43 @@ import { Bot, Phone } from 'lucide-react';
 
 interface InterviewStartScreenProps {
   onStart?: () => void;
+  completedTasksCount?: number;
+  totalTasks?: number;
 }
 
-export function InterviewStartScreen({ onStart }: InterviewStartScreenProps) {
+export function InterviewStartScreen({
+  onStart,
+  completedTasksCount = 0,
+  totalTasks = 8,
+}: InterviewStartScreenProps) {
+  const allCompleted = completedTasksCount === totalTasks && totalTasks > 0;
+  const partiallyCompleted = completedTasksCount > 0 && !allCompleted;
+
+  let title = 'Welcome to the interview!';
+  let subtitle = 'Press the button to start';
+  let buttonText = 'Start Call';
+  let durationText = 'This will take 10-15 minutes (max 17 minutes), if you cannot do it in one go, you can take a new call anytime.';
+
+  if (allCompleted) {
+    title = 'Welcome back!';
+    subtitle = 'Want to update some information?';
+    buttonText = 'Resume Call';
+    durationText = 'Chat freely with the assistant';
+  } else if (partiallyCompleted) {
+    title = 'Welcome back to the interview!';
+    subtitle = `Press the button to continue your interview`;
+    buttonText = 'Continue Call';
+    durationText = `${totalTasks - completedTasksCount} sections remaining`;
+  }
+
   return (
     <div
       data-testid="voice-only-mode"
       className="flex-1 w-full flex flex-col items-center justify-center space-y-8"
     >
       <div className="text-center space-y-2">
-        <p className="text-2xl font-semibold text-gray-700">Welcome to the interview!</p>
-        <p className="text-sm text-gray-500">Press the button to start</p>
-        <p className="text-sm text-gray-600 max-w-md mx-auto">
-          Please complete the interview in one go. The call will end at 17 minutes. You can take a
-          new call anytime.
-        </p>
+        <p className="text-2xl font-semibold text-gray-700">{title}</p>
+        <p className="text-sm text-gray-500">{subtitle}</p>
       </div>
       <div className="flex items-center justify-center">
         <div
@@ -47,9 +69,9 @@ export function InterviewStartScreen({ onStart }: InterviewStartScreenProps) {
             }}
           >
             <Phone className="w-4 h-4" />
-            Start Call
+            {buttonText}
           </button>
-          <p className="text-xs text-gray-500">This will take 10-15 minutes</p>
+          <p className="text-xs text-gray-500">{durationText}</p>
         </div>
       </div>
     </div>
