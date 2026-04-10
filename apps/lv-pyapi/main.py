@@ -10,9 +10,8 @@ from google import genai
 import logging
 
 from database import get_db, SessionLocal
-from python_utils.sqlalchemy_models import User, UserEmbedding, Job, ConversationMessage
+from python_utils.sqlalchemy_models import User, UserEmbedding, Job, ConversationMessage, CompletedTask, Learning, MessageSender
 from message_save import save_message
-from python_utils.sqlalchemy_models import User, MessageSender
 from fastapi.responses import JSONResponse
 from gemini_client import client
 from user_embedding import generate_user_embedding
@@ -359,6 +358,82 @@ async def internal_process_transcript(
 
     background_tasks.add_task(process_learnings, payload.user_id, payload.transcript)
     return {"status": "accepted"}
+
+
+@app.get("/internal/users/{user_id}/completed-tasks")
+async def get_completed_tasks(
+    user_id: str,
+    x_internal_secret: str = Header(...),
+    db: Session = Depends(get_db)
+):
+    """
+    Fetch list of completed task IDs for a user.
+    Called by the agent at session start to determine interview progress.
+    """
+    if x_internal_secret != os.getenv("INTERNAL_API_SECRET"):
+        raise HTTPException(status_code=403, detail="Forbidden")
+    
+    try:
+        rows = db.execute(
+            select(CompletedTask.taskId)
+            .where(CompletedTask.userId == user_id)
+        ).all()
+        completed_task_ids = [row.taskId for row in rows]
+        return {"user_id": user_id, "completed_tasks": completed_task_ids}
+    except Exception as e:
+        logging.exception(f"Error fetching completed tasks for user {user_id}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@app.get("/internal/users/{user_id}/insights")
+async def get_user_insights(
+    user_id: str,
+    x_internal_secret: str = Header(...),
+    db: Session = Depends(get_db)
+):
+    """
+    Fetch user learnings/insights for context during conversation.
+    Called by the agent at session start.
+    """
+    if x_internal_secret != os.getenv("INTERNAL_API_SECRET"):
+        raise HTTPException(status_code=403, detail="Forbidden")
+    
+    try:
+        rows = db.execute(
+            select(Learning.summary)
+            .where(Learning.userId == user_id)
+            .order_by(Learning.createdAt)
+        ).all()
+        insights = [row.summary for row in rows]
+        return {"user_id": user_id, "insights": insights}
+    except Exception as e:
+        logging.exception(f"Error fetching insights for user {user_id}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@app.post("/internal/users/{user_id}/completed-tasks")
+async def mark_task_completed(
+    user_id: str,
+    task_id: str = Body(..., embed=True),
+    x_internal_secret: str = Header(...),
+    db: Session = Depends(get_db)
+):
+    """
+    Mark a task as completed for a user.
+    Called by the agent when a discovery task is finished.
+    """
+    if x_internal_secret != os.getenv("INTERNAL_API_SECRET"):
+        raise HTTPException(status_code=403, detail="Forbidden")
+    
+    try:
+        from datetime import datetime
+        db.add(CompletedTask(userId=user_id, taskId=task_id, completedAt=datetime.now()))
+        db.commit()
+        return {"status": "success", "user_id": user_id, "task_id": task_id}
+    except Exception as e:
+        db.rollback()
+        logging.exception(f"Error marking task {task_id} as completed for user {user_id}")
+        raise HTTPException(status_code=500, detail=str(e))
 
 
 if __name__ == "__main__":
