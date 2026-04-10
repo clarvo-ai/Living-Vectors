@@ -85,7 +85,6 @@ async def upload_jobs(filename: str = Body(..., embed=True), background_tasks: B
     """Endpoint to upload job listings"""
     try:
         result = process_file(filename)
-        background_tasks.add_task(generate_missing_embeddings)
         return {"message": result, "status": 200}
     except Exception as e:
         logging.exception("Error processing jobs")
@@ -291,15 +290,6 @@ async def get_user_job_recommendations(
         logging.exception("Error retrieving job recommendations")
         raise HTTPException(status_code=500, detail=str(e))
 
-@app.post("/api/jobs/generate-embeddings")
-async def batch_generate_job_embeddings(background_tasks: BackgroundTasks):
-    """
-    Manually trigger embedding generation for all jobs missing one.
-
-    Runs in the background — returns immediately.
-    """
-    background_tasks.add_task(generate_missing_embeddings)
-    return {"status": 200, "message": "Embedding generation started in background"}
 
 #Pydantic model for agent <-> backend communication
 class TranscriptPayload(BaseModel):
