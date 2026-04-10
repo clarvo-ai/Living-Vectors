@@ -57,6 +57,29 @@ export async function uploadJobs(filename: string): Promise<{ message: string; s
   return data;
 }
 
+export async function generateJobEmbeddings(): Promise<{ message: string; status: number }> {
+  const response = await fetch(`${getBaseUrl()}/api/jobs/generate-embeddings`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({}),
+  });
+
+  const data = await response.json();
+
+  if (!response.ok) {
+    const detail = data.detail;
+    const detailStr =
+      typeof detail === 'string'
+        ? detail
+        : Array.isArray(detail)
+          ? detail.map((d: { msg?: string }) => d?.msg).filter(Boolean).join(', ')
+          : undefined;
+    throw new Error(data.message || detailStr || `Failed to start embedding generation: ${response.statusText}`);
+  }
+
+  return data;
+}
+
 interface PyAPIMatchJob {
   id: string;
   job_title: string;

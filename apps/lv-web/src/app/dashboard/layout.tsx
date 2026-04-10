@@ -332,7 +332,7 @@ function DashboardLayoutContent({ children }: { children: React.ReactNode }) {
                     <SidebarMenuButton
                       onClick={() => handleMobileNavigation('/admin/jobs')}
                       isActive={pathname?.startsWith('/admin/jobs')}
-                      tooltip="Upload Jobs"
+                      tooltip="Job data"
                       style={
                         pathname?.startsWith('/admin/jobs')
                           ? { backgroundColor: 'var(--bg-hover)' }
@@ -350,7 +350,7 @@ function DashboardLayoutContent({ children }: { children: React.ReactNode }) {
                             pathname?.startsWith('/admin/jobs') ? 'text-gray-900' : 'text-gray-600'
                           }
                         >
-                          Upload Jobs
+                          Job data
                         </span>
                       </div>
                     </SidebarMenuButton>
@@ -426,7 +426,7 @@ function DashboardLayoutContent({ children }: { children: React.ReactNode }) {
                   : pathname?.startsWith('/admin/users')
                     ? 'Admin'
                     : pathname?.startsWith('/admin/jobs')
-                      ? 'Upload Jobs'
+                      ? 'Job data'
                       : 'Dashboard'}
           </h2>
         </div>
