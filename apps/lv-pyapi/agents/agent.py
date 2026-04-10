@@ -13,7 +13,6 @@ from livekit.agents.beta.workflows import TaskGroup
 from livekit.plugins import elevenlabs, google, silero, noise_cancellation
 from livekit.plugins.elevenlabs import TTS, VoiceSettings
 
-from database import SessionLocal
 from helper import fetch_completed_tasks, fetch_user_insights
 
 from faq import get_faq
@@ -53,8 +52,9 @@ def prewarm(proc: JobProcess) -> None:
 class CareerAssistant(Agent):
     DISCOVERY_TASKS = {"opening", "logistics", "industry", "location", "background", "culture", "value_vision", "alignment"}
 
-    def __init__(self, user_id: str, completed_tasks: List[str], user_insights: List[str]) -> None:
+    def __init__(self, user_id: str, completed_tasks: List[str], user_insights: List[str], room_name: str) -> None:
         self.user_id = user_id
+        self.room_name = room_name
         self.completed_tasks = completed_tasks
         self.user_insights = user_insights
         self.all_completed = self.DISCOVERY_TASKS.issubset(set(completed_tasks))
@@ -91,7 +91,7 @@ class CareerAssistant(Agent):
             try:
                 async with lkapi.LiveKitAPI(LIVEKIT_URL, LIVEKIT_API_KEY, LIVEKIT_API_SECRET) as lk:
                     await lk.room.update_room_metadata(lkapi.UpdateRoomMetadataRequest(
-                        room=f"interview-{self.user_id}",
+                        room=self.room_name,
                         metadata=json.dumps({"interview_ongoing": True}),
                     ))
                 logger.info(f"[AGENT] Room metadata set to interview_ongoing=true for interview-{self.user_id}")
@@ -104,7 +104,7 @@ class CareerAssistant(Agent):
             try:
                 async with lkapi.LiveKitAPI(LIVEKIT_URL, LIVEKIT_API_KEY, LIVEKIT_API_SECRET) as lk:
                     await lk.room.update_room_metadata(lkapi.UpdateRoomMetadataRequest(
-                        room=f"interview-{self.user_id}",
+                        room=self.room_name,
                         metadata=json.dumps({"current_task": "post-interview"}),
                     ))
                 logger.info(f"[AGENT] Room metadata set to interview_ongoing=true for interview-{self.user_id}")
@@ -144,8 +144,8 @@ class CareerAssistant(Agent):
             if task_id not in self.completed_tasks:
                 is_returning = (idx == first_incomplete_idx) and bool(self.completed_tasks)
                 task_group.add(
-                    lambda task_cls=task_class, is_ret=is_returning: task_cls(
-                        self.user_id, self.user_insights, is_returning=is_ret
+                    lambda task_cls=task_class, is_ret=is_returning, rn=self.room_name: task_cls(
+                        self.user_id, self.user_insights, is_returning=is_ret, room_name=rn
                     ),
                     id=task_id,
                     description=task_desc
@@ -159,7 +159,7 @@ class CareerAssistant(Agent):
         try:
             async with lkapi.LiveKitAPI(LIVEKIT_URL, LIVEKIT_API_KEY, LIVEKIT_API_SECRET) as lk:
                 await lk.room.update_room_metadata(lkapi.UpdateRoomMetadataRequest(
-                    room=f"interview-{self.user_id}",
+                    room=self.room_name,
                     metadata=json.dumps({"interview_ongoing": False}),
                 ))
             logger.info(f"[AGENT] Room metadata set to interview_ongoing=false for interview-{self.user_id}")
@@ -187,7 +187,6 @@ async def my_agent(ctx: agents.JobContext):
         )
     )
 
-
     session = AgentSession(
         vad=ctx.proc.userdata["vad"],
         stt=elevenlabs.STT(api_key=ELEVENLABS_API_KEY),
@@ -196,7 +195,7 @@ async def my_agent(ctx: agents.JobContext):
         allow_interruptions=True,
     )
     
-    user_id = ctx.room.name.removeprefix("interview-")
+    user_id = ctx.room.name.removeprefix("interview-").rsplit("-", 1)[0]
     logger.info(f"Session user: {user_id}")
 
     completed_tasks = fetch_completed_tasks(user_id)
@@ -204,7 +203,7 @@ async def my_agent(ctx: agents.JobContext):
 
     await session.start(
         room=ctx.room,
-        agent=CareerAssistant(user_id, completed_tasks, user_insights),
+        agent=CareerAssistant(user_id, completed_tasks, user_insights, room_name=ctx.room.name),
         room_options=room_io.RoomOptions(
             audio_input=room_io.AudioInputOptions(
                 noise_cancellation=noise_cancellation.NC(),

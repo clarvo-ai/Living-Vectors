@@ -54,11 +54,10 @@ async def _deferred_on_enter_reply(session: Any, instructions: str) -> None:
         logger.warning("Deferred on_enter reply failed: %s", e)
 
 
-async def _set_current_task(user_id: str, task_id: str) -> None:
+async def _set_current_task(room_name: str, task_id: str) -> None:
     """Update room metadata via LiveKit API to set the current task."""
     try:
         async with lkapi.LiveKitAPI(LIVEKIT_URL, LIVEKIT_API_KEY, LIVEKIT_API_SECRET) as lk:
-            room_name = f"interview-{user_id}"
             await lk.room.update_room_metadata(lkapi.UpdateRoomMetadataRequest(
                 room=room_name,
                 metadata=json.dumps({
@@ -83,9 +82,10 @@ def _build_insight_block(insights: list[str]) -> str:
 
 
 class OpeningTask(AgentTask[None]):
-    def __init__(self, user_id: str, insights: list[str] | None = None, task_id: str = "opening", is_returning: bool = False) -> None:
+    def __init__(self, user_id: str, insights: list[str] | None = None, task_id: str = "opening", is_returning: bool = False, room_name: str = "") -> None:
         self._task_id = task_id
         self.user_id = user_id
+        self.room_name = room_name
         super().__init__(
             instructions="""
             Your name is the "Clarvo career assistant" — you help people explore
@@ -124,7 +124,7 @@ class OpeningTask(AgentTask[None]):
         )
 
     async def on_enter(self) -> None:
-        await _set_current_task(self.user_id, self._task_id)
+        await _set_current_task(self.room_name, self._task_id)
         logger.info("[TASK] Opening — greeting and discovery")
         asyncio.create_task(
             _deferred_on_enter_reply(
@@ -150,9 +150,10 @@ class OpeningTask(AgentTask[None]):
 
 
 class LogisticsTask(AgentTask[None]):
-    def __init__(self, user_id: str, insights: list[str] | None = None, task_id: str = "logistics", is_returning: bool = False) -> None:
+    def __init__(self, user_id: str, insights: list[str] | None = None, task_id: str = "logistics", is_returning: bool = False, room_name: str = "") -> None:
         self._task_id = task_id
         self.user_id = user_id
+        self.room_name = room_name
         self.is_returning = is_returning
         super().__init__(
             instructions="""
@@ -183,7 +184,7 @@ class LogisticsTask(AgentTask[None]):
         )
 
     async def on_enter(self) -> None:
-        await _set_current_task(self.user_id, self._task_id)
+        await _set_current_task(self.room_name, self._task_id)
         logger.info("[TASK] Logistics — search intensity, timing, motivation")
         
         if self.is_returning:
@@ -213,9 +214,10 @@ class LogisticsTask(AgentTask[None]):
 
 
 class IndustryTask(AgentTask[None]):
-    def __init__(self, user_id: str, insights: list[str] | None = None, task_id: str = "industry", is_returning: bool = False) -> None:
+    def __init__(self, user_id: str, insights: list[str] | None = None, task_id: str = "industry", is_returning: bool = False, room_name: str = "") -> None:
         self._task_id = task_id
         self.user_id = user_id
+        self.room_name = room_name
         self.is_returning = is_returning
         super().__init__(
             instructions="""
@@ -233,7 +235,7 @@ class IndustryTask(AgentTask[None]):
         )
 
     async def on_enter(self) -> None:
-        await _set_current_task(self.user_id, self._task_id)
+        await _set_current_task(self.room_name, self._task_id)
         logger.info("[TASK] Industry — target field and sector")
         
         if self.is_returning:
@@ -263,9 +265,10 @@ class IndustryTask(AgentTask[None]):
 
 
 class LocationTask(AgentTask[None]):
-    def __init__(self, user_id: str, insights: list[str] | None = None, task_id: str = "location", is_returning: bool = False) -> None:
+    def __init__(self, user_id: str, insights: list[str] | None = None, task_id: str = "location", is_returning: bool = False, room_name: str = "") -> None:
         self._task_id = task_id
         self.user_id = user_id
+        self.room_name = room_name
         self.is_returning = is_returning
         super().__init__(
             instructions="""
@@ -297,7 +300,7 @@ class LocationTask(AgentTask[None]):
         )
 
     async def on_enter(self) -> None:
-        await _set_current_task(self.user_id, self._task_id)
+        await _set_current_task(self.room_name, self._task_id)
         logger.info("[TASK] Location — cities, relocation, remote/hybrid/onsite")
         
         if self.is_returning:
@@ -327,9 +330,10 @@ class LocationTask(AgentTask[None]):
 
 
 class BackgroundTask(AgentTask[None]):
-    def __init__(self, user_id: str, insights: list[str] | None = None, task_id: str = "background", is_returning: bool = False) -> None:
+    def __init__(self, user_id: str, insights: list[str] | None = None, task_id: str = "background", is_returning: bool = False, room_name: str = "") -> None:
         self._task_id = task_id
         self.user_id = user_id
+        self.room_name = room_name
         self.is_returning = is_returning
         super().__init__(
             instructions="""
@@ -369,7 +373,7 @@ class BackgroundTask(AgentTask[None]):
         )
 
     async def on_enter(self) -> None:
-        await _set_current_task(self.user_id, self._task_id)
+        await _set_current_task(self.room_name, self._task_id)
         logger.info("[TASK] Background — roles, strengths, tools/domain")
         
         if self.is_returning:
@@ -401,9 +405,10 @@ class BackgroundTask(AgentTask[None]):
 
 
 class CultureTask(AgentTask[None]):
-    def __init__(self, user_id: str, insights: list[str] | None = None, task_id: str = "culture", is_returning: bool = False) -> None:
+    def __init__(self, user_id: str, insights: list[str] | None = None, task_id: str = "culture", is_returning: bool = False, room_name: str = "") -> None:
         self._task_id = task_id
         self.user_id = user_id
+        self.room_name = room_name
         self.is_returning = is_returning
         super().__init__(
             instructions="""
@@ -439,7 +444,7 @@ class CultureTask(AgentTask[None]):
         )
 
     async def on_enter(self) -> None:
-        await _set_current_task(self.user_id, self._task_id)
+        await _set_current_task(self.room_name, self._task_id)
         logger.info("[TASK] Culture — management style, team size, startup vs corp")
         
         if self.is_returning:
@@ -471,9 +476,10 @@ class CultureTask(AgentTask[None]):
 
 
 class ValueVisionTask(AgentTask[None]):
-    def __init__(self, user_id: str, insights: list[str] | None = None, task_id: str = "value_vision", is_returning: bool = False) -> None:
+    def __init__(self, user_id: str, insights: list[str] | None = None, task_id: str = "value_vision", is_returning: bool = False, room_name: str = "") -> None:
         self._task_id = task_id
         self.user_id = user_id
+        self.room_name = room_name
         self.is_returning = is_returning
         super().__init__(
             instructions="""
@@ -514,7 +520,7 @@ class ValueVisionTask(AgentTask[None]):
         )
 
     async def on_enter(self) -> None:
-        await _set_current_task(self.user_id, self._task_id)
+        await _set_current_task(self.room_name, self._task_id)
         logger.info("[TASK] Value & Vision — compensation, career goals")
         
         if self.is_returning:
@@ -546,9 +552,10 @@ class ValueVisionTask(AgentTask[None]):
 
 
 class AlignmentTask(AgentTask[None]):
-    def __init__(self, user_id: str, insights: list[str] | None = None, task_id: str = "alignment", is_returning: bool = False) -> None:
+    def __init__(self, user_id: str, insights: list[str] | None = None, task_id: str = "alignment", is_returning: bool = False, room_name: str = "") -> None:
         self._task_id = task_id
         self.user_id = user_id
+        self.room_name = room_name
         self.is_returning = is_returning
         super().__init__(
             instructions="""
@@ -577,7 +584,7 @@ class AlignmentTask(AgentTask[None]):
         )
 
     async def on_enter(self) -> None:
-        await _set_current_task(self.user_id, self._task_id)
+        await _set_current_task(self.room_name, self._task_id)
         logger.info("[TASK] Alignment — summary, confirm, close")
         
         if self.is_returning:
