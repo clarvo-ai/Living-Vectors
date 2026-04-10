@@ -90,6 +90,8 @@ def learnings_from_transcript(transcript: str, current_learnings: List[Dict[str,
             "3. If user contradicts or updates an existing learning, add its ID to learnings_to_remove and the new text to learnings_to_add\n"
             "4. If a learning is no longer true, add its ID to learnings_to_remove\n"
             "5. Avoid duplicate or obviously similar learnings\n\n"
+            "6. Include also the question posed by the interviewer in the messages array to which the user answered.\n"
+
             "TRANSCRIPT TO ANALYZE:\n"
             f"{transcript}\n\n"
             "Extract high-value matching learnings from the transcript above only."
@@ -146,3 +148,71 @@ def process_learnings(user_id: str, transcript: str) -> None:
         print(f"Error processing learnings: {str(e)}")
     finally:
         db.close()
+
+
+def evaluate_learning_quality(summary: str, messages: List[str]) -> Dict[str, Any]:
+    """
+    Use Gemini as an LLM judge to evaluate the quality of a learning statement.
+
+    Args:
+        summary: The combined learning statement to evaluate
+        messages: The source conversation messages the learning was derived from
+
+    Returns:
+        Dict with keys: accuracy, relevance, coherence, overall_score, feedback
+    """
+    prompt = f"""
+        You are an expert evaluator judging the quality of combined learning statements. \
+        The learning you're evaluating is a COMBINED statement made up of multiple individual \
+        learnings joined with periods (e.g., "Learning 1. Learning 2. Learning 3."). IGNORE TRIVIAL TYPOS.
+
+        Example conversation:
+        - "I've been really enjoying building web apps and seeing users interact with them."
+        - "What kind of projects make you lose track of time?"
+        - "Anything involving UI design. I can spend hours tweaking interfaces."
+        - "What do people usually come to you for?"
+        - "Frontend advice and debugging CSS issues."
+
+        Example of a PERFECT combined learning statement:
+        "Enjoys building web applications and observing user interactions. Passionate about UI design \
+        and spends hours tweaking interfaces. Provides frontend advice and specializes in debugging CSS issues."
+
+        Example of a BAD combined learning statement (too generic):
+        "Enjoys building web applications. Likes coding."
+
+        Evaluation criteria:
+        1. **Accuracy**: Does the learning capture ALL specific details from the conversation? Missing details = lower accuracy.
+        2. **Relevance**: Are the learnings professionally useful for job matching? Generic statements = lower relevance.
+        3. **Coherence**: Is the combined statement well-formed and grammatically correct?
+
+        Now evaluate:
+        Combined Learning: "{summary}"
+        Source Conversation:
+        {chr(10).join(f'- {msg}' for msg in messages)}
+
+        Rate (0.0-1.0) for each criterion. Return JSON only."""
+
+    schema = {
+        "type": "object",
+        "properties": {
+            "accuracy":      {"type": "number", "minimum": 0, "maximum": 1},
+            "relevance":     {"type": "number", "minimum": 0, "maximum": 1},
+            "coherence":     {"type": "number", "minimum": 0, "maximum": 1},
+            "overall_score": {"type": "number", "minimum": 0, "maximum": 1},
+            "feedback":      {"type": "string"}
+        },
+        "required": ["accuracy", "relevance", "coherence", "overall_score", "feedback"]
+    }
+
+    config = types.GenerateContentConfig(
+        response_mime_type="application/json",
+        response_schema=schema,
+    )
+
+    response = client.models.generate_content(
+        model="gemini-2.5-flash",
+        contents=prompt,
+        config=config
+    )
+
+    return cast(Dict[str, Any], response.parsed)

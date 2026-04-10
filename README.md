@@ -361,7 +361,7 @@ The project includes a vector embedding system for matching users to jobs based 
 ### How It Works
 
 1. **User Learnings** → Extracted from career conversations and stored in the `Learning` table
-2. **User Embedding** → All learnings concatenated and converted to a 768-dimensional vector using Gemini API
+2. **User Embedding** → All learnings concatenated and converted to a 1536-dimensional vector using OpenAI API
 3. **Job Embeddings** → Job descriptions converted to vectors when jobs are created
 4. **Job Matching** → Cosine similarity between user and job vectors, ranked by match score
 
@@ -374,7 +374,6 @@ The project includes a vector embedding system for matching users to jobs based 
 | `POST /api/jobs`                                   | POST   | Create a job with automatic embedding    |
 | `GET /api/jobs`                                    | GET    | List all jobs                            |
 | `POST /api/upload-jobs`                            | POST   | Upload jobs from a GCS CSV file          |
-| `POST /api/jobs/generate-embeddings`               | POST   | Generate embeddings for jobs missing one |
 
 ### Uploading Jobs from CSV
 
