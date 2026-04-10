@@ -10,9 +10,8 @@ from google import genai
 import logging
 
 from database import get_db, SessionLocal
-from python_utils.sqlalchemy_models import User, UserEmbedding, Job, CompletedTask, Learning
+from python_utils.sqlalchemy_models import User, UserEmbedding, Job, ConversationMessage, CompletedTask, Learning, MessageSender
 from message_save import save_message
-from python_utils.sqlalchemy_models import User, MessageSender
 from fastapi.responses import JSONResponse
 from learnings import evaluate_learning_quality
 from gemini_client import client
@@ -301,6 +300,7 @@ async def internal_process_transcript(
     payload: TranscriptPayload,
     background_tasks: BackgroundTasks,
     x_internal_secret: str = Header(...),
+    db: Session = Depends(get_db),
 ):
     """
     Called by the LiveKit voice agent after a session closes.
@@ -309,6 +309,44 @@ async def internal_process_transcript(
     """
     if x_internal_secret != os.getenv("INTERNAL_API_SECRET"):
         raise HTTPException(status_code=403, detail="Forbidden")
+
+    # Persist message history (ConversationMessage) so admin/debug views can show it.
+    # Transcript format: one message per line: "<role>: <content>"
+    try:
+        messages_to_save: list[ConversationMessage] = []
+
+        for raw_line in (payload.transcript or "").splitlines():
+            line = raw_line.strip()
+            if not line or ":" not in line:
+                continue
+
+            raw_role, content = line.split(":", 1)
+            role = raw_role.strip()
+            content = content.strip()
+            if not content:
+                continue
+
+            if role.upper() == "USER":
+                sender = MessageSender.USER
+            else:
+                sender = MessageSender.AI
+
+            messages_to_save.append(
+                ConversationMessage(
+                    userId=payload.user_id,
+                    sender=sender,
+                    content=content,
+                    questionContext=None,
+                )
+            )
+
+        if messages_to_save:
+            db.add_all(messages_to_save)
+            db.commit()
+    except Exception:
+        logging.exception("Failed to persist transcript messages")
+        # Don't fail the request; learnings extraction is more important.
+
     background_tasks.add_task(process_learnings, payload.user_id, payload.transcript)
     return {"status": "accepted"}
 
