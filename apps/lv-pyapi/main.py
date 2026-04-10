@@ -14,6 +14,7 @@ from python_utils.sqlalchemy_models import User, UserEmbedding, Job, CompletedTa
 from message_save import save_message
 from python_utils.sqlalchemy_models import User, MessageSender
 from fastapi.responses import JSONResponse
+from learnings import evaluate_learning_quality
 from gemini_client import client
 from user_embedding import generate_user_embedding
 from job_embedding import generate_missing_embeddings
@@ -325,6 +326,23 @@ async def internal_process_transcript(
     background_tasks.add_task(process_learnings, payload.user_id, payload.transcript)
     return {"status": "accepted"}
 
+
+class EvaluateLearningRequest(BaseModel):
+    summary: str
+    messages: List[str]
+
+@app.post("/api/learnings/evaluate")
+async def evaluate_learning_endpoint(request: EvaluateLearningRequest):
+    """
+    Evaluate a learning statement with an LLM judge.
+    Returns accuracy, relevance, coherence, overall_score, and feedback.
+    """
+    try:
+        result = evaluate_learning_quality(request.summary, request.messages)
+        return result
+    except Exception as e:
+        logging.exception("Error evaluating learning")
+        raise HTTPException(status_code=500, detail=str(e))
 
 @app.get("/internal/users/{user_id}/completed-tasks")
 async def get_completed_tasks(

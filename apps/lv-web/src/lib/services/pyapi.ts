@@ -57,6 +57,44 @@ export async function uploadJobs(filename: string): Promise<{ message: string; s
   return data;
 }
 
+export interface LearningEvaluationResult {
+  accuracy: number | null;
+  relevance: number | null;
+  coherence: number | null;
+  overallScore: number | null;
+  feedback: string | null;
+  evaluatedAt: string | null;
+}
+
+/**
+ * Evaluate a learning statement using an LLM judge.
+ * Routes through the Next.js proxy to enforce admin auth.
+ */
+export async function evaluateLearning(
+  summary: string,
+  messages: string[]
+): Promise<LearningEvaluationResult> {
+  const response = await fetch(`/api/learnings/evaluate`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ summary, messages }),
+  });
+
+  if (!response.ok) {
+    throw new Error(`Evaluation failed: ${response.statusText}`);
+  }
+
+  const data = await response.json();
+  return {
+    accuracy: data.accuracy ?? null,
+    relevance: data.relevance ?? null,
+    coherence: data.coherence ?? null,
+    overallScore: data.overallScore ?? null,
+    feedback: data.feedback ?? null,
+    evaluatedAt: data.evaluatedAt ?? new Date().toISOString(),
+  };
+}
+
 interface PyAPIMatchJob {
   id: string;
   job_title: string;
