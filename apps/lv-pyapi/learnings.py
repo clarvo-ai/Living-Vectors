@@ -90,6 +90,8 @@ def learnings_from_transcript(transcript: str, current_learnings: List[Dict[str,
             "3. If user contradicts or updates an existing learning, add its ID to learnings_to_remove and the new text to learnings_to_add\n"
             "4. If a learning is no longer true, add its ID to learnings_to_remove\n"
             "5. Avoid duplicate or obviously similar learnings\n\n"
+            "6. Include also the question posed by the interviewer in the messages array to which the user answered.\n"
+
             "TRANSCRIPT TO ANALYZE:\n"
             f"{transcript}\n\n"
             "Extract high-value matching learnings from the transcript above only."
