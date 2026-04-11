@@ -3,6 +3,8 @@ from sqlalchemy.orm import Session
 from sqlalchemy import select
 from python_utils.sqlalchemy_models import Learning
 from database import SessionLocal
+from user_embedding import generate_user_embedding
+from job_recommendations import recompute_recommendations
 from google.genai import types
 from datetime import datetime
 from gemini_client import client
@@ -143,6 +145,8 @@ def process_learnings(user_id: str, transcript: str) -> None:
         
         if additions or removals:
             save_learnings_to_db(user_id, additions, removals, db)
+            generate_user_embedding(user_id, db)
+            recompute_recommendations(user_id)
     except Exception as e:
         db.rollback()
         print(f"Error processing learnings: {str(e)}")
