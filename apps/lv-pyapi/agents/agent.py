@@ -46,7 +46,11 @@ setup_telemetry()
 
 
 def prewarm(proc: JobProcess) -> None:
-    proc.userdata["vad"] = silero.VAD.load()
+    proc.userdata["vad"] = silero.VAD.load(
+        activation_threshold=0.6, # Noice cancellation
+        deactivation_threshold=0.45,
+        min_speech_duration=0.2,
+    )
 
 
 class CareerAssistant(Agent):
@@ -189,7 +193,7 @@ async def my_agent(ctx: agents.JobContext):
 
     session = AgentSession(
         vad=ctx.proc.userdata["vad"],
-        stt=elevenlabs.STT(api_key=ELEVENLABS_API_KEY),
+        stt=elevenlabs.STT(api_key=ELEVENLABS_API_KEY, language_code="en", tag_audio_events=False),
         llm=google.LLM(model="gemini-2.0-flash", api_key=GOOGLE_API_KEY),
         tts = liam_tts,
         allow_interruptions=True,

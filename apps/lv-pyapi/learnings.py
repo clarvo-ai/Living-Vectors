@@ -3,6 +3,8 @@ from sqlalchemy.orm import Session
 from sqlalchemy import select
 from python_utils.sqlalchemy_models import Learning
 from database import SessionLocal
+from user_embedding import generate_user_embedding
+from job_recommendations import recompute_recommendations
 from google.genai import types
 from datetime import datetime
 from gemini_client import client
@@ -90,6 +92,8 @@ def learnings_from_transcript(transcript: str, current_learnings: List[Dict[str,
             "3. If user contradicts or updates an existing learning, add its ID to learnings_to_remove and the new text to learnings_to_add\n"
             "4. If a learning is no longer true, add its ID to learnings_to_remove\n"
             "5. Avoid duplicate or obviously similar learnings\n\n"
+            "6. Include also the question posed by the interviewer in the messages array to which the user answered.\n"
+
             "TRANSCRIPT TO ANALYZE:\n"
             f"{transcript}\n\n"
             "Extract high-value matching learnings from the transcript above only."
@@ -141,6 +145,8 @@ def process_learnings(user_id: str, transcript: str) -> None:
         
         if additions or removals:
             save_learnings_to_db(user_id, additions, removals, db)
+            generate_user_embedding(user_id, db)
+            recompute_recommendations(user_id)
     except Exception as e:
         db.rollback()
         print(f"Error processing learnings: {str(e)}")
