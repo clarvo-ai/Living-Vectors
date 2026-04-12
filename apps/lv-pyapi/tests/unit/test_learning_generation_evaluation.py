@@ -4,6 +4,15 @@ from learnings import learnings_from_transcript, evaluate_learning_quality
 # Threshold used for asserting minimum quality scores in tests
 QUALITY_THRESHOLD = 0.6
 
+
+def _combine_learnings_for_judge(learnings: list[str]) -> str:
+    """Join learning snippets into one paragraph without double periods (..)."""
+    parts = [s.strip().rstrip(".") for s in learnings if s.strip()]
+    if not parts:
+        return ""
+    return ". ".join(parts) + "."
+
+
 def test_learning_generation_and_evaluation():
     """End-to-end test: Generate learnings and evaluate quality using LLM judge """
 
@@ -37,8 +46,8 @@ def test_learning_generation_and_evaluation():
         print(f"\nLearning {i}: {learning}")
 
     # Combine all learnings into one sentence for judge evaluation
-    combined_learning = ". ".join(generated_learnings) + "."
-    
+    combined_learning = _combine_learnings_for_judge(generated_learnings)
+
     print(f"\n{'='*60}")
     print(f"COMBINED LEARNING (for judge evaluation):")
     print(f"{combined_learning}\n")
@@ -113,8 +122,8 @@ def test_learning_generation_and_evaluation_vague_conversation():
         print(f"\nLearning {i}: {learning}")
 
     # Combine all learnings into one sentence for judge evaluation
-    combined_learning = ". ".join(generated_learnings) + "."
-    
+    combined_learning = _combine_learnings_for_judge(generated_learnings)
+
     print(f"\n{'='*60}")
     print(f"COMBINED LEARNING (for judge evaluation):")
     print(f"{combined_learning}\n")
