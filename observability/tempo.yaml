@@ -1,0 +1,57 @@
+# Avoid querier using live-store partition ring (empty in single binary)
+partition_ring_live_store: false
+stream_over_http_enabled: true
+
+server:
+  http_listen_port: 3200
+
+distributor:
+  ingester_write_path_enabled: true
+  kafka_write_path_enabled: false
+  receivers:
+    otlp:
+      protocols:
+        grpc:
+          endpoint: 0.0.0.0:4317
+        http:
+          endpoint: 0.0.0.0:4318
+
+ingester:
+  max_block_duration: 5m
+  trace_idle_period: 10s
+
+querier:
+  query_live_store: false
+
+metrics_generator:
+  ring:
+    kvstore:
+      store: inmemory
+  processor:
+    service_graphs:
+      dimensions: [service.name]
+    span_metrics:
+      dimensions: [service.name, http.method, http.status_code]
+    local_blocks:
+      filter_server_spans: false
+  storage:
+    path: /var/tempo/generator/wal
+    remote_write:
+      - url: http://mimir:9009/api/v1/push
+        send_exemplars: true
+  traces_storage:
+    path: /var/tempo/generator/traces
+
+overrides:
+  defaults:
+    metrics_generator:
+      processors: [service-graphs, span-metrics, local-blocks]
+
+storage:
+  trace:
+    backend: local
+    blocklist_poll: 10s
+    local:
+      path: /var/tempo/traces
+    wal:
+      path: /var/tempo/wal

@@ -201,7 +201,57 @@ lk dispatch create \
    - Open https://agents-playground.livekit.io/ (Manual)
    - Set the server URL to `http://localhost:7880` and paste the generated token
 
-## 4. Running lv-web Without Docker
+## 4. Observability Stack (LGTM: Grafana + Loki + Tempo + Mimir + OTel Collector)
+
+Local observability runs via the `observability` profile in `docker-compose.yml`.
+
+- **Traces**: app → OTel Collector (OTLP) → Tempo → Grafana
+- **Logs**: app → OTel Collector → Loki → Grafana
+- **Metrics**: OTel Collector metrics endpoint + Grafana queries Mimir as the Prometheus-compatible datasource
+
+### One-time setup (Grafana credentials)
+
+```bash
+cp observability/.env.example observability/.env.grafana
+```
+
+### Start the stack
+
+```bash
+docker compose --profile observability up -d
+```
+
+### Start app + observability together
+
+```bash
+docker compose --profile lv-web --profile observability up -d --build
+```
+
+### Access UIs / endpoints
+
+- **Grafana UI**: `http://localhost:3001`
+  - Login from `observability/.env.grafana` (defaults are `admin` / `changeme`)
+- **Loki HTTP API**: `http://localhost:3100`
+- **Tempo HTTP API**: `http://localhost:3200`
+- **Mimir HTTP API / Prometheus-compatible endpoint**: `http://localhost:9009`
+- **OTel Collector OTLP ingest**:
+  - gRPC: `localhost:4317`
+  - HTTP: `http://localhost:4318`
+- **OTel Collector Prometheus scrape endpoint**: `http://localhost:8889/metrics`
+
+Grafana datasources + dashboards are provisioned from `observability/grafana/provisioning` (including the pre-wired Loki/Tempo/Mimir datasources and dashboards).
+
+### Common commands
+
+```bash
+# Follow stack logs
+docker compose --profile observability logs -f
+
+# Stop stack
+docker compose --profile observability down
+```
+
+## 5. Running lv-web Without Docker
 
 For faster frontend development:
 
@@ -274,7 +324,7 @@ docker compose logs -f $(docker compose ps --services --filter "status=running")
 
 TIP: use Docker/Containers extension in Cursor to manage containers and see logs
 
-## 5. Initial Setup on a New Laptop
+## 6. Initial Setup on a New Laptop
 
 1. Clone repository or pull latest changes
 
@@ -297,7 +347,7 @@ TIP: use Docker/Containers extension in Cursor to manage containers and see logs
 
 6. Start correct profile (usually LV-WEB)
 
-## 6. Troubleshooting: Fixing node_modules on macOS/Windows (Non-Linux Issue)
+## 7. Troubleshooting: Fixing node_modules on macOS/Windows (Non-Linux Issue)
 
 If Docker complains or node_modules mismatch occurs:
 
@@ -307,7 +357,7 @@ docker compose run --rm container-node-modules
 mv ./container_node_modules ./node_modules
 ```
 
-## 7. Test Builds Locally
+## 8. Test Builds Locally
 
 ### LV-WEB
 
@@ -346,7 +396,7 @@ npm run test:watch
 - Use the `.test.tsx` or `.spec.tsx` extension.
 - We use `jest-environment-jsdom` for component tests.
 
-## 8. Adding a shadcn Component
+## 9. Adding a shadcn Component
 
 Inside the LV-WEB app folder:
 
@@ -454,7 +504,7 @@ The mock database runs on port `3773` (main database uses `3772`).
 
 ### Python Development
 
-## 9. Python Development (VS Code Recommended Settings)
+## 10. Python Development (VS Code Recommended Settings)
 
 Add to `.vscode/settings.json`:
 
@@ -472,7 +522,7 @@ Cursor-specific Python instructions belong in:
 
 `.cursor/rules/python-rules.mdc`
 
-## 10. Git Collaboration Workflow
+## 11. Git Collaboration Workflow
 
 ### Create Issue
 
@@ -526,7 +576,7 @@ Deploy to prod
 git fetch origin && git update-ref refs/heads/dev origin/dev
 ```
 
-## 11. Docker Cleanup
+## 12. Docker Cleanup
 
 **Make sure important projects are RUNNING before cleanup.**
 
@@ -544,7 +594,7 @@ docker volume rm $(docker volume ls -q)
 docker system prune
 ```
 
-## 12. Voice Interface Setup
+## 13. Voice Interface Setup
 
 To enable Google voice interface features, set up Google Cloud credentials. This may not be necessary if we use agentic AI.
 

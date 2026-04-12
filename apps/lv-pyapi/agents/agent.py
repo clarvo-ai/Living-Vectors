@@ -27,6 +27,7 @@ from tasks import (
     ValueVisionTask,
     AlignmentTask
 )
+from telemetry import setup_telemetry
 
 load_dotenv(".env.local")
 
@@ -41,6 +42,7 @@ INTERNAL_API_SECRET = os.environ.get("INTERNAL_API_SECRET", "")
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger("voice-agent")
+setup_telemetry()
 
 
 def prewarm(proc: JobProcess) -> None:

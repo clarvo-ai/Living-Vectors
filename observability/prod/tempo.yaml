@@ -1,0 +1,57 @@
+partition_ring_live_store: false
+stream_over_http_enabled: true
+
+server:
+  http_listen_address: 0.0.0.0
+  http_listen_port: ${PORT}
+
+distributor:
+  ingester_write_path_enabled: true
+  kafka_write_path_enabled: false
+  receivers:
+    otlp:
+      protocols:
+        grpc:
+          endpoint: 0.0.0.0:4317
+        http:
+          endpoint: 0.0.0.0:4318
+
+ingester:
+  max_block_duration: 5m
+  trace_idle_period: 10s
+
+querier:
+  query_live_store: false
+
+metrics_generator:
+  ring:
+    kvstore:
+      store: inmemory
+  processor:
+    service_graphs:
+      dimensions: [service.name]
+    span_metrics:
+      dimensions: [service.name, http.method, http.status_code]
+    local_blocks:
+      filter_server_spans: false
+  storage:
+    path: /tmp/tempo/generator/wal
+    remote_write:
+      - url: ${MIMIR_URL}/api/v1/push
+        send_exemplars: true
+  traces_storage:
+    path: /tmp/tempo/generator/traces
+
+overrides:
+  defaults:
+    metrics_generator:
+      processors: [service-graphs, span-metrics, local-blocks]
+
+storage:
+  trace:
+    backend: gcs
+    blocklist_poll: 10s
+    gcs:
+      bucket_name: lv-tempo-dev
+    wal:
+      path: /tmp/tempo/wal

@@ -1,0 +1,45 @@
+receivers:
+  otlp:
+    protocols:
+      grpc:
+        endpoint: 0.0.0.0:${PORT}
+      http:
+        endpoint: 0.0.0.0:4318
+
+processors:
+  batch:
+    timeout: 1s
+    send_batch_size: 1024
+
+  resource/loki_labels:
+    attributes:
+      - action: insert
+        key: loki.resource.labels
+        value: service.name, service.version, deployment.environment
+
+exporters:
+  otlp_grpc/tempo:
+    endpoint: ${TEMPO_URL}:443
+
+  prometheusremotewrite/mimir:
+    endpoint: ${MIMIR_URL}/api/v1/push
+    resource_to_telemetry_conversion:
+      enabled: true
+
+  otlp_http/loki:
+    endpoint: ${LOKI_URL}/otlp
+
+service:
+  pipelines:
+    traces:
+      receivers: [otlp]
+      processors: [batch]
+      exporters: [otlp_grpc/tempo]
+    metrics:
+      receivers: [otlp]
+      processors: [batch]
+      exporters: [prometheusremotewrite/mimir]
+    logs:
+      receivers: [otlp]
+      processors: [resource/loki_labels, batch]
+      exporters: [otlp_http/loki]
