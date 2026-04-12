@@ -179,7 +179,11 @@ export const authOptions: AuthOptions = {
       return token;
     },
   },
-  secret: process.env.NEXTAUTH_SECRET || 'ciu8uertio3iurhnflj387dhfjk3jh',
+  secret: (() => {
+    const s = process.env.NEXTAUTH_SECRET;
+    if (!s) throw new Error('NEXTAUTH_SECRET env var is required');
+    return s;
+  })(),
 };
 
 async function handleCreateNewUser(user: User | AdapterUser, account: Account, profile?: any) {
