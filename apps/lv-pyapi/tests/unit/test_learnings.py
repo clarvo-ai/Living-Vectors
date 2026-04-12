@@ -3,6 +3,7 @@ import pytest
 import uuid
 from datetime import datetime
 from typing import Dict, Any, List
+from unittest.mock import patch
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker, Session
 
@@ -124,4 +125,59 @@ def test_save_learnings_to_db_with_removals(db_session: Session):
     stored = db_session.query(Learning).filter_by(userId=user.id).all()
     assert len(stored) == 1
     assert stored[0].summary == 'New learning'
+
+
+@patch("learnings.recompute_recommendations")
+@patch("learnings.generate_user_embedding")
+@patch("learnings.save_learnings_to_db")
+@patch("learnings.learnings_from_transcript")
+@patch("learnings.SessionLocal")
+def test_process_learnings_triggers_embedding_and_recommendations_after_changes(
+    mock_session_local,
+    mock_learnings_from_transcript,
+    mock_save_learnings,
+    mock_generate_embedding,
+    mock_recompute,
+    db_session: Session,
+):
+    """After learnings change, user embedding is regenerated and recommendations are recomputed."""
+    user = create_test_user(db_session)
+    mock_session_local.return_value = db_session
+    mock_learnings_from_transcript.return_value = {
+        "add": [{"text": "New insight", "messages": ["quote"]}],
+        "remove": [],
+    }
+
+    with patch.object(db_session, "close"):
+        learnings.process_learnings(str(user.id), "transcript")
+
+    mock_save_learnings.assert_called_once()
+    mock_generate_embedding.assert_called_once_with(str(user.id), db_session)
+    mock_recompute.assert_called_once_with(str(user.id))
+
+
+@patch("learnings.recompute_recommendations")
+@patch("learnings.generate_user_embedding")
+@patch("learnings.save_learnings_to_db")
+@patch("learnings.learnings_from_transcript")
+@patch("learnings.SessionLocal")
+def test_process_learnings_skips_embedding_when_no_learning_changes(
+    mock_session_local,
+    mock_learnings_from_transcript,
+    mock_save_learnings,
+    mock_generate_embedding,
+    mock_recompute,
+    db_session: Session,
+):
+    """No embedding work when the model returns no additions or removals."""
+    user = create_test_user(db_session)
+    mock_session_local.return_value = db_session
+    mock_learnings_from_transcript.return_value = {"add": [], "remove": []}
+
+    with patch.object(db_session, "close"):
+        learnings.process_learnings(str(user.id), "transcript")
+
+    mock_save_learnings.assert_not_called()
+    mock_generate_embedding.assert_not_called()
+    mock_recompute.assert_not_called()
 

@@ -2,7 +2,7 @@
 
 import { RoomAudioRenderer, SessionProvider, StartAudio, useSession as useLiveKitSession } from '@livekit/components-react';
 import { Session } from 'next-auth';
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { InterviewContent } from './InterviewContent';
 
 interface ActiveInterviewProps {
@@ -31,6 +31,11 @@ export function ActiveInterview({
   hasStarted,
 }: ActiveInterviewProps) {
   const [micPermissionStatus, setMicPermissionStatus] = useState<'pending' | 'granted' | 'denied'>('pending');
+
+  // Unique room name per session mount — timestamp suffix guarantees a fresh room
+  // on every interview start, so LiveKit always dispatches a new agent without
+  // waiting for the previous room's delete_room_on_close to propagate on Cloud.
+  const roomName = useRef(`interview-${session?.user?.id ?? 'unknown'}-${Date.now()}`).current;
 
   // Request and verify microphone access before joining the LiveKit room / agent session
   useEffect(() => {
@@ -69,7 +74,7 @@ export function ActiveInterview({
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
-            roomName: `interview-${session?.user?.id}`,
+            roomName: roomName,
             participantName: session?.user?.id || 'userid',
           }),
         });
@@ -86,7 +91,7 @@ export function ActiveInterview({
         };
       },
     };
-  }, [session?.user?.id, session?.user?.email]);
+  }, [session?.user?.id, roomName]);
 
   const liveKitSession = useLiveKitSession(tokenSource);
 

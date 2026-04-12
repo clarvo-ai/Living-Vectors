@@ -21,3 +21,4 @@ pandas==3.0.0
 pgvector==0.4.2
 livekit-plugins-noise-cancellation~=0.2
 slowapi==0.1.9
+openai==2.30.0

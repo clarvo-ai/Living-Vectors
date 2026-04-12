@@ -80,6 +80,25 @@ def parse_bool(value):
     return value.lower() in ('true', '1', 'yes', 't')
   return bool(value)
 
+def parse_vector(value):
+  if pd.isna(value):
+    return None
+  if isinstance(value, str):
+    # Remove square brackets if present
+    value = value.strip()
+    if value.startswith('[') and value.endswith(']'):
+      value = value[1:-1]
+    
+    # Parse using csv reader which handles quotes properly
+    reader = csv.reader([value], delimiter=',', quotechar='"')
+    floats = []
+    for row in reader:
+      floats.extend([float(item.strip()) for item in row if item.strip()])
+    return floats
+  if isinstance(value, list):
+    return [float(v) for v in value]
+  return None
+
 def save_jobs_to_db(df: pd.DataFrame):
   """Save jobs from DataFrame to database"""
   db = SessionLocal()
@@ -152,7 +171,7 @@ def save_jobs_to_db(df: pd.DataFrame):
         'career_advancement_details': parse_string(row.get('career_advancement_details')),
         'deprecated_perks': parse_lists(row.get('deprecated_perks')),
         'deprecated_keywords': parse_lists(row.get('deprecated_keywords')),
-        'job_embedding': None,
+        'job_embedding': parse_vector(row.get('job_embedding')),
         'job_title_embedding': None,
         'original_text': parse_string(row.get('original_text')),
         'version': parse_float(row.get('version')),
