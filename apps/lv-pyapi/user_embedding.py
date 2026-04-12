@@ -40,6 +40,11 @@ def generate_user_embedding(user_id: str, db: Session) -> Optional[UserEmbedding
     
     if not learnings:
         print(f"No learnings found for user {user_id}")
+        existing = db.query(UserEmbedding).filter_by(userId=user_id).first()
+        if existing:
+            db.delete(existing)
+            db.commit()
+            print(f"Removed embedding for user {user_id} (no learnings)")
         return None
     
     # 2. Concatenate all learning summaries into one text

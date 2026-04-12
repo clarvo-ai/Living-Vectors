@@ -12,6 +12,9 @@ jest.mock('@livekit/components-react', () => ({
       setMicrophoneEnabled: jest.fn(),
     },
   })),
+  useRoomInfo: jest.fn(() => ({
+    metadata: '{}',
+  })),
   useTracks: jest.fn(() => []),
   useVoiceAssistant: jest.fn(() => ({
     state: 'idle',

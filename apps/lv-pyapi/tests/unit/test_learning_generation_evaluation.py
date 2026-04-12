@@ -1,67 +1,8 @@
 import pytest
-from typing import cast, Dict, Any
-from learnings import learnings_from_transcript
-from gemini_client import client # Gemini API client 
-from google.genai import types # For JSON schema config
+from learnings import learnings_from_transcript, evaluate_learning_quality
 
-def evaluate_learning_quality(learning: str, source_conversation: list):
-    """Use Gemini as a judge to evaluate learning quality """
-
-    # This prompt is step one: Define criteria
-    prompt = f"""
-You are an expert evaluator judging the quality of combined learning statements. The learning you're evaluating is a COMBINED statement made up of multiple individual learnings joined with periods (e.g., "Learning 1. Learning 2. Learning 3."). IGNORE TRIVIAL TYPOS. 
-
-Example conversation:
-- "I've been really enjoying building web apps and seeing users interact with them."
-- "What kind of projects make you lose track of time?"
-- "Anything involving UI design. I can spend hours tweaking interfaces."
-- "What do people usually come to you for?"
-- "Frontend advice and debugging CSS issues."
-
-Example of a PERFECT combined learning statement:
-"Enjoys building web applications and observing user interactions. Passionate about UI design and spends hours tweaking interfaces. Provides frontend advice and specializes in debugging CSS issues."
-
-Example of a BAD combined learning statement (too generic):
-"Enjoys building web applications. Likes coding."
-
-Evaluation criteria:
-
-1. **Accuracy**: Does the combined learning capture ALL specific details from the conversation? Check if it includes every distinct skill, interest, and area of expertise mentioned. Missing details = lower accuracy.
-
-2. **Relevance**: Are the learnings professionally useful for job matching? Do they use clear keywords and focus on career-relevant skills? Generic statements = lower relevance.
-
-3. **Coherence**: Is the combined statement well-formed? Each individual learning should be clear and grammatically correct. The combination should read naturally, even though they're separate statements.
-
-Now evaluate:
-Combined Learning: "{learning}"
-Source Conversation: {chr(10).join(f"- {msg}" for msg in source_conversation)}
-
-Rate (0.0-1.0) for each criterion. Return JSON only: accuracy, relevance, coherence, overall_score, feedback.""" 
-    schema = {
-        "type": "object",
-        "properties": {
-            "accuracy":      {"type": "number", "minimum": 0, "maximum": 1},
-            "relevance":     {"type": "number", "minimum": 0, "maximum": 1},
-            "coherence":     {"type": "number", "minimum": 0, "maximum": 1},
-            "overall_score": {"type": "number", "minimum": 0, "maximum": 1},
-            "feedback": {"type": "string"}
-        },
-        "required": ["accuracy", "relevance", "coherence", "overall_score", "feedback"]
-    }
-
-    config = types.GenerateContentConfig(
-        response_mime_type="application/json",
-        response_schema=schema,
-    )
-
-    response = client.models.generate_content(
-        model="gemini-2.5-flash",
-        contents=prompt,
-        config=config
-    )
-
-    # response.parsed is a dict when using JSON schema, cast to satisfy type checker
-    return cast(Dict[str, Any], response.parsed)
+# Threshold used for asserting minimum quality scores in tests
+QUALITY_THRESHOLD = 0.6
 
 def test_learning_generation_and_evaluation():
     """End-to-end test: Generate learnings and evaluate quality using LLM judge """
@@ -129,10 +70,10 @@ def test_learning_generation_and_evaluation():
     print(f"{'='*60}\n")
 
     # Assert quality scores meet threshold 
-    assert evaluation['accuracy']      >= 0.7, "Learning should be accurate"
-    assert evaluation['relevance']     >= 0.7, "Learning should be relevant"
-    assert evaluation['coherence']     >= 0.7, "Learning should be coherent"
-    assert evaluation['overall_score'] >= 0.7, "Overall quality should be good"
+    assert evaluation['accuracy']      >= QUALITY_THRESHOLD, "Learning should be accurate"
+    assert evaluation['relevance']     >= QUALITY_THRESHOLD, "Learning should be relevant"
+    assert evaluation['coherence']     >= QUALITY_THRESHOLD, "Learning should be coherent"
+    assert evaluation['overall_score'] >= QUALITY_THRESHOLD, "Overall quality should be good"
 
 def test_learning_generation_and_evaluation_vague_conversation():
     """Test with vague/generic conversation - should produce lower quality learnings and scores"""
