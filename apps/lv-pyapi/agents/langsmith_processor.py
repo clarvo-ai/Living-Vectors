@@ -123,6 +123,33 @@ class LangSmithSpanProcessor(SpanProcessor):
                 [{"role": "assistant", "content": f"Generated audio for: {text}"}],
             )
 
+        # ---- Function tool spans (LiveKit @function_tool) -----------------
+        elif "function_tool" in span_name or span.attributes.get("lk.function_tool.name"):
+            span._attributes["langsmith.span.kind"] = "tool"
+            tool_name = str(
+                span.attributes.get("lk.function_tool.name")
+                or span.attributes.get("tool.name")
+                or "unknown_tool"
+            )
+            call_id = span.attributes.get("lk.function_tool.id")
+            raw_args = span.attributes.get("lk.function_tool.arguments")
+            args_text = self._stringify_trace_value(raw_args) or "(none)"
+            output_raw = span.attributes.get("lk.function_tool.output")
+            output_text = self._stringify_trace_value(output_raw)
+            if not output_text:
+                output_text = "(no output recorded)"
+            is_error = span.attributes.get("lk.function_tool.is_error")
+            lines = [f"name: {tool_name}"]
+            if call_id:
+                lines.append(f"call_id: {call_id}")
+            if is_error is not None:
+                lines.append(f"is_error: {is_error}")
+            lines.append("")
+            lines.append("parameters:")
+            lines.append(args_text)
+            self._set_prompt(span, [{"role": "user", "content": "\n".join(lines)}])
+            self._set_completion(span, [{"role": "assistant", "content": output_text}])
+
         # ---- Agent / session / job spans -----------------------------------
         elif any(k in span_name for k in ("agent", "session", "conversation", "job")):
             span._attributes["langsmith.span.kind"] = "chain"
@@ -185,6 +212,27 @@ class LangSmithSpanProcessor(SpanProcessor):
     # -------------------------------------------------------------------------
     # Helpers
     # -------------------------------------------------------------------------
+
+    def _stringify_trace_value(self, val: object) -> str:
+        """Format tool args/output for LangSmith gen_ai.* attributes."""
+        if val is None:
+            return ""
+        if isinstance(val, str):
+            s = val.strip()
+            if not s:
+                return ""
+            # Pretty-print JSON object/array strings when possible
+            if (s.startswith("{") and s.endswith("}")) or (s.startswith("[") and s.endswith("]")):
+                try:
+                    parsed = json.loads(s)
+                    return json.dumps(parsed, ensure_ascii=False, indent=2)
+                except (json.JSONDecodeError, TypeError):
+                    pass
+            return val
+        try:
+            return json.dumps(val, ensure_ascii=False, indent=2, default=str)
+        except TypeError:
+            return str(val)
 
     def _set_prompt(self, span: ReadableSpan, messages: List[dict], start: int = 0) -> None:
         for i, msg in enumerate(messages):
