@@ -27,7 +27,8 @@ env:
   LOKI_SERVICE_NAME: lv-loki-dev
   TEMPO_SERVICE_NAME: lv-tempo-dev
   MIMIR_SERVICE_NAME: lv-mimir-dev
-  OTEL_SERVICE_NAME: lv-otel-dev
+  # Cloud Run service name for the OTLP collector (not OpenTelemetry OTEL_SERVICE_NAME on apps).
+  OTEL_COLLECTOR_SERVICE_NAME: lv-otel-dev
   GRAFANA_SERVICE_NAME: lv-grafana-dev
 
 jobs:
@@ -78,6 +79,23 @@ jobs:
       - name: Configure Docker to use gcloud as a credential helper
         run: gcloud auth configure-docker ${{ env.REGION }}-docker.pkg.dev
 
+      # Compose uses http://otel-collector:4318; Cloud Run uses the collector service URL.
+      # Optional repo secret OTEL_EXPORTER_OTLP_ENDPOINT if the collector is not deployed yet.
+      - name: Resolve OTLP collector endpoint (Cloud Run)
+        id: otel_endpoint
+        run: |
+          URL=$(gcloud run services describe ${{ env.OTEL_COLLECTOR_SERVICE_NAME }} \
+            --region=${{ env.REGION }} --format='value(status.url)' 2>/dev/null || true)
+          if [ -z "$URL" ]; then
+            URL="${{ secrets.OTEL_EXPORTER_OTLP_ENDPOINT }}"
+          fi
+          if [ -n "$URL" ]; then
+            echo "OTEL_EXPORTER_OTLP_ENDPOINT=$URL" >> $GITHUB_ENV
+            echo "has_endpoint=true" >> $GITHUB_OUTPUT
+          else
+            echo "has_endpoint=false" >> $GITHUB_OUTPUT
+          fi
+
       - name: Start Cloud SQL Proxy
         run: |
           wget https://dl.google.com/cloudsql/cloud_sql_proxy.linux.amd64 -O cloud_sql_proxy
@@ -127,6 +145,15 @@ jobs:
             --min-instances=1
             --max-instances=5
 
+      - name: Set OTLP endpoint on backend (Cloud Run)
+        if: steps.otel_endpoint.outputs.has_endpoint == 'true'
+        env:
+          OTEL_EXPORTER_OTLP_ENDPOINT: ${{ env.OTEL_EXPORTER_OTLP_ENDPOINT }}
+        run: |
+          gcloud run services update ${{ env.BACKEND_SERVICE_NAME }} \
+            --region=${{ env.REGION }} \
+            --update-env-vars="OTEL_EXPORTER_OTLP_ENDPOINT=${OTEL_EXPORTER_OTLP_ENDPOINT}"
+
   frontend:
     if: github.event_name != 'pull_request' || github.event.pull_request.merged == true
     runs-on: ubuntu-latest
@@ -149,6 +176,21 @@ jobs:
 
       - name: Configure Docker to use gcloud as a credential helper
         run: gcloud auth configure-docker ${{ env.REGION }}-docker.pkg.dev
+
+      - name: Resolve OTLP collector endpoint (Cloud Run)
+        id: otel_endpoint
+        run: |
+          URL=$(gcloud run services describe ${{ env.OTEL_COLLECTOR_SERVICE_NAME }} \
+            --region=${{ env.REGION }} --format='value(status.url)' 2>/dev/null || true)
+          if [ -z "$URL" ]; then
+            URL="${{ secrets.OTEL_EXPORTER_OTLP_ENDPOINT }}"
+          fi
+          if [ -n "$URL" ]; then
+            echo "OTEL_EXPORTER_OTLP_ENDPOINT=$URL" >> $GITHUB_ENV
+            echo "has_endpoint=true" >> $GITHUB_OUTPUT
+          else
+            echo "has_endpoint=false" >> $GITHUB_OUTPUT
+          fi
 
       - name: Build and push frontend Docker image
         uses: docker/build-push-action@v5
@@ -174,6 +216,15 @@ jobs:
             --cpu=1
             --min-instances=1
             --max-instances=5
+
+      - name: Set OTLP endpoint on frontend (Cloud Run)
+        if: steps.otel_endpoint.outputs.has_endpoint == 'true'
+        env:
+          OTEL_EXPORTER_OTLP_ENDPOINT: ${{ env.OTEL_EXPORTER_OTLP_ENDPOINT }}
+        run: |
+          gcloud run services update ${{ env.FRONT_SERVICE_NAME }} \
+            --region=${{ env.REGION }} \
+            --update-env-vars="OTEL_EXPORTER_OTLP_ENDPOINT=${OTEL_EXPORTER_OTLP_ENDPOINT}"
 
   observability-storage:
     needs: changes
@@ -347,7 +398,7 @@ jobs:
       - name: Deploy OTel Collector
         uses: google-github-actions/deploy-cloudrun@v2
         with:
-          service: ${{ env.OTEL_SERVICE_NAME }}
+          service: ${{ env.OTEL_COLLECTOR_SERVICE_NAME }}
           image: ${{ env.REGISTRY }}/lv-otel-dev:${{ github.sha }}
           region: ${{ env.REGION }}
           project_id: ${{ env.PROJECT_ID }}
