@@ -52,11 +52,13 @@ jobs:
               - 'observability/prod/loki.yaml'
               - 'observability/prod/tempo.yaml'
               - 'observability/prod/mimir.yaml'
+              - '.github/workflows/CD.yml'
             telemetry:
               - 'observability/prod/Dockerfile.otel-collector'
               - 'observability/prod/Dockerfile.grafana'
               - 'observability/prod/otel-collector-config.yaml'
               - 'observability/prod/grafana/**'
+              - '.github/workflows/CD.yml'
 
   backend:
     if: github.event_name != 'pull_request' || github.event.pull_request.merged == true
