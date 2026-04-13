@@ -416,6 +416,7 @@ jobs:
             --min-instances=1
             --max-instances=1
             --port=4318
+            --startup-probe=initialDelaySeconds=5,periodSeconds=10,timeoutSeconds=5,failureThreshold=12,tcpSocket.port=4318
           env_vars: |
             LOKI_URL=${{ env.LOKI_URL }}
             TEMPO_URL=${{ env.TEMPO_URL }}

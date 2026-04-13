@@ -1,10 +1,10 @@
+# Cloud Run sets PORT and probes it; only one listener may bind there.
+# Apps use OTLP/HTTP to this port. (Local Compose uses observability/otel-collector-config.yaml instead.)
 receivers:
   otlp:
     protocols:
-      grpc:
-        endpoint: 0.0.0.0:${PORT}
       http:
-        endpoint: 0.0.0.0:4318
+        endpoint: 0.0.0.0:${env:PORT}
 
 processors:
   batch:
