@@ -286,7 +286,7 @@ jobs:
           project_id: ${{ env.PROJECT_ID }}
           flags: |
             --allow-unauthenticated
-            --ingress=internal
+            --ingress=all
             --network=default
             --subnet=default
             --vpc-egress=all-traffic
@@ -305,7 +305,7 @@ jobs:
           project_id: ${{ env.PROJECT_ID }}
           flags: |
             --allow-unauthenticated
-            --ingress=internal
+            --ingress=all
             --network=default
             --subnet=default
             --vpc-egress=all-traffic
@@ -332,7 +332,7 @@ jobs:
           project_id: ${{ env.PROJECT_ID }}
           flags: |
             --allow-unauthenticated
-            --ingress=internal
+            --ingress=all
             --network=default
             --subnet=default
             --vpc-egress=all-traffic
@@ -407,7 +407,7 @@ jobs:
           project_id: ${{ env.PROJECT_ID }}
           flags: |
             --allow-unauthenticated
-            --ingress=internal
+            --ingress=all
             --network=default
             --subnet=default
             --vpc-egress=all-traffic
