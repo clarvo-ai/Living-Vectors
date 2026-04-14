@@ -449,3 +449,51 @@ jobs:
             LOKI_URL=${{ env.LOKI_URL }}
             TEMPO_URL=${{ env.TEMPO_URL }}
             MIMIR_URL=${{ env.MIMIR_URL }}
+
+      # Without this, Grafana cannot bind sessions/cookies to the public URL and the Explore
+      # drilldown UI and login state flake on Cloud Run. Value is read after deploy/revision exists.
+      - name: Set Grafana GF_SERVER_ROOT_URL
+        run: |
+          URL=$(gcloud run services describe ${{ env.GRAFANA_SERVICE_NAME }} \
+            --region=${{ env.REGION }} --format='value(status.url)')
+          gcloud run services update ${{ env.GRAFANA_SERVICE_NAME }} \
+            --region=${{ env.REGION }} \
+            --update-env-vars="GF_SERVER_ROOT_URL=${URL}"
+
+  # Runs after frontend and observability so lv-otel-dev exists; patches pyapi + web even when
+  # earlier "resolve OTLP" steps ran before the collector was deployed (lv-web had no telemetry).
+  apply-otlp-endpoints:
+    needs: [frontend, observability-frontend]
+    if: always() && needs.frontend.result == 'success'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Authenticate with GCP using GCP_SA_KEY
+        uses: google-github-actions/auth@v2
+        with:
+          credentials_json: ${{ secrets.GCP_SA_KEY }}
+
+      - name: Set up Cloud SDK
+        uses: google-github-actions/setup-gcloud@v2
+        with:
+          project_id: ${{ env.PROJECT_ID }}
+          version: '>= 0.2.0'
+
+      - name: Set OTLP endpoint on backend and frontend (Cloud Run)
+        env:
+          OTEL_FALLBACK: ${{ secrets.OTEL_EXPORTER_OTLP_ENDPOINT }}
+        run: |
+          URL=$(gcloud run services describe ${{ env.OTEL_COLLECTOR_SERVICE_NAME }} \
+            --region=${{ env.REGION }} --format='value(status.url)' 2>/dev/null || true)
+          if [ -z "$URL" ]; then
+            URL="${OTEL_FALLBACK}"
+          fi
+          if [ -z "$URL" ]; then
+            echo "No OTLP collector URL; set OTEL_EXPORTER_OTLP_ENDPOINT secret or deploy collector."
+            exit 0
+          fi
+          gcloud run services update ${{ env.BACKEND_SERVICE_NAME }} \
+            --region=${{ env.REGION }} \
+            --update-env-vars="OTEL_EXPORTER_OTLP_ENDPOINT=${URL}"
+          gcloud run services update ${{ env.FRONT_SERVICE_NAME }} \
+            --region=${{ env.REGION }} \
+            --update-env-vars="OTEL_EXPORTER_OTLP_ENDPOINT=${URL},OTEL_SERVICE_NAME=lv-web"
