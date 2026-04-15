@@ -71,17 +71,35 @@ lk project add production \
 
 ### Step 4: Deploy the Agent
 
-```bash
-cd apps/lv-pyapi
+Use the **agents** directory (it contains `Dockerfile`, `livekit.toml`, and `requirements.txt`). Recent `lk` versions (e.g. 2.16+) no longer use `--env-file` / `--dockerfile` on `update`; they use **`--secrets-file`** and a separate **`deploy`** command for new images.
 
-# Deploy with production environment file
-# The CLI securely uploads secrets to LiveKit Cloud
-lk agent create --env-file .env.production --dockerfile Dockerfile.agent
+**First-time create** (from `apps/lv-pyapi/agents`):
+
+```bash
+cd apps/lv-pyapi/agents
+
+lk agent create --project YOUR_PROJECT_NAME --secrets-file ../.env.production
 ```
 
-Or if prompted by the CLI:
-- **Secrets file**: `.env.production`
-- **Dockerfile**: `Dockerfile.agent`
+**Deploy a new build** (after code or Dockerfile changes):
+
+```bash
+cd apps/lv-pyapi/agents
+
+lk agent deploy --project YOUR_PROJECT_NAME --secrets-file ../.env.production
+```
+
+**Refresh secrets only** (restarts the agent; no new image):
+
+```bash
+cd apps/lv-pyapi/agents
+
+lk agent update --project YOUR_PROJECT_NAME --secrets-file ../.env.production
+```
+
+`YOUR_PROJECT_NAME` is the name you used with `lk project add` (see `lk project list`). Omit `--project` if you marked one project as default.
+
+The secrets file is **`KEY=value` lines** (dotenv-style). If the CLI rejects comments or blank lines, use `--ignore-empty-secrets` or a minimal file with only the keys the agent needs.
 
 ### Step 5: Update Frontend Configuration
 
@@ -151,8 +169,8 @@ lk agent logs lv-voice-agent
 - Check browser console for WebSocket errors
 
 ### Build failures
-- Ensure `Dockerfile.agent` is being used (not the main `Dockerfile`)
-- Check that `requirements.txt` includes all necessary packages
+- Run **`lk agent deploy`** from **`apps/lv-pyapi/agents`** so the agent **`Dockerfile`** is used (not the main API `Dockerfile`)
+- Check that `agents/requirements.txt` includes all necessary packages
 - Verify build context doesn't reference non-existent monorepo paths
 
 ## Useful Commands
@@ -161,14 +179,17 @@ lk agent logs lv-voice-agent
 # List all agents
 lk agent list
 
-# View agent logs
-lk agent logs lv-voice-agent
+# View agent logs (agent name or id from list)
+lk agent logs
 
-# Update agent (after code changes)
-lk agent update --env-file .env.production
+# Deploy a new version (build + upload secrets)
+cd apps/lv-pyapi/agents && lk agent deploy --secrets-file ../.env.production
+
+# Update secrets only (restarts agent)
+cd apps/lv-pyapi/agents && lk agent update --secrets-file ../.env.production
 
 # Delete agent
-lk agent delete lv-voice-agent
+lk agent delete
 
 # Test LiveKit connection
 lk room list
@@ -179,9 +200,3 @@ lk room list
 - [LiveKit Cloud Documentation](https://docs.livekit.io/cloud/)
 - [LiveKit Agents Documentation](https://docs.livekit.io/agents/)
 - [Gemini API Documentation](https://ai.google.dev/docs)
-
-
-## Reminder
-
-- The livekit cli does not automatically ask for the dockerfile.agent.
-- When deploying and agent revision, remember to use the Dockerfile.agent for it, not the backend file

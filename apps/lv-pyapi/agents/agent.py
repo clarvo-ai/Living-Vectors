@@ -27,6 +27,7 @@ from tasks import (
     ValueVisionTask,
     AlignmentTask
 )
+from telemetry import setup_telemetry
 
 load_dotenv(".env.local")
 
@@ -44,6 +45,7 @@ WRAP_UP_CLOSE_GRACE_SECONDS = 2 * 60
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger("voice-agent")
+setup_telemetry()
 
 
 def prewarm(proc: JobProcess) -> None:
