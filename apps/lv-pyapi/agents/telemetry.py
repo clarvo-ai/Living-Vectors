@@ -1,3 +1,4 @@
+# Copy of ../telemetry.py — keep in sync.
 import logging
 import os
 from typing import Optional, Sequence
