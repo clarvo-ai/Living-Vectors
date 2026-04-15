@@ -19,4 +19,13 @@ livekit-agents[silero]==1.4.6
 google-cloud-storage==3.8.0
 pandas==3.0.0
 pgvector==0.4.2
+# OpenTelemetry
+opentelemetry-api
+opentelemetry-sdk
+opentelemetry-exporter-otlp-proto-http
+opentelemetry-instrumentation-fastapi
+opentelemetry-instrumentation-sqlalchemy
+opentelemetry-instrumentation-logging
+opentelemetry-instrumentation-httpx
 livekit-plugins-noise-cancellation~=0.2
+openai==2.30.0

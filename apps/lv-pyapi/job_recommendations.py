@@ -179,7 +179,13 @@ def recompute_recommendations(user_id: str) -> None:
     try:
         user_emb = db.query(UserEmbedding).filter_by(userId=user_id).first()
         if not user_emb:
-            logging.warning(f"recompute_recommendations: no embedding found for user {user_id}")
+            db.execute(
+                delete(JobRecommendation).where(JobRecommendation.userId == UUID(user_id))
+            )
+            db.commit()
+            logging.info(
+                f"recompute_recommendations: no embedding for user {user_id}, cleared job recommendations"
+            )
             return
 
         raw = user_emb.embedding

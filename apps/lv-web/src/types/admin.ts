@@ -32,6 +32,28 @@ export interface AdminUserMessage {
 }
 
 /**
+ * Message within a learning connection
+ */
+export interface LearningConnectionMessage {
+  messageId: string;
+  sender: MessageSender;
+  content: string;
+  createdAt: string;
+}
+
+/**
+ * LLM Judge evaluation scores for a learning
+ */
+export interface LearningEvaluation {
+  accuracy: number | null;
+  relevance: number | null;
+  coherence: number | null;
+  overallScore: number | null;
+  feedback: string | null;
+  evaluatedAt: string | null;
+}
+
+/**
  * Learning connection data returned by /api/admin/users/[userId]/learning-connections
  */
 export interface LearningConnection {

@@ -27,6 +27,7 @@ from tasks import (
     ValueVisionTask,
     AlignmentTask
 )
+from telemetry import setup_telemetry
 
 load_dotenv(".env.local")
 
@@ -44,17 +45,23 @@ WRAP_UP_CLOSE_GRACE_SECONDS = 2 * 60
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger("voice-agent")
+setup_telemetry()
 
 
 def prewarm(proc: JobProcess) -> None:
-    proc.userdata["vad"] = silero.VAD.load()
+    proc.userdata["vad"] = silero.VAD.load(
+        activation_threshold=0.6, # Noice cancellation
+        deactivation_threshold=0.45,
+        min_speech_duration=0.2,
+    )
 
 
 class CareerAssistant(Agent):
     DISCOVERY_TASKS = {"opening", "logistics", "industry", "location", "background", "culture", "value_vision", "alignment"}
 
-    def __init__(self, user_id: str, completed_tasks: List[str], user_insights: List[str]) -> None:
+    def __init__(self, user_id: str, completed_tasks: List[str], user_insights: List[str], room_name: str) -> None:
         self.user_id = user_id
+        self.room_name = room_name
         self.completed_tasks = completed_tasks
         self.user_insights = user_insights
         self.all_completed = self.DISCOVERY_TASKS.issubset(set(completed_tasks))
@@ -91,7 +98,7 @@ class CareerAssistant(Agent):
             try:
                 async with lkapi.LiveKitAPI(LIVEKIT_URL, LIVEKIT_API_KEY, LIVEKIT_API_SECRET) as lk:
                     await lk.room.update_room_metadata(lkapi.UpdateRoomMetadataRequest(
-                        room=f"interview-{self.user_id}",
+                        room=self.room_name,
                         metadata=json.dumps({"interview_ongoing": True}),
                     ))
                 logger.info(f"[AGENT] Room metadata set to interview_ongoing=true for interview-{self.user_id}")
@@ -104,7 +111,7 @@ class CareerAssistant(Agent):
             try:
                 async with lkapi.LiveKitAPI(LIVEKIT_URL, LIVEKIT_API_KEY, LIVEKIT_API_SECRET) as lk:
                     await lk.room.update_room_metadata(lkapi.UpdateRoomMetadataRequest(
-                        room=f"interview-{self.user_id}",
+                        room=self.room_name,
                         metadata=json.dumps({"current_task": "post-interview"}),
                     ))
                 logger.info(f"[AGENT] Room metadata set to interview_ongoing=true for interview-{self.user_id}")
@@ -144,8 +151,8 @@ class CareerAssistant(Agent):
             if task_id not in self.completed_tasks:
                 is_returning = (idx == first_incomplete_idx) and bool(self.completed_tasks)
                 task_group.add(
-                    lambda task_cls=task_class, is_ret=is_returning: task_cls(
-                        self.user_id, self.user_insights, is_returning=is_ret
+                    lambda task_cls=task_class, is_ret=is_returning, rn=self.room_name: task_cls(
+                        self.user_id, self.user_insights, is_returning=is_ret, room_name=rn
                     ),
                     id=task_id,
                     description=task_desc
@@ -159,7 +166,7 @@ class CareerAssistant(Agent):
         try:
             async with lkapi.LiveKitAPI(LIVEKIT_URL, LIVEKIT_API_KEY, LIVEKIT_API_SECRET) as lk:
                 await lk.room.update_room_metadata(lkapi.UpdateRoomMetadataRequest(
-                    room=f"interview-{self.user_id}",
+                    room=self.room_name,
                     metadata=json.dumps({"interview_ongoing": False}),
                 ))
             logger.info(f"[AGENT] Room metadata set to interview_ongoing=false for interview-{self.user_id}")
@@ -210,16 +217,15 @@ async def my_agent(ctx: agents.JobContext):
         )
     )
 
-
     session = AgentSession(
         vad=ctx.proc.userdata["vad"],
-        stt=elevenlabs.STT(api_key=ELEVENLABS_API_KEY),
+        stt=elevenlabs.STT(api_key=ELEVENLABS_API_KEY, language_code="en", tag_audio_events=False),
         llm=google.LLM(model="gemini-2.0-flash", api_key=GOOGLE_API_KEY),
         tts = liam_tts,
         allow_interruptions=True,
     )
     
-    user_id = ctx.room.name.removeprefix("interview-")
+    user_id = ctx.room.name.removeprefix("interview-").rsplit("-", 1)[0]
     logger.info(f"Session user: {user_id}")
 
     completed_tasks = fetch_completed_tasks(user_id)
@@ -227,7 +233,7 @@ async def my_agent(ctx: agents.JobContext):
 
     await session.start(
         room=ctx.room,
-        agent=CareerAssistant(user_id, completed_tasks, user_insights),
+        agent=CareerAssistant(user_id, completed_tasks, user_insights, room_name=ctx.room.name),
         room_options=room_io.RoomOptions(
             audio_input=room_io.AudioInputOptions(
                 noise_cancellation=noise_cancellation.NC(),
