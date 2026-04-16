@@ -6,7 +6,7 @@ from typing import Any
 
 from livekit.agents import AgentTask, function_tool
 from livekit import api as lkapi
-from helper import update_completed_tasks
+from helper import update_completed_tasks, fetch_completed_tasks
 
 from faq import get_faq
 
@@ -15,6 +15,14 @@ logger = logging.getLogger("career-agent")
 LIVEKIT_URL = os.environ.get("LIVEKIT_URL", "ws://127.0.0.1:7880")
 LIVEKIT_API_KEY = os.environ.get("LIVEKIT_API_KEY")
 LIVEKIT_API_SECRET = os.environ.get("LIVEKIT_API_SECRET")
+
+HARD_LIMIT_CLOSING_MESSAGE = (
+    "Thanks for your time! If you have more to add or want to update anything, just start another interview. "
+    "Job recommendations will now be created for you and will appear on your Opportunities page shortly. "
+    "Have a nice day and goodbye."
+)
+
+FORCE_WRAPUP_LEAD_IN = "To keep this concise, let me wrap this up briefly."
 
 
 def _last_message_was_from_user(session: Any) -> bool:
@@ -552,11 +560,12 @@ class ValueVisionTask(AgentTask[None]):
 
 
 class AlignmentTask(AgentTask[None]):
-    def __init__(self, user_id: str, insights: list[str] | None = None, task_id: str = "alignment", is_returning: bool = False, room_name: str = "") -> None:
+    def __init__(self, user_id: str, insights: list[str] | None = None, task_id: str = "alignment", is_returning: bool = False, room_name: str = "", force_wrapup_mode: bool = False, chat_ctx: Any = None) -> None:
         self._task_id = task_id
         self.user_id = user_id
         self.room_name = room_name
         self.is_returning = is_returning
+        self.force_wrapup_mode = force_wrapup_mode
         super().__init__(
             instructions="""
             Your name is the "Clarvo career assistant". Wrapping up: deliver a
@@ -581,6 +590,7 @@ class AlignmentTask(AgentTask[None]):
             Do NOT wait for them to respond to your goodbye before calling the tool.
             """ + _build_insight_block(insights or []),
             tools=[get_faq],
+            chat_ctx=chat_ctx,
         )
 
     async def on_enter(self) -> None:
@@ -612,7 +622,11 @@ class AlignmentTask(AgentTask[None]):
                 "questions (no 'who else should I talk to', 'anything else to "
                 "share', etc.)."
             )
-        
+        if self.force_wrapup_mode:
+            self.session.interrupt()
+            await self.session.say(FORCE_WRAPUP_LEAD_IN)
+            await self.session.generate_reply(instructions=instructions)
+
         asyncio.create_task(
             _deferred_on_enter_reply(self.session, instructions)
         )
@@ -620,5 +634,25 @@ class AlignmentTask(AgentTask[None]):
     @function_tool
     async def alignment_complete(self) -> None:
         """Call this once the candidate has confirmed the summary and you are ready to say goodbye."""
-        update_completed_tasks(self.user_id, "alignment")
+        if self.force_wrapup_mode:
+            self.session.interrupt()
+            await self.session.say(HARD_LIMIT_CLOSING_MESSAGE)
+            try:
+                async with lkapi.LiveKitAPI(LIVEKIT_URL, LIVEKIT_API_KEY, LIVEKIT_API_SECRET) as lk:
+                    await lk.room.update_room_metadata(lkapi.UpdateRoomMetadataRequest(
+                        room=self.room_name,
+                        metadata=json.dumps({"interview_ongoing": False}),
+                    ))
+                logger.info(f"[TASK] Wrapup alignment complete — interview_ongoing=false for {self.room_name}")
+            except Exception as e:
+                logger.warning(f"[TASK] Failed to update metadata after wrapup alignment: {e}")
+            await self.session.aclose()
+
+        completed = fetch_completed_tasks(self.user_id)
+        expected = {"opening", "logistics", "industry", "location", "background", "culture", "value_vision"}
+        if expected.issubset(set(completed)):
+            update_completed_tasks(self.user_id, "alignment")
+        else:
+            logger.info(f"[TASK] Skipping marking alignment complete for {self.user_id} — missing previous tasks.")
+            
         self.complete(None)

@@ -2,13 +2,14 @@ import json
 import logging
 import os
 import sys
+import time
 from dotenv import load_dotenv
 import asyncio
 from typing import List
 
 import requests
 from livekit import agents, api as lkapi
-from livekit.agents import AgentServer, AgentSession, Agent, JobProcess, room_io
+from livekit.agents import AgentServer, AgentSession, Agent, AgentStateChangedEvent, JobProcess, room_io
 from livekit.agents.beta.workflows import TaskGroup
 from livekit.plugins import elevenlabs, google, silero, noise_cancellation
 from livekit.plugins.elevenlabs import TTS, VoiceSettings
@@ -25,7 +26,8 @@ from tasks import (
     BackgroundTask,
     CultureTask,
     ValueVisionTask,
-    AlignmentTask
+    AlignmentTask,
+    HARD_LIMIT_CLOSING_MESSAGE,
 )
 from telemetry import setup_telemetry
 
@@ -40,8 +42,9 @@ LIVEKIT_API_SECRET = os.environ.get("LIVEKIT_API_SECRET")
 BACKEND_URL = os.environ.get("BACKEND_URL", "")
 INTERNAL_API_SECRET = os.environ.get("INTERNAL_API_SECRET", "")
 
-WRAP_UP_TRIGGER_SECONDS = 15 * 60
-WRAP_UP_CLOSE_GRACE_SECONDS = 2 * 60
+WRAP_UP_TRIGGER_MINUTES = 15
+HARD_LIMIT_MINUTES = 17
+
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger("voice-agent")
@@ -174,29 +177,6 @@ class CareerAssistant(Agent):
             logger.error(f"[AGENT] Failed to update room metadata: {e}")
 
 
-class ForcedWrapUpAgent(Agent):
-    def __init__(self) -> None:
-        super().__init__(
-            instructions="""
-            You are in final wrap-up mode.
-            Previous interview tasks are no longer active.
-            Give a concise, warm closing summary based only on the conversation so far,
-            mention recommendations will appear on the opportunities page,
-            then say goodbye naturally.
-            """,
-        )
-
-    async def on_enter(self) -> None:
-        await self.session.generate_reply(
-            instructions=(
-                "Wrap up now in a concise and warm way. "
-                "Do not continue any earlier interview task flow."
-            )
-        )
-        await asyncio.sleep(WRAP_UP_CLOSE_GRACE_SECONDS)
-        await self.session.aclose()
-
-
 server = AgentServer()
 server.setup_fnc = prewarm
 
@@ -231,9 +211,10 @@ async def my_agent(ctx: agents.JobContext):
     completed_tasks = fetch_completed_tasks(user_id)
     user_insights = fetch_user_insights(user_id)
 
+    main_agent = CareerAssistant(user_id, completed_tasks, user_insights, room_name=ctx.room.name)
     await session.start(
         room=ctx.room,
-        agent=CareerAssistant(user_id, completed_tasks, user_insights, room_name=ctx.room.name),
+        agent=main_agent,
         room_options=room_io.RoomOptions(
             audio_input=room_io.AudioInputOptions(
                 noise_cancellation=noise_cancellation.NC(),
@@ -243,24 +224,109 @@ async def my_agent(ctx: agents.JobContext):
         ),
     )
 
-    async def trigger_wrap_up_after_timeout() -> None:
-        await asyncio.sleep(WRAP_UP_TRIGGER_SECONDS)
+    has_forced_end = False
+    forced_end_lock = asyncio.Lock()
+
+    # Set when the agent first speaks; timers are measured from this moment.
+    interview_started = asyncio.Event()
+    start_time: float = 0.0
+
+    @session.on("agent_state_changed")
+    def _on_agent_state_changed(ev: AgentStateChangedEvent) -> None:
+        nonlocal start_time
+        if not interview_started.is_set() and ev.new_state == "speaking":
+            start_time = time.time()
+            interview_started.set()
+            logger.info("[TIMER] Interview clock started (agent first spoke)")
+
+    async def _get_room_state() -> tuple[str | None, bool | None]:
+        current_task = None
+        interview_ongoing = None
+        metadata = ctx.room.metadata or "{}"
         try:
-            logger.info("15-minute mark reached, triggering wrap-up mode")
-            # Switch to a fresh wrap-up-only agent. By default update_agent starts
-            # with a fresh prompt context unless chat_ctx is explicitly passed.
-            session.update_agent(ForcedWrapUpAgent())
+            metadata_dict = json.loads(metadata)
+            current_task = metadata_dict.get("current_task")
+            interview_ongoing = metadata_dict.get("interview_ongoing")
+        except Exception:
+            pass
+            
+        return current_task, interview_ongoing
+
+    async def _mark_interview_complete() -> None:
+        async with lkapi.LiveKitAPI(LIVEKIT_URL, LIVEKIT_API_KEY, LIVEKIT_API_SECRET) as lk:
+            await lk.room.update_room_metadata(lkapi.UpdateRoomMetadataRequest(
+                room=ctx.room.name,
+                metadata=json.dumps({"interview_ongoing": False}),
+            ))
+
+    async def force_wrap_up() -> None:
+        await interview_started.wait()
+        remaining = int((WRAP_UP_TRIGGER_MINUTES * 60) - (time.time() - start_time))
+        if remaining > 0:
+            await asyncio.sleep(remaining)
+        try:
+            current_task, interview_ongoing = await _get_room_state()
+
+            if current_task in {"alignment", "post-interview"} or interview_ongoing is False:
+                logger.info(
+                    "Wrap-up skipped (task=%s, interview_ongoing=%s)",
+                    current_task,
+                    interview_ongoing,
+                )
+                return
+
+            logger.info("Force wrap-up time reached, triggering alignment task")
+            session.update_agent(
+                AlignmentTask(
+                    user_id,
+                    insights=user_insights,
+                    room_name=ctx.room.name,
+                    force_wrapup_mode=True,
+                    chat_ctx=session.history,
+                )
+            )
         except asyncio.CancelledError:
             logger.info("Wrap-up timer cancelled")
         except Exception as e:
             logger.info(f"Wrap-up trigger skipped because session is no longer active: {e}")
 
-    wrap_up_timer_task = asyncio.create_task(trigger_wrap_up_after_timeout())
+    async def force_close() -> None:
+        nonlocal has_forced_end
+        await interview_started.wait()
+        remaining = int((HARD_LIMIT_MINUTES * 60) - (time.time() - start_time))
+        if remaining > 0:
+            await asyncio.sleep(remaining)
+        try:
+            async with forced_end_lock:
+                if has_forced_end:
+                    return
+                has_forced_end = True
+
+            if not wrap_up_timer_task.done():
+                wrap_up_timer_task.cancel()
+
+            logger.info("Hard limit reached, ending session forcefully")
+            session.interrupt()
+            await session.say(HARD_LIMIT_CLOSING_MESSAGE)
+            try:
+                await _mark_interview_complete()
+            except Exception as e:
+                logger.warning("Failed to set interview_ongoing=false at hard limit: %s", e)
+            await session.aclose()
+        except asyncio.CancelledError:
+            logger.info("Hard-limit timer cancelled")
+        except Exception as e:
+            logger.info(f"Hard-limit end skipped because session is no longer active: {e}")
+
+    wrap_up_timer_task = asyncio.create_task(force_wrap_up())
+    hard_limit_timer_task = asyncio.create_task(force_close())
 
     @session.on("close")
     def on_close():
         if not wrap_up_timer_task.done():
             wrap_up_timer_task.cancel()
+        if not hard_limit_timer_task.done():
+            hard_limit_timer_task.cancel()
 
         transcript = ""
         for item in session.history.items:
