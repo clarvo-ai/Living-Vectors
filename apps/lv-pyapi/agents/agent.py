@@ -42,9 +42,9 @@ LIVEKIT_API_SECRET = os.environ.get("LIVEKIT_API_SECRET")
 BACKEND_URL = os.environ.get("BACKEND_URL", "")
 INTERNAL_API_SECRET = os.environ.get("INTERNAL_API_SECRET", "")
 
-WRAP_UP_TRIGGER_MINUTES = 15
-HARD_LIMIT_MINUTES = 17
-
+# Interview duration settings
+WRAP_UP_TRIGGER_MINUTES = 15 # Force wrap up
+HARD_LIMIT_MINUTES = 17 # Force close 
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger("voice-agent")
