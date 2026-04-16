@@ -1,5 +1,4 @@
 const path = require('path');
-const crypto = require('crypto');
 const dotenv = require('dotenv');
 
 const repoRoot = path.resolve(__dirname, '..', '..');
@@ -36,6 +35,16 @@ async function main() {
     },
   });
 
+  // Reset mutable interview artifacts so every system-test run starts from a clean state.
+  await prisma.$transaction([
+    prisma.completedTask.deleteMany({ where: { userId: user.id } }),
+    prisma.jobRecommendation.deleteMany({ where: { userId: user.id } }),
+    prisma.userEmbedding.deleteMany({ where: { userId: user.id } }),
+    prisma.learning.deleteMany({ where: { userId: user.id } }),
+    prisma.conversationMessage.deleteMany({ where: { userId: user.id } }),
+    prisma.session.deleteMany({ where: { userId: user.id } }),
+  ]);
+
   const expires = new Date(Date.now() + 1000 * 60 * 60 * 24 * 7);
 
   await prisma.session.upsert({
@@ -53,7 +62,7 @@ async function main() {
     },
   });
 
-  console.log('Created/updated Playwright test user and session');
+  console.log('Created/updated Playwright test user, reset prior test data, and created session');
   console.log(`TEST_USER_EMAIL=${testEmail}`);
   console.log(`TEST_SESSION_TOKEN=${sessionToken}`);
   console.log(`TEST_USER_ID=${user.id}`);
