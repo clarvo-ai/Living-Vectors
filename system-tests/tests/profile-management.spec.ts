@@ -5,7 +5,6 @@ const TEST_SESSION_TOKEN = process.env.TEST_SESSION_TOKEN || 'lv-e2e-session-tok
 
 test.describe('User Profile Management', () => {
   test.beforeEach(async ({ page, context }) => {
-    // Add test session cookie
     await context.addCookies([
       {
         name: 'next-auth.session-token',
@@ -15,15 +14,12 @@ test.describe('User Profile Management', () => {
       },
     ]);
 
-    // Navigate to profile page
     await page.goto('/dashboard/profile');
 
-    // Wait for profile route shell to load.
     await expect(page.getByRole('heading', { name: 'Profile Settings' })).toBeVisible({
       timeout: 5000,
     });
 
-    // Wait for form to be ready
     await expect(page.locator('form')).toBeVisible({ timeout: 5000 });
     await expect(page.locator('#name')).toBeVisible({ timeout: 5000 });
     await expect(page.locator('#phone')).toBeVisible({ timeout: 5000 });

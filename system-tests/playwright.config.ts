@@ -9,8 +9,8 @@ export default defineConfig({
   testDir: './tests',
   testMatch: '**/*.spec.ts',
   fullyParallel: true,
-  forbidOnly: !!process.env.CI,
-  retries: process.env.CI ? 2 : 0,
+  forbidOnly: false,
+  retries: 0,
   workers: 1,
   /* Reporter to use. See https://playwright.dev/docs/test-reporters */
   reporter: [
@@ -40,11 +40,4 @@ export default defineConfig({
       use: { ...devices['Desktop Safari'] },
     },
   ],
-
-  webServer: {
-    command: process.env.SKIP_SERVER_START ? '' : 'npm run dev --workspace=lv-web',
-    url: BASE_URL,
-    reuseExistingServer: !process.env.CI,
-    timeout: 120 * 1000,
-  },
 });

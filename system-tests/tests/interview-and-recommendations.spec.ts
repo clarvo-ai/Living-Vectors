@@ -4,7 +4,6 @@ import * as dotenv from 'dotenv';
 import * as fs from 'fs';
 import * as path from 'path';
 
-// Load environment variables from .env.local
 dotenv.config({ path: '.env.local' });
 
 const TEST_SESSION_TOKEN = process.env.TEST_SESSION_TOKEN || 'lv-e2e-session-token';
@@ -15,7 +14,13 @@ const INTERVIEW_SYSTEM_PROMPT_PATH = path.join(PROMPTS_DIR, 'interview-candidate
 let geminiClient: GoogleGenerativeAI | null = null;
 
 function initializeGeminiClient() {
-  if (GEMINI_API_KEY && !geminiClient) {
+  if (!GEMINI_API_KEY) {
+    throw new Error(
+      'GEMINI_API_KEY environment variable is required to run interview tests. ' +
+        'Please set GEMINI_API_KEY in .env.local and try again.'
+    );
+  }
+  if (!geminiClient) {
     console.log('[Init] Initializing Gemini client with configured API key');
     geminiClient = new GoogleGenerativeAI(GEMINI_API_KEY);
   }
@@ -32,32 +37,10 @@ function loadInterviewSystemPrompt(): string {
 }
 
 async function buildAnswerForPrompt(prompt: string, turn: number): Promise<string> {
-  if (!GEMINI_API_KEY || !geminiClient) {
-    console.warn(
-      `[Turn ${turn}] GEMINI_API_KEY not configured. Using rule-based fallback. Prompt: ${prompt.substring(0, 100)}...`
+  if (!geminiClient) {
+    throw new Error(
+      'Gemini client is not initialized. GEMINI_API_KEY must be set in .env.local to run interview tests.'
     );
-    const p = prompt.toLowerCase();
-    if (p.includes('background') || p.includes('experience')) {
-      return 'I have 5 years of backend engineering experience, mostly in Python, Node.js, and cloud infrastructure.';
-    }
-    if (
-      p.includes('location') ||
-      p.includes('remote') ||
-      p.includes('onsite') ||
-      p.includes('hybrid')
-    ) {
-      return 'I prefer hybrid roles in Barcelona or remote positions in European time zones.';
-    }
-    if (p.includes('industry')) {
-      return 'I am interested in climate tech, AI tooling, and education technology.';
-    }
-    if (p.includes('culture') || p.includes('team')) {
-      return 'I thrive in collaborative teams with strong feedback culture and clear ownership.';
-    }
-    if (p.includes('salary') || p.includes('compensation')) {
-      return 'My target range is 70k to 90k EUR depending on scope and growth opportunities.';
-    }
-    return `I enjoy solving complex backend problems, mentoring teammates, and shipping reliable products.`;
   }
 
   const model = geminiClient.getGenerativeModel({ model: 'gemini-2.5-flash' });
