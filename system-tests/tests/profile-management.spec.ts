@@ -21,7 +21,6 @@ test.describe('User Profile Management', () => {
   });
 
   test('should persist data after page refresh', async ({ page }) => {
-    const uniqueSuffix = Date.now();
     const testFirstName = `A`;
     const testLastName = `B`;
     const testName = `C`;
