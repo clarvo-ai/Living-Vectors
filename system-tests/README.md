@@ -102,9 +102,9 @@ Tests the main user journey:
 
 Tests user profile editing:
 
-1. Update name and phone number
+1. Update profile fields
 2. Save changes successfully
-3. Verify the saved data persists after refresh and in the profile API response
+3. Verify the saved data persists after refresh
 
 **Key scenarios:**
 
@@ -167,7 +167,8 @@ npm run test:report
 npm run test:debug
 ```
 
-### Screenshots
+### Screenshots and Videos
 
 - Screenshots: Automatically captured for failed tests
+- Videos: Recorded for tests run in headed mode
 - Location: `test-results/` directory
