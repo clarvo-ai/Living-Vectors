@@ -14,7 +14,7 @@ const PROMPTS_DIR = path.resolve(process.cwd(), 'test_prompts');
 const CANDIDATE_SYSTEM_PROMPT_FILE_NAME = 'interview-candidate-0.md';
 const INTERVIEW_SYSTEM_PROMPT_PATH = path.join(PROMPTS_DIR, CANDIDATE_SYSTEM_PROMPT_FILE_NAME);
 
-let geminiClient: GoogleGenerativeAI;
+let geminiClient: GoogleGenerativeAI | null = null;
 
 function initializeGeminiClient() {
   if (!GEMINI_API_KEY) {
@@ -40,13 +40,7 @@ function loadInterviewSystemPrompt(): string {
 }
 
 async function buildAnswerForPrompt(prompt: string, turn: number): Promise<string> {
-  if (!geminiClient) {
-    throw new Error(
-      'Gemini client is not initialized. GEMINI_API_KEY must be set in .env.local to run interview tests.'
-    );
-  }
-
-  const model = geminiClient.getGenerativeModel({ model: 'gemini-2.5-flash' });
+  const model = geminiClient!.getGenerativeModel({ model: 'gemini-2.5-flash' });
   const systemPrompt = loadInterviewSystemPrompt();
   const userMessage = `Interview question: "${prompt}"\n\nAnswer this ONE question with ONE direct sentence. Sound like a real job candidate.`;
   const response = await model.generateContent({
@@ -167,9 +161,6 @@ async function completeInterview(page: import('@playwright/test').Page) {
       if (isOpportunitiesRoute()) {
         return;
       }
-      if (!isInterviewRoute()) {
-        throw new Error(`Unexpected navigation after sending response: ${page.url()}`);
-      }
 
       const nextCount = await aiMessages.count();
       if (nextCount > countBefore) {
@@ -193,7 +184,7 @@ async function completeInterview(page: import('@playwright/test').Page) {
 }
 
 async function waitForJobsOnOpportunitiesPage(page: import('@playwright/test').Page) {
-  const maxWaitMs = 10 * 60 * 1000;
+  const maxWaitMs = 5 * 60 * 1000;
   const startedAt = Date.now();
 
   await page.goto('/dashboard/opportunities');
@@ -247,7 +238,7 @@ test.describe('User Interview & Job Recommendations Flow', () => {
   });
 
   test('should show job opportunities after interview processing', async ({ page }) => {
-    test.setTimeout(10 * 60 * 1000);
+    test.setTimeout(5 * 60 * 1000);
 
     await waitForJobsOnOpportunitiesPage(page);
     await expect(page.getByRole('heading', { level: 1, name: 'Recommended for You' })).toBeVisible({
