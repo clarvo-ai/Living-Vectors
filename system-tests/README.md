@@ -1,28 +1,35 @@
 # Living Vectors System Tests (E2E)
 
-This directory contains end-to-end system tests for the Living Vectors application using Playwright.
+This directory contains end-to-end system tests for the application using Playwright.
 
-## Overview
+These tests are intended for local development only.
+The default `npm run test` and `npm run test:headed` commands run Chromium only, and test workers are pinned to `1` by default.
 
-System tests validate critical user flows across the entire application stack:
+## Prerequisites
 
-- Interview completion and job recommendation flow
-- User profile management (edit name, phone number)
+**The system must be running before you start tests.**
 
-These tests run against local development environment or CI/CD pipeline.
-The default `npm run test` and `npm run test:headed` commands run Chromium only, and test workers are pinned to `1` by default to reduce auth/data races.
+```bash
+docker compose --profile lv-web up -d --build
+```
 
 ## Setup
 
-### Prerequisites
+Navigate to the `system-tests` directory to run the following commands.
 
-- Node.js 20+
-- npm
+```bash
+cd system-tests
+```
+
+Create a local environment file based on the example, you only need to set Gemini API key
+
+```bash
+cp .env.example .env.local
+```
 
 ### Installation
 
 ```bash
-# Install dependencies
 npm install
 
 # Install Playwright browsers
@@ -33,6 +40,12 @@ npx playwright install --with-deps
 
 ### Local Development
 
+To bypass authentication and seed a test user, run:
+
+```bash
+npm run seed:test-user
+```
+
 ```bash
 # Run all tests in Chromium
 npm run test
@@ -40,7 +53,7 @@ npm run test
 # Run with UI mode (interactive dashboard)
 npm run test:ui
 
-# Run in headed mode (see Chromium browser)
+# Run in headed mode
 npm run test:headed
 
 # Seed the user and run the interview flow
@@ -62,20 +75,11 @@ npm run test:single -- interview-and-recommendations
 npm run test:debug
 ```
 
-### Against Existing Dev Environment
-
-If you already have the app running:
-
-```bash
-# Skip automatic server startup
-SKIP_SERVER_START=true npm run test
-```
-
 ### With Custom Base URL
 
 ```bash
 # Test against staging environment
-BASE_URL=https://staging.livingvectors.com npm run test
+BASE_URL="" npm run test
 ```
 
 ## Test Files
@@ -123,45 +127,24 @@ npm run seed:test-user
 
 3. Protected routes (for example, dashboard pages) are then accessed as an authenticated user.
 
-### Required environment variables
-
-```bash
-TEST_USER_EMAIL=systest@livingvectors.test
-TEST_SESSION_TOKEN=lv-e2e-session-token
-```
-
-`TEST_SESSION_TOKEN` must match both:
-
-- The session seeded by `scripts/create-test-user.cjs`
-- The cookie value used in test files
-
 ## Test Data
 
 Test data is defined in `tests/data/test-data.ts`:
 
 - **PROFILE_DATA**: Profile update test cases
 
-The interview and opportunities tests now rely on the seeded test user created by `npm run seed:test-user` rather than a large shared export set.
+## Interview Candidate Test Prompts
+
+The interview E2E test uses Gemini AI to generate realistic candidate responses. You can create custom interview candidate personas by adding prompt files to the `test_prompts/` folder.
+
+### Creating a Custom Candidate Prompt
+
+1. Create a new markdown file in `test_prompts/`
+2. Define the candidate persona and conversation rules
+
+3. Update the interview test to use your new prompt instead of the default `interview-candidate-0.md` if needed.
 
 ## Configuration
-
-### `playwright.config.ts`
-
-Key settings:
-
-- **baseURL**: http://localhost:3045 (configurable via BASE_URL env var)
-- **testDir**: `./tests`
-- **timeout**: 30 seconds per test
-- **retries**: Enabled in CI, disabled locally
-- **workers**: 1 by default to keep authenticated flows deterministic
-- **reporters**: HTML, JSON, JUnit XML
-- **browsers**: Chromium, Firefox, WebKit
-
-Default script behavior:
-
-- `npm run test` runs Chromium only
-- `npm run test:headed` runs headed Chromium only
-- `npm run test:interview` and `npm run test:profile` seed the test user before running the relevant spec
 
 ### Artifacts
 
