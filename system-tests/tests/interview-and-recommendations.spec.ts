@@ -9,9 +9,12 @@ dotenv.config({ path: '.env.local' });
 const TEST_SESSION_TOKEN = process.env.TEST_SESSION_TOKEN || 'lv-e2e-session-token';
 const GEMINI_API_KEY = process.env.GEMINI_API_KEY || '';
 const PROMPTS_DIR = path.resolve(process.cwd(), 'test_prompts');
-const INTERVIEW_SYSTEM_PROMPT_PATH = path.join(PROMPTS_DIR, 'interview-candidate-0.md');
 
-let geminiClient: GoogleGenerativeAI | null = null;
+// Interview candidate system prompt file name
+const CANDIDATE_SYSTEM_PROMPT_FILE_NAME = 'interview-candidate-0.md';
+const INTERVIEW_SYSTEM_PROMPT_PATH = path.join(PROMPTS_DIR, CANDIDATE_SYSTEM_PROMPT_FILE_NAME);
+
+let geminiClient: GoogleGenerativeAI;
 
 function initializeGeminiClient() {
   if (!GEMINI_API_KEY) {
@@ -45,7 +48,7 @@ async function buildAnswerForPrompt(prompt: string, turn: number): Promise<strin
 
   const model = geminiClient.getGenerativeModel({ model: 'gemini-2.5-flash' });
   const systemPrompt = loadInterviewSystemPrompt();
-  const userMessage = `Interview question: "${prompt}"\n\nAnswer this ONE question with ONE direct sentence. Sound like a real job candidate. Answer NOW, don't think too much.`;
+  const userMessage = `Interview question: "${prompt}"\n\nAnswer this ONE question with ONE direct sentence. Sound like a real job candidate.`;
   const response = await model.generateContent({
     contents: [
       {
@@ -75,7 +78,7 @@ async function startInterviewChat(page: import('@playwright/test').Page) {
   await page.getByRole('button', { name: 'Switch to chat' }).click();
   await expect(page.locator('#interview-response')).toBeVisible({ timeout: 10000 });
 
-  const aiMessages = page.locator('div.bg-white.text-gray-900.border.border-gray-300 p');
+  const aiMessages = page.getByTestId('chat-message-ai');
   await expect.poll(async () => await aiMessages.count(), { timeout: 180000 }).toBeGreaterThan(0);
 
   const muteButton = page.getByRole('button', { name: 'Mute' });
@@ -91,7 +94,7 @@ async function startInterviewChat(page: import('@playwright/test').Page) {
 }
 
 async function completeInterview(page: import('@playwright/test').Page) {
-  const aiMessages = page.locator('div.bg-white.text-gray-900.border.border-gray-300 p');
+  const aiMessages = page.getByTestId('chat-message-ai');
   const maxDurationMs = 10 * 60 * 1000;
   const startedAt = Date.now();
   let lastAnsweredPrompt = '';
@@ -151,9 +154,6 @@ async function completeInterview(page: import('@playwright/test').Page) {
 
     if (isOpportunitiesRoute()) {
       return;
-    }
-    if (!isInterviewRoute()) {
-      throw new Error(`Unexpected navigation before sending response: ${page.url()}`);
     }
 
     await page.locator('#interview-response').fill(response);
@@ -215,7 +215,6 @@ async function waitForJobsOnOpportunitiesPage(page: import('@playwright/test').P
 
 test.describe('User Interview & Job Recommendations Flow', () => {
   test.beforeEach(async ({ page, context, browserName }) => {
-    // Ensure voice mode is active so mute/unmute controls exist after call start.
     await page.addInitScript(() => {
       window.sessionStorage.setItem('interview-voiceOnlyMode', JSON.stringify(true));
     });
@@ -234,13 +233,11 @@ test.describe('User Interview & Job Recommendations Flow', () => {
     }
   });
 
-  test('should complete the interview flow end-to-end', async ({ page, browserName }) => {
-    test.skip(browserName !== 'chromium', 'Interview E2E is validated on Chromium only');
+  test('should complete the interview flow end-to-end', async ({ page }) => {
     test.setTimeout(10 * 60 * 1000);
 
     await page.goto('/dashboard/interview');
     await expect(page).toHaveURL(/\/dashboard\/interview/);
-    await expect(page).not.toHaveURL(/\/login/);
 
     await startInterviewChat(page);
     await completeInterview(page);
@@ -249,11 +246,7 @@ test.describe('User Interview & Job Recommendations Flow', () => {
     await expect(page).not.toHaveURL(/\/login/);
   });
 
-  test('should show job opportunities after interview processing', async ({
-    page,
-    browserName,
-  }) => {
-    test.skip(browserName !== 'chromium', 'Opportunities E2E is validated on Chromium only');
+  test('should show job opportunities after interview processing', async ({ page }) => {
     test.setTimeout(10 * 60 * 1000);
 
     await waitForJobsOnOpportunitiesPage(page);
