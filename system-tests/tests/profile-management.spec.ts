@@ -45,10 +45,17 @@ test.describe('User Profile Management', () => {
 
     await test.step('User submits profile changes', async () => {
       const saveButton = page.getByRole('button', { name: 'Save Changes' });
-      await saveButton.click();
+      await Promise.all([
+        page.waitForResponse(
+          (response) =>
+            response.url().includes('/api/profile') &&
+            response.request().method() === 'PUT' &&
+            response.status() === 200
+        ),
+        saveButton.click(),
+      ]);
 
-      // App redirects to dashboard on successful save.
-      await page.waitForURL('**/dashboard', { timeout: 10000 });
+      await expect(page).toHaveURL(/\/dashboard\/profile/);
       await expect(page).not.toHaveURL('**/login');
     });
   });
@@ -70,10 +77,25 @@ test.describe('User Profile Management', () => {
         page.getByRole('button', { name: 'Save Changes' }).click(),
       ]);
 
-      await page.waitForURL('**/dashboard**', { timeout: 10000 });
+      await expect
+        .poll(
+          async () => {
+            const response = await page.request.get('/api/profile');
+            if (!response.ok()) return '';
+
+            const payload = await response.json();
+            return payload?.body?.name || '';
+          },
+          { timeout: 15000 }
+        )
+        .toBe(testValue);
+
+      await page.reload({ waitUntil: 'networkidle' });
     });
 
-    await test.step('Saved value persists in profile API response', async () => {
+    await test.step('Saved value persists after refresh', async () => {
+      await expect(page.locator('#name')).toHaveValue(testValue);
+
       const response = await page.request.get('/api/profile');
       expect(response.ok()).toBeTruthy();
 
