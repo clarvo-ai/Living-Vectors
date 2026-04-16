@@ -8,23 +8,9 @@ import * as path from 'path';
 dotenv.config({ path: '.env.local' });
 
 const TEST_SESSION_TOKEN = process.env.TEST_SESSION_TOKEN || 'lv-e2e-session-token';
-const PYAPI_BASE_URL = process.env.NEXT_PUBLIC_PYAPI_URL || 'http://localhost:8091';
 const GEMINI_API_KEY = process.env.GEMINI_API_KEY || '';
-const INTERNAL_API_SECRET = process.env.INTERNAL_API_SECRET || 'localdev';
 const PROMPTS_DIR = path.resolve(process.cwd(), 'test_prompts');
 const INTERVIEW_SYSTEM_PROMPT_PATH = path.join(PROMPTS_DIR, 'interview-candidate-0.md');
-const SYNTHETIC_TRANSCRIPT = [
-  'ai: What brings you to this interview today?',
-  'user: I am exploring backend engineering roles with growth opportunities.',
-  'ai: What type of projects energize you?',
-  'user: Distributed systems, APIs, and data-heavy platforms.',
-  'ai: Which industries are most interesting to you?',
-  'user: Climate tech, AI developer tools, and education platforms.',
-  'ai: What work setup do you prefer?',
-  'user: Hybrid in Barcelona or remote across Europe.',
-  'ai: What salary range do you target?',
-  'user: Around 70k to 90k EUR depending on scope.',
-].join('\n');
 
 let geminiClient: GoogleGenerativeAI | null = null;
 
@@ -114,6 +100,7 @@ async function startInterviewChat(page: import('@playwright/test').Page) {
   await expect(muteButton.or(unmuteButton)).toBeVisible({ timeout: 15000 });
 
   if ((await unmuteButton.count()) > 0 && (await unmuteButton.first().isVisible())) {
+    await expect(unmuteButton).toBeVisible({ timeout: 10000 });
   } else {
     await muteButton.first().click();
     await expect(unmuteButton).toBeVisible({ timeout: 10000 });

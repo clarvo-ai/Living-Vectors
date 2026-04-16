@@ -4,17 +4,21 @@
   "description": "End-to-end system tests for the application",
   "scripts": {
     "seed:test-user": "node ./scripts/create-test-user.cjs",
-    "test": "playwright test",
-    "test:headed": "playwright test --headed",
+    "test": "playwright test --project=chromium",
+    "test:headed": "playwright test --headed --project=chromium",
+    "test:interview": "npm run seed:test-user && playwright test --project=chromium tests/interview-and-recommendations.spec.ts",
+    "test:interview:headed": "npm run seed:test-user && playwright test --headed --project=chromium --workers=1 tests/interview-and-recommendations.spec.ts",
+    "test:profile": "npm run seed:test-user && playwright test --project=chromium tests/profile-management.spec.ts",
+    "test:profile:headed": "npm run seed:test-user && playwright test --headed --project=chromium --workers=1 tests/profile-management.spec.ts",
     "test:debug": "playwright test --debug",
     "test:report": "playwright show-report",
     "test:ui": "playwright test --ui",
     "test:single": "playwright test --grep"
   },
   "devDependencies": {
-    "@google/generative-ai": "^0.15.0",
-    "@playwright/test": "^1.48.0",
+    "@google/generative-ai": "^0.24.1",
+    "@playwright/test": "^1.59.1",
     "@types/node": "^20.10.0",
-    "dotenv": "^16.3.1"
+    "dotenv": "^17.4.2"
   }
 }
