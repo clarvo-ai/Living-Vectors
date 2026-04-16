@@ -1,12 +1,20 @@
+import json
 import asyncio
 import logging
-from typing import Any, Optional
+import os
+from typing import Any
 
 from livekit.agents import AgentTask, function_tool
+from livekit import api as lkapi
+from helper import update_completed_tasks
 
 from faq import get_faq
 
 logger = logging.getLogger("career-agent")
+
+LIVEKIT_URL = os.environ.get("LIVEKIT_URL", "ws://127.0.0.1:7880")
+LIVEKIT_API_KEY = os.environ.get("LIVEKIT_API_KEY")
+LIVEKIT_API_SECRET = os.environ.get("LIVEKIT_API_SECRET")
 
 
 def _last_message_was_from_user(session: Any) -> bool:
@@ -44,20 +52,40 @@ async def _deferred_on_enter_reply(session: Any, instructions: str) -> None:
         await session.generate_reply(instructions=instructions)
     except Exception as e:
         logger.warning("Deferred on_enter reply failed: %s", e)
-async def _set_current_task(room: Any, task_id: str) -> None:
-    """Update agent participant attributes so the frontend can show the current task."""
-    if room is None:
-        return
+
+
+async def _set_current_task(room_name: str, task_id: str) -> None:
+    """Update room metadata via LiveKit API to set the current task."""
     try:
-        await room.local_participant.set_attributes({"current_task": task_id})
+        async with lkapi.LiveKitAPI(LIVEKIT_URL, LIVEKIT_API_KEY, LIVEKIT_API_SECRET) as lk:
+            await lk.room.update_room_metadata(lkapi.UpdateRoomMetadataRequest(
+                room=room_name,
+                metadata=json.dumps({
+                    "current_task": task_id,
+                    "interview_ongoing": True,
+                }),
+            ))
+            logger.info(f"Set current_task to '{task_id}' in room metadata")
     except Exception as e:
-        logger.warning("Failed to set current_task attribute: %s", e)
+        logger.warning(f"Failed to set current_task in room metadata: {e}")
+
+
+def _build_insight_block(insights: list[str]) -> str:
+    if not insights:
+        return ""
+    lines = "\n".join(f"- {s}" for s in insights)
+    return (
+        "\n\nContext from previous conversations with this candidate "
+        "(use this to avoid repeating questions and to personalise your approach):\n"
+        + lines
+    )
 
 
 class OpeningTask(AgentTask[None]):
-    def __init__(self, room: Optional[Any] = None, task_id: str = "opening") -> None:
-        self._room = room
+    def __init__(self, user_id: str, insights: list[str] | None = None, task_id: str = "opening", is_returning: bool = False, room_name: str = "") -> None:
         self._task_id = task_id
+        self.user_id = user_id
+        self.room_name = room_name
         super().__init__(
             instructions="""
             Your name is the "Clarvo career assistant" — you help people explore
@@ -91,12 +119,12 @@ class OpeningTask(AgentTask[None]):
             - Once you know their primary objective and how they found Clarvo,
               call opening_complete. Do not speak before calling it. Call
               silently — next phase will respond.
-            """,
+            """ + _build_insight_block(insights or []),
             tools=[get_faq],
         )
 
     async def on_enter(self) -> None:
-        await _set_current_task(self._room, self._task_id)
+        await _set_current_task(self.room_name, self._task_id)
         logger.info("[TASK] Opening — greeting and discovery")
         asyncio.create_task(
             _deferred_on_enter_reply(
@@ -118,12 +146,15 @@ class OpeningTask(AgentTask[None]):
     async def opening_complete(self) -> None:
         """Call this once you understand why the candidate is here and how they found Clarvo."""
         self.complete(None)
+        update_completed_tasks(self.user_id, "opening")
 
 
 class LogisticsTask(AgentTask[None]):
-    def __init__(self, room: Optional[Any] = None, task_id: str = "logistics") -> None:
-        self._room = room
+    def __init__(self, user_id: str, insights: list[str] | None = None, task_id: str = "logistics", is_returning: bool = False, room_name: str = "") -> None:
         self._task_id = task_id
+        self.user_id = user_id
+        self.room_name = room_name
+        self.is_returning = is_returning
         super().__init__(
             instructions="""
             Your name is the "Clarvo career assistant". In this phase, learn
@@ -148,33 +179,46 @@ class LogisticsTask(AgentTask[None]):
             - One phase of a longer conversation — no "wrapping up" language.
             - Once you know the above, call logistics_complete. Do not speak
               before calling it. Call silently.
-            """,
+            """ + _build_insight_block(insights or []),
             tools=[get_faq],
         )
 
     async def on_enter(self) -> None:
-        await _set_current_task(self._room, self._task_id)
+        await _set_current_task(self.room_name, self._task_id)
         logger.info("[TASK] Logistics — search intensity, timing, motivation")
-        asyncio.create_task(
-            _deferred_on_enter_reply(
-                self.session,
+        
+        if self.is_returning:
+            instructions = (
+                "Welcome them back warmly to the interview and mention that you're going to continue where you left off. "
+                "Then ask one question: how actively they are "
+                "searching right now. No generic 'In terms of your job search…' "
+                "unless it naturally follows from their words."
+            )
+        else:
+            instructions = (
                 "Connect to what they just said (e.g. their goal or how they "
                 "found Clarvo), then ask one question: how actively they are "
                 "searching right now. No generic 'In terms of your job search…' "
-                "unless it naturally follows from their words.",
+                "unless it naturally follows from their words."
             )
+        
+        asyncio.create_task(
+            _deferred_on_enter_reply(self.session, instructions)
         )
 
     @function_tool
     async def logistics_complete(self) -> None:
         """Call this once you have covered search intensity, timing, and motivation to leave."""
         self.complete(None)
+        update_completed_tasks(self.user_id, "logistics")
 
 
 class IndustryTask(AgentTask[None]):
-    def __init__(self, room: Optional[Any] = None, task_id: str = "industry") -> None:
-        self._room = room
+    def __init__(self, user_id: str, insights: list[str] | None = None, task_id: str = "industry", is_returning: bool = False, room_name: str = "") -> None:
         self._task_id = task_id
+        self.user_id = user_id
+        self.room_name = room_name
+        self.is_returning = is_returning
         super().__init__(
             instructions="""
             Your name is the "Clarvo career assistant". Before diving into specifics, you need to understand what industry or field they want to work in — it shapes location, work model, comp, and what "a great role" looks like for them.
@@ -186,33 +230,46 @@ class IndustryTask(AgentTask[None]):
             - React to what they said in a way that shows you heard them (reflect a detail, show interest, or connect to the next topic). Then ask one question. Avoid stock phrases like "Got it," "Great," "Understood" as the only reaction. Accept short answers. Short responses.
             - One phase of a longer conversation — no "wrapping up" language.
             - Once you know the above, call industry_complete. Do not speak before calling it. Call silently.
-            """,
+            """ + _build_insight_block(insights or []),
             tools=[get_faq],
         )
 
     async def on_enter(self) -> None:
-        await _set_current_task(self._room, self._task_id)
+        await _set_current_task(self.room_name, self._task_id)
         logger.info("[TASK] Industry — target field and sector")
-        asyncio.create_task(
-            _deferred_on_enter_reply(
-                self.session,
+        
+        if self.is_returning:
+            instructions = (
+                "Welcome them back warmly to the interview and mention that you're going to continue where you left off. "
+                "Then ask one question about what industry or "
+                "field they're targeting. No generic 'In terms of the kind of "
+                "work you want…' unless it naturally follows from their words."
+            )
+        else:
+            instructions = (
                 "Connect to what they just said (e.g. their timing or "
                 "motivation), then ask one question about what industry or "
                 "field they're targeting. No generic 'In terms of the kind of "
-                "work you want…' unless it naturally follows from their words.",
+                "work you want…' unless it naturally follows from their words."
             )
+        
+        asyncio.create_task(
+            _deferred_on_enter_reply(self.session, instructions)
         )
 
     @function_tool
     async def industry_complete(self) -> None:
         """Call this once you know what industry or field the candidate is targeting."""
         self.complete(None)
+        update_completed_tasks(self.user_id, "industry")
 
 
 class LocationTask(AgentTask[None]):
-    def __init__(self, room: Optional[Any] = None, task_id: str = "location") -> None:
-        self._room = room
+    def __init__(self, user_id: str, insights: list[str] | None = None, task_id: str = "location", is_returning: bool = False, room_name: str = "") -> None:
         self._task_id = task_id
+        self.user_id = user_id
+        self.room_name = room_name
+        self.is_returning = is_returning
         super().__init__(
             instructions="""
             Understanding location constraints is critical for narrowing down
@@ -238,33 +295,46 @@ class LocationTask(AgentTask[None]):
             - One phase of a longer conversation — no "wrapping up" language.
             - Once you know the above, call location_complete. Do not speak
               before calling it. Call silently.
-            """,
+            """ + _build_insight_block(insights or []),
             tools=[get_faq],
         )
 
     async def on_enter(self) -> None:
-        await _set_current_task(self._room, self._task_id)
+        await _set_current_task(self.room_name, self._task_id)
         logger.info("[TASK] Location — cities, relocation, remote/hybrid/onsite")
-        asyncio.create_task(
-            _deferred_on_enter_reply(
-                self.session,
+        
+        if self.is_returning:
+            instructions = (
+                "Welcome them back warmly to the interview and mention that you're going to continue where you left off. "
+                "Then ask one question about which cities or regions they prefer. "
+                "No generic 'In terms of location…' unless it naturally follows "
+                "from their words."
+            )
+        else:
+            instructions = (
                 "Connect to what they just said (e.g. their industry or role), "
                 "then ask one question about which cities or regions they prefer. "
                 "No generic 'In terms of location…' unless it naturally follows "
-                "from their words.",
+                "from their words."
             )
+        
+        asyncio.create_task(
+            _deferred_on_enter_reply(self.session, instructions)
         )
 
     @function_tool
     async def location_complete(self) -> None:
         """Call this once you understand their geography and work model preferences."""
         self.complete(None)
+        update_completed_tasks(self.user_id, "location")
 
 
 class BackgroundTask(AgentTask[None]):
-    def __init__(self, room: Optional[Any] = None, task_id: str = "background") -> None:
-        self._room = room
+    def __init__(self, user_id: str, insights: list[str] | None = None, task_id: str = "background", is_returning: bool = False, room_name: str = "") -> None:
         self._task_id = task_id
+        self.user_id = user_id
+        self.room_name = room_name
+        self.is_returning = is_returning
         super().__init__(
             instructions="""
             Your name is the "Clarvo career assistant". Deep professional
@@ -298,34 +368,48 @@ class BackgroundTask(AgentTask[None]):
             - One phase of a longer conversation — no "wrapping up" language.
             - Once you know the above, call background_complete. Do not speak
               before calling it. Call silently.
-            """,
+            """ + _build_insight_block(insights or []),
             tools=[get_faq],
         )
 
     async def on_enter(self) -> None:
-        await _set_current_task(self._room, self._task_id)
+        await _set_current_task(self.room_name, self._task_id)
         logger.info("[TASK] Background — roles, strengths, tools/domain")
-        asyncio.create_task(
-            _deferred_on_enter_reply(
-                self.session,
+        
+        if self.is_returning:
+            instructions = (
+                "Welcome them back warmly to the interview and mention that you're going to continue where you left off. "
+                "Then ask one question: e.g. what gives them energy in "
+                "their work, or what their most recent role was. No generic "
+                "'Let's talk about your background…' unless it naturally "
+                "follows from their words."
+            )
+        else:
+            instructions = (
                 "Connect to what they just said (e.g. their location or work "
                 "model), then ask one question: e.g. what gives them energy in "
                 "their work, or what their most recent role was. No generic "
                 "'Let's talk about your background…' unless it naturally "
-                "follows from their words.",
+                "follows from their words."
             )
+        
+        asyncio.create_task(
+            _deferred_on_enter_reply(self.session, instructions)
         )
 
     @function_tool
     async def background_complete(self) -> None:
         """Call this once you have a clear picture of their experience, strengths, and domain knowledge."""
         self.complete(None)
+        update_completed_tasks(self.user_id, "background")
 
 
 class CultureTask(AgentTask[None]):
-    def __init__(self, room: Optional[Any] = None, task_id: str = "culture") -> None:
-        self._room = room
+    def __init__(self, user_id: str, insights: list[str] | None = None, task_id: str = "culture", is_returning: bool = False, room_name: str = "") -> None:
         self._task_id = task_id
+        self.user_id = user_id
+        self.room_name = room_name
+        self.is_returning = is_returning
         super().__init__(
             instructions="""
             Your name is the "Clarvo career assistant". Culture fit matters as
@@ -355,34 +439,48 @@ class CultureTask(AgentTask[None]):
             - One phase of a longer conversation — no "wrapping up" language.
             - Once you know the above, call culture_complete. Do not speak
               before calling it. Call silently.
-            """,
+            """ + _build_insight_block(insights or []),
             tools=[get_faq],
         )
 
     async def on_enter(self) -> None:
-        await _set_current_task(self._room, self._task_id)
+        await _set_current_task(self.room_name, self._task_id)
         logger.info("[TASK] Culture — management style, team size, startup vs corp")
-        asyncio.create_task(
-            _deferred_on_enter_reply(
-                self.session,
+        
+        if self.is_returning:
+            instructions = (
+                "Welcome them back warmly to the interview and mention that you're going to continue where you left off. "
+                "Then ask one question: e.g. what kind of teamwork "
+                "works best for them, or what management style they thrive "
+                "under. No generic 'Let's talk about the kind of "
+                "environment…' unless it naturally follows from their words."
+            )
+        else:
+            instructions = (
                 "Connect to what they just said (e.g. their strengths or "
                 "role), then ask one question: e.g. what kind of teamwork "
                 "works best for them, or what management style they thrive "
                 "under. No generic 'Let's talk about the kind of "
-                "environment…' unless it naturally follows from their words.",
+                "environment…' unless it naturally follows from their words."
             )
+        
+        asyncio.create_task(
+            _deferred_on_enter_reply(self.session, instructions)
         )
 
     @function_tool
     async def culture_complete(self) -> None:
         """Call this once you understand their culture and team environment preferences."""
         self.complete(None)
+        update_completed_tasks(self.user_id, "culture")
 
 
 class ValueVisionTask(AgentTask[None]):
-    def __init__(self, room: Optional[Any] = None, task_id: str = "value_vision") -> None:
-        self._room = room
+    def __init__(self, user_id: str, insights: list[str] | None = None, task_id: str = "value_vision", is_returning: bool = False, room_name: str = "") -> None:
         self._task_id = task_id
+        self.user_id = user_id
+        self.room_name = room_name
+        self.is_returning = is_returning
         super().__init__(
             instructions="""
             Your name is the "Clarvo career assistant". You need comp and
@@ -417,34 +515,48 @@ class ValueVisionTask(AgentTask[None]):
             - One phase of a longer conversation — no "wrapping up" language.
             - Once you know the above, call value_vision_complete. Do not speak
               before calling it. Call silently.
-            """,
+            """ + _build_insight_block(insights or []),
             tools=[get_faq],
         )
 
     async def on_enter(self) -> None:
-        await _set_current_task(self._room, self._task_id)
+        await _set_current_task(self.room_name, self._task_id)
         logger.info("[TASK] Value & Vision — compensation, career goals")
-        asyncio.create_task(
-            _deferred_on_enter_reply(
-                self.session,
+        
+        if self.is_returning:
+            instructions = (
+                "Welcome them back warmly to the interview and mention that you're going to continue where you left off. "
+                "Then ask one question: e.g. compensation "
+                "expectations, or what matters most to them in how they work. "
+                "No generic 'To surface roles worth your time…' unless it "
+                "naturally follows from their words."
+            )
+        else:
+            instructions = (
                 "Connect to what they just said (e.g. their culture or team "
                 "preferences), then ask one question: e.g. compensation "
                 "expectations, or what matters most to them in how they work. "
                 "No generic 'To surface roles worth your time…' unless it "
-                "naturally follows from their words.",
+                "naturally follows from their words."
             )
+        
+        asyncio.create_task(
+            _deferred_on_enter_reply(self.session, instructions)
         )
 
     @function_tool
     async def value_vision_complete(self) -> None:
         """Call this once you have covered compensation expectations and their career vision."""
         self.complete(None)
+        update_completed_tasks(self.user_id, "value_vision")
 
 
 class AlignmentTask(AgentTask[None]):
-    def __init__(self, room: Optional[Any] = None, task_id: str = "alignment") -> None:
-        self._room = room
+    def __init__(self, user_id: str, insights: list[str] | None = None, task_id: str = "alignment", is_returning: bool = False, room_name: str = "") -> None:
         self._task_id = task_id
+        self.user_id = user_id
+        self.room_name = room_name
+        self.is_returning = is_returning
         super().__init__(
             instructions="""
             Your name is the "Clarvo career assistant". Wrapping up: deliver a
@@ -453,47 +565,60 @@ class AlignmentTask(AgentTask[None]):
             to?", "Anything else to share?"). Stick to: summary → ask if it
             sounds right → when they confirm or say goodbye, give the closing
             once and stop.
+
             If the user corrects one or two details (e.g. salary range, timeline
             for management): in the SAME message, (1) briefly acknowledge the
             correction (e.g. "Noted, 3000–3500." or "Got it, 10 years for a
-            management role."), then (2) immediately give the full closing: one
-            short warm sentence, then that we've explored their goals, job
-            recommendations will be created, they can close the call and go to
-            the opportunities page, jobs will appear shortly, goodbye. Do not
-            send only "Noted" and wait for another user message — always pair
-            the correction acknowledgment with the closing in one message. Then
-            call alignment_complete.
+            management role."), then (2) ask if everything else sounds right.
+
             When they confirm the summary (e.g. "sounds good", "that's right",
             "thank you", "bye") do NOT repeat the recap. Give the closing in
             one message: one short, warm sentence, then briefly refer back to
             the start (we said we'd explore your goals and match you — we've
             done that). Say that job recommendations will now be created for
-            them. Tell them they can close the call and go to the opportunities
-            page, and that jobs will appear there shortly. Then say goodbye.
-            Call alignment_complete once you have said this closing and goodbye.
-            """,
+            them and jobs will appear on their Opportunities page shortly.
+            Call `alignment_complete` IN THE SAME TURN.
+            Do NOT wait for them to respond to your goodbye before calling the tool.
+            """ + _build_insight_block(insights or []),
             tools=[get_faq],
         )
 
     async def on_enter(self) -> None:
-        await _set_current_task(self._room, self._task_id)
+        await _set_current_task(self.room_name, self._task_id)
         logger.info("[TASK] Alignment — summary, confirm, close")
-        asyncio.create_task(
-            _deferred_on_enter_reply(
-                self.session,
-                "Use ONLY the captured insights as the basis for your summary "
-                "— do not add anything not in the list. "
+        
+        if self.is_returning:
+            instructions = (
+                "Welcome them back warmly to the interview and mention that you're going to continue where you left off. "
+                "Use the captured insights from previous conversations and chat history as the basis for your summary, "
+                "incorporating any corrections or updates to the previous list of insights. "
+                "DO NOT make up new information that isn't in the conversation history."
                 "Deliver a short, warm summary: background, what they're great "
                 "at, what they want next, hard constraints (location, comp, "
                 "work model). "
                 "Then ask if the summary sounds right. Do not ask any other "
                 "questions (no 'who else should I talk to', 'anything else to "
-                "share', etc.).",
+                "share', etc.)."
             )
+        else:
+            instructions = (
+                "Use the captured insights from previous conversations and chat history as the basis for your summary, "
+                "incorporating any corrections or updates to the previous list of insights. "
+                "DO NOT make up new information that isn't in the conversation history."
+                "Deliver a short, warm summary: background, what they're great "
+                "at, what they want next, hard constraints (location, comp, "
+                "work model). "
+                "Then ask if the summary sounds right. Do not ask any other "
+                "questions (no 'who else should I talk to', 'anything else to "
+                "share', etc.)."
+            )
+        
+        asyncio.create_task(
+            _deferred_on_enter_reply(self.session, instructions)
         )
 
     @function_tool
     async def alignment_complete(self) -> None:
-        """Call this once the candidate has confirmed the summary and you have said goodbye."""
+        """Call this once the candidate has confirmed the summary and you are ready to say goodbye."""
+        update_completed_tasks(self.user_id, "alignment")
         self.complete(None)
-        await self.session.aclose()

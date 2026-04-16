@@ -9,11 +9,11 @@ from fastapi.middleware.cors import CORSMiddleware
 from google import genai
 import logging
 
-from database import get_db, SessionLocal
-from python_utils.sqlalchemy_models import User, UserEmbedding, Job
+from database import get_db, engine
+from python_utils.sqlalchemy_models import User, UserEmbedding, Job, ConversationMessage, CompletedTask, Learning, MessageSender
 from message_save import save_message
-from python_utils.sqlalchemy_models import User, MessageSender
 from fastapi.responses import JSONResponse
+from learnings import evaluate_learning_quality
 from gemini_client import client
 from user_embedding import generate_user_embedding
 from job_embedding import generate_missing_embeddings
@@ -24,6 +24,8 @@ from learnings import process_learnings
 
 import json
 from pathlib import Path
+
+from telemetry import setup_telemetry
 
 logging.basicConfig(level=logging.INFO)
 
@@ -43,6 +45,8 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
+setup_telemetry(app=app, engine=engine)
 
 @app.get("/")
 async def hello():
@@ -84,7 +88,6 @@ async def upload_jobs(filename: str = Body(..., embed=True), background_tasks: B
     """Endpoint to upload job listings"""
     try:
         result = process_file(filename)
-        background_tasks.add_task(generate_missing_embeddings)
         return {"message": result, "status": 200}
     except Exception as e:
         logging.exception("Error processing jobs")
@@ -290,15 +293,6 @@ async def get_user_job_recommendations(
         logging.exception("Error retrieving job recommendations")
         raise HTTPException(status_code=500, detail=str(e))
 
-@app.post("/api/jobs/generate-embeddings")
-async def batch_generate_job_embeddings(background_tasks: BackgroundTasks):
-    """
-    Manually trigger embedding generation for all jobs missing one.
-
-    Runs in the background — returns immediately.
-    """
-    background_tasks.add_task(generate_missing_embeddings)
-    return {"status": 200, "message": "Embedding generation started in background"}
 
 #Pydantic model for agent <-> backend communication
 class TranscriptPayload(BaseModel):
@@ -310,6 +304,7 @@ async def internal_process_transcript(
     payload: TranscriptPayload,
     background_tasks: BackgroundTasks,
     x_internal_secret: str = Header(...),
+    db: Session = Depends(get_db),
 ):
     """
     Called by the LiveKit voice agent after a session closes.
@@ -318,8 +313,139 @@ async def internal_process_transcript(
     """
     if x_internal_secret != os.getenv("INTERNAL_API_SECRET"):
         raise HTTPException(status_code=403, detail="Forbidden")
+
+    # Persist message history (ConversationMessage) so admin/debug views can show it.
+    # Transcript format: one message per line: "<role>: <content>"
+    try:
+        messages_to_save: list[ConversationMessage] = []
+
+        for raw_line in (payload.transcript or "").splitlines():
+            line = raw_line.strip()
+            if not line or ":" not in line:
+                continue
+
+            raw_role, content = line.split(":", 1)
+            role = raw_role.strip()
+            content = content.strip()
+            if not content:
+                continue
+
+            if role.upper() == "USER":
+                sender = MessageSender.USER
+            else:
+                sender = MessageSender.AI
+
+            messages_to_save.append(
+                ConversationMessage(
+                    userId=payload.user_id,
+                    sender=sender,
+                    content=content,
+                    questionContext=None,
+                )
+            )
+
+        if messages_to_save:
+            db.add_all(messages_to_save)
+            db.commit()
+    except Exception:
+        logging.exception("Failed to persist transcript messages")
+        # Don't fail the request; learnings extraction is more important.
+
     background_tasks.add_task(process_learnings, payload.user_id, payload.transcript)
     return {"status": "accepted"}
+
+
+class EvaluateLearningRequest(BaseModel):
+    summary: str
+    messages: List[str]
+
+@app.post("/api/learnings/evaluate")
+async def evaluate_learning_endpoint(request: EvaluateLearningRequest):
+    """
+    Evaluate a learning statement with an LLM judge.
+    Returns accuracy, relevance, coherence, overall_score, and feedback.
+    """
+    try:
+        result = evaluate_learning_quality(request.summary, request.messages)
+        return result
+    except Exception as e:
+        logging.exception("Error evaluating learning")
+        raise HTTPException(status_code=500, detail=str(e))
+
+@app.get("/internal/users/{user_id}/completed-tasks")
+async def get_completed_tasks(
+    user_id: str,
+    x_internal_secret: str = Header(...),
+    db: Session = Depends(get_db)
+):
+    """
+    Fetch list of completed task IDs for a user.
+    Called by the agent at session start to determine interview progress.
+    """
+    if x_internal_secret != os.getenv("INTERNAL_API_SECRET"):
+        raise HTTPException(status_code=403, detail="Forbidden")
+    
+    try:
+        rows = db.execute(
+            select(CompletedTask.taskId)
+            .where(CompletedTask.userId == user_id)
+        ).all()
+        completed_task_ids = [row.taskId for row in rows]
+        return {"user_id": user_id, "completed_tasks": completed_task_ids}
+    except Exception as e:
+        logging.exception(f"Error fetching completed tasks for user {user_id}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@app.get("/internal/users/{user_id}/insights")
+async def get_user_insights(
+    user_id: str,
+    x_internal_secret: str = Header(...),
+    db: Session = Depends(get_db)
+):
+    """
+    Fetch user learnings/insights for context during conversation.
+    Called by the agent at session start.
+    """
+    if x_internal_secret != os.getenv("INTERNAL_API_SECRET"):
+        raise HTTPException(status_code=403, detail="Forbidden")
+    
+    try:
+        rows = db.execute(
+            select(Learning.summary)
+            .where(Learning.userId == user_id)
+            .order_by(Learning.createdAt)
+        ).all()
+        insights = [row.summary for row in rows]
+        return {"user_id": user_id, "insights": insights}
+    except Exception as e:
+        logging.exception(f"Error fetching insights for user {user_id}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@app.post("/internal/users/{user_id}/completed-tasks")
+async def mark_task_completed(
+    user_id: str,
+    task_id: str = Body(..., embed=True),
+    x_internal_secret: str = Header(...),
+    db: Session = Depends(get_db)
+):
+    """
+    Mark a task as completed for a user.
+    Called by the agent when a discovery task is finished.
+    """
+    if x_internal_secret != os.getenv("INTERNAL_API_SECRET"):
+        raise HTTPException(status_code=403, detail="Forbidden")
+    
+    try:
+        from datetime import datetime
+        db.add(CompletedTask(userId=user_id, taskId=task_id, completedAt=datetime.now()))
+        db.commit()
+        return {"status": "success", "user_id": user_id, "task_id": task_id}
+    except Exception as e:
+        db.rollback()
+        logging.exception(f"Error marking task {task_id} as completed for user {user_id}")
+        raise HTTPException(status_code=500, detail=str(e))
 
 
 if __name__ == "__main__":

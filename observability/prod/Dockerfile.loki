@@ -1,0 +1,3 @@
+FROM grafana/loki:latest
+COPY loki.yaml /etc/loki/loki.yaml
+CMD ["-config.file=/etc/loki/loki.yaml"]
