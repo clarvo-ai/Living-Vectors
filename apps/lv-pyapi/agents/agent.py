@@ -224,9 +224,6 @@ async def my_agent(ctx: agents.JobContext):
         ),
     )
 
-    has_forced_end = False
-    forced_end_lock = asyncio.Lock()
-
     # Set when the agent first speaks; timers are measured from this moment.
     interview_started = asyncio.Event()
     start_time: float = 0.0
@@ -248,7 +245,7 @@ async def my_agent(ctx: agents.JobContext):
             current_task = metadata_dict.get("current_task")
             interview_ongoing = metadata_dict.get("interview_ongoing")
         except Exception:
-            pass
+            logger.exception("Failed to read room metadata")
             
         return current_task, interview_ongoing
 
@@ -291,17 +288,11 @@ async def my_agent(ctx: agents.JobContext):
             logger.info(f"Wrap-up trigger skipped because session is no longer active: {e}")
 
     async def force_close() -> None:
-        nonlocal has_forced_end
         await interview_started.wait()
         remaining = int((HARD_LIMIT_MINUTES * 60) - (time.time() - start_time))
         if remaining > 0:
             await asyncio.sleep(remaining)
         try:
-            async with forced_end_lock:
-                if has_forced_end:
-                    return
-                has_forced_end = True
-
             if not wrap_up_timer_task.done():
                 wrap_up_timer_task.cancel()
 
