@@ -1,16 +1,14 @@
-const path = require('path');
-const dotenv = require('dotenv');
+import dotenv from 'dotenv';
+import path from 'path';
+import { fileURLToPath } from 'url';
+import { PrismaClient } from '../../packages/database/prisma/generated/client';
 
-const repoRoot = path.resolve(__dirname, '..', '..');
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
 
-// Load env files in a predictable order.
-dotenv.config({ path: path.join(repoRoot, '.env') });
-dotenv.config({ path: path.join(repoRoot, '.env.local'), override: true });
-dotenv.config({ path: path.join(repoRoot, 'system-tests', '.env'), override: true });
+const systemTestsDir = path.resolve(__dirname, '..');
 
-const { PrismaClient } = require(
-  path.join(repoRoot, 'packages', 'database', 'prisma', 'generated', 'client')
-);
+dotenv.config({ path: path.join(systemTestsDir, '.env.local') });
 
 const prisma = new PrismaClient();
 
@@ -69,7 +67,7 @@ async function main() {
 }
 
 main()
-  .catch((error) => {
+  .catch((error: unknown) => {
     console.error('Failed to create test user/session:', error);
     process.exitCode = 1;
   })

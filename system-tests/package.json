@@ -3,7 +3,7 @@
   "version": "1.0.0",
   "description": "End-to-end system tests for the application",
   "scripts": {
-    "seed:test-user": "node ./scripts/create-test-user.cjs",
+    "seed:test-user": "tsx ./scripts/create-test-user.ts",
     "test": "playwright test --project=chromium",
     "test:headed": "playwright test --headed --project=chromium",
     "test:interview": "npm run seed:test-user && playwright test --project=chromium tests/interview-and-recommendations.spec.ts",
@@ -19,6 +19,7 @@
     "@google/generative-ai": "^0.24.1",
     "@playwright/test": "^1.59.1",
     "@types/node": "^20.10.0",
-    "dotenv": "^17.4.2"
+    "dotenv": "^17.4.2",
+    "tsx": "^4.21.0"
   }
 }
