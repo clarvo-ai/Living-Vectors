@@ -127,12 +127,6 @@ npm run seed:test-user
 
 3. Protected routes (for example, dashboard pages) are then accessed as an authenticated user.
 
-## Test Data
-
-Test data is defined in `tests/data/test-data.ts`:
-
-- **PROFILE_DATA**: Profile update test cases
-
 ## Interview Candidate Test Prompts
 
 The interview E2E test uses Gemini AI to generate realistic candidate responses. You can create custom interview candidate personas by adding prompt files to the `test_prompts/` folder.
