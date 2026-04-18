@@ -17,7 +17,7 @@ export function InterviewStartScreen({
   let title = 'Welcome to the interview!';
   let subtitle = 'Press the button to start';
   let buttonText = 'Start Call';
-  let durationText = 'This will take 10-15 minutes';
+  let durationText = 'This will take 10-15 minutes (max 17 minutes), if you cannot do it in one go, you can take a new call anytime.';
 
   if (allCompleted) {
     title = 'Welcome back!';
