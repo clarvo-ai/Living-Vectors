@@ -17,6 +17,7 @@ COPY telemetry.py .
 COPY agent.py .
 COPY helper.py .
 COPY tasks.py .
+COPY langsmith_processor.py .
 COPY faq.py .
 COPY faq_data.json .
 

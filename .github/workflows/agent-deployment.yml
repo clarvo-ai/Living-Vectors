@@ -28,4 +28,4 @@ jobs:
           # SECRET_LIST is what livekit/deploy-action actually deploys to LiveKit Cloud as
           # runtime env secrets. Any key NOT in SECRET_LIST gets wiped on every redeploy.
           # Plain env: vars above are only available to the GitHub Actions runner, not the agent.
-          SECRET_LIST: 'GEMINI_API_KEY=${{ secrets.GEMINI_API_KEY }},ELEVENLABS_API_KEY=${{ secrets.ELEVENLABS_API_KEY }},BACKEND_URL=${{ secrets.BACKEND_URL }},INTERNAL_API_SECRET=${{ secrets.INTERNAL_API_SECRET }}'
+          SECRET_LIST: 'GEMINI_API_KEY=${{ secrets.GEMINI_API_KEY }},ELEVENLABS_API_KEY=${{ secrets.ELEVENLABS_API_KEY }},BACKEND_URL=${{ secrets.BACKEND_URL }},INTERNAL_API_SECRET=${{ secrets.INTERNAL_API_SECRET }},OTEL_EXPORTER_OTLP_ENDPOINT=${{ secrets.OTEL_EXPORTER_OTLP_ENDPOINT }},OTEL_EXPORTER_OTLP_HEADERS=${{ secrets.OTEL_EXPORTER_OTLP_HEADERS }}'

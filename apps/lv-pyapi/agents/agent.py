@@ -1,31 +1,34 @@
+import asyncio
 import json
 import logging
 import os
 import sys
-from dotenv import load_dotenv
-import asyncio
 from typing import List
 
 import requests
+from dotenv import load_dotenv
 from livekit import agents, api as lkapi
-from livekit.agents import AgentServer, AgentSession, Agent, JobProcess, room_io
+from livekit.agents import Agent, AgentServer, AgentSession, JobProcess, room_io
 from livekit.agents.beta.workflows import TaskGroup
-from livekit.plugins import elevenlabs, google, silero, noise_cancellation
+from livekit.agents.telemetry import set_tracer_provider
+from livekit.plugins import elevenlabs, google, noise_cancellation, silero
 from livekit.plugins.elevenlabs import TTS, VoiceSettings
+from opentelemetry.sdk.trace import TracerProvider
 
+from langsmith_processor import LangSmithSpanProcessor
 from helper import fetch_completed_tasks, fetch_user_insights
 
 from faq import get_faq
 
 from tasks import (
-    OpeningTask,
-    LogisticsTask,
-    IndustryTask,
-    LocationTask,
+    AlignmentTask,
     BackgroundTask,
     CultureTask,
+    IndustryTask,
+    LocationTask,
+    LogisticsTask,
+    OpeningTask,
     ValueVisionTask,
-    AlignmentTask
 )
 from telemetry import setup_telemetry
 
@@ -45,9 +48,38 @@ logger = logging.getLogger("voice-agent")
 setup_telemetry()
 
 
+def setup_langsmith_tracing() -> None:
+    """
+    Configure OpenTelemetry so LiveKit agent spans are exported to LangSmith.
+
+    Requires these env vars (if missing, tracing is skipped gracefully):
+      OTEL_EXPORTER_OTLP_ENDPOINT  e.g. https://api.smith.langchain.com/otel
+      OTEL_EXPORTER_OTLP_HEADERS   e.g. x-api-key=...,Langsmith-Project=...
+    """
+    endpoint = os.getenv("OTEL_EXPORTER_OTLP_ENDPOINT")
+    headers = os.getenv("OTEL_EXPORTER_OTLP_HEADERS")
+
+    if not endpoint or not headers:
+        logger.info("LangSmith tracing disabled (OTEL env vars not set)")
+        return
+
+    # OTLPSpanExporter reads these env vars; we only need to set the tracer provider.
+    os.environ.setdefault("OTEL_EXPORTER_OTLP_ENDPOINT", endpoint)
+    os.environ.setdefault("OTEL_EXPORTER_OTLP_HEADERS", headers)
+
+    provider = TracerProvider()
+    provider.add_span_processor(LangSmithSpanProcessor())
+    set_tracer_provider(provider)
+    logger.info("LangSmith tracing enabled via OTEL exporter (%s)", endpoint)
+
+
+# Must be called before creating AgentServer so LiveKit uses this tracer provider
+setup_langsmith_tracing()
+
+
 def prewarm(proc: JobProcess) -> None:
     proc.userdata["vad"] = silero.VAD.load(
-        activation_threshold=0.6, # Noice cancellation
+        activation_threshold=0.6,  # Noise cancellation
         deactivation_threshold=0.45,
         min_speech_duration=0.2,
     )
@@ -101,7 +133,7 @@ class CareerAssistant(Agent):
                 logger.info(f"[AGENT] Room metadata set to interview_ongoing=true for interview-{self.user_id}")
             except Exception as e:
                 logger.error(f"[AGENT] Failed to set room metadata: {e}")
-        
+
         if self.all_completed:
             logger.info("[AGENT] Returning user — skipping TaskGroup, starting free-form check-in")
 
@@ -111,7 +143,7 @@ class CareerAssistant(Agent):
                         room=self.room_name,
                         metadata=json.dumps({"current_task": "post-interview"}),
                     ))
-                logger.info(f"[AGENT] Room metadata set to interview_ongoing=true for interview-{self.user_id}")
+                logger.info(f"[AGENT] Room metadata set to current_task=post-interview for interview-{self.user_id}")
             except Exception as e:
                 logger.error(f"[AGENT] Failed to set room metadata: {e}")
 
@@ -125,14 +157,14 @@ class CareerAssistant(Agent):
             return
 
         all_tasks = [
-            ("opening",      OpeningTask,       "Why the candidate is here and how they found Clarvo"),
-            ("logistics",    LogisticsTask,     "Job search logistics, timing, and motivation to leave"),
-            ("industry",     IndustryTask,      "Target industry or field the candidate wants to work in"),
-            ("location",     LocationTask,      "Preferred cities and remote/hybrid/onsite preferences"),
-            ("background",   BackgroundTask,    "Work experience, strengths, and domain knowledge"),
-            ("culture",      CultureTask,       "Team size, management style, and company culture fit"),
-            ("value_vision", ValueVisionTask,   "Compensation expectations and career vision"),
-            ("alignment",    AlignmentTask,     "Summary confirmation and closing"),
+            ("opening", OpeningTask, "Why the candidate is here and how they found Clarvo"),
+            ("logistics", LogisticsTask, "Job search logistics, timing, and motivation to leave"),
+            ("industry", IndustryTask, "Target industry or field the candidate wants to work in"),
+            ("location", LocationTask, "Preferred cities and remote/hybrid/onsite preferences"),
+            ("background", BackgroundTask, "Work experience, strengths, and domain knowledge"),
+            ("culture", CultureTask, "Team size, management style, and company culture fit"),
+            ("value_vision", ValueVisionTask, "Compensation expectations and career vision"),
+            ("alignment", AlignmentTask, "Summary confirmation and closing"),
         ]
 
         task_group = TaskGroup(chat_ctx=self.chat_ctx)
@@ -152,13 +184,13 @@ class CareerAssistant(Agent):
                         self.user_id, self.user_insights, is_returning=is_ret, room_name=rn
                     ),
                     id=task_id,
-                    description=task_desc
+                    description=task_desc,
                 )
 
         await task_group
 
         logger.info(f"[AGENT] TaskGroup for room interview-{self.user_id} completed.")
-        
+
         # Update metadata to signal interview complete
         try:
             async with lkapi.LiveKitAPI(LIVEKIT_URL, LIVEKIT_API_KEY, LIVEKIT_API_SECRET) as lk:
@@ -179,26 +211,26 @@ server.setup_fnc = prewarm
 async def my_agent(ctx: agents.JobContext):
     logger.info(f"Agent received job for room: {ctx.room.name}")
 
-    liam_tts = elevenlabs.TTS(
+    liam_tts: TTS = elevenlabs.TTS(
         api_key=ELEVENLABS_API_KEY,
         voice_id="TX3LPaxmHKxFdv7VOQHJ",
         model="eleven_multilingual_v2",
         voice_settings=VoiceSettings(
-            stability=0.25,           # Slight bump for consistency
-            similarity_boost=0.6,     # High "Roger-ness"
-            style=0.2,                # 0.0 is best for low-latency
-            use_speaker_boost=True    # Clearer vocal presence
-        )
+            stability=0.25,
+            similarity_boost=0.6,
+            style=0.2,
+            use_speaker_boost=True,
+        ),
     )
 
     session = AgentSession(
         vad=ctx.proc.userdata["vad"],
         stt=elevenlabs.STT(api_key=ELEVENLABS_API_KEY, language_code="en", tag_audio_events=False),
         llm=google.LLM(model="gemini-2.5-flash", api_key=GOOGLE_API_KEY),
-        tts = liam_tts,
+        tts=liam_tts,
         allow_interruptions=True,
     )
-    
+
     user_id = ctx.room.name.removeprefix("interview-").rsplit("-", 1)[0]
     logger.info(f"Session user: {user_id}")
 
@@ -218,19 +250,19 @@ async def my_agent(ctx: agents.JobContext):
     )
 
     @session.on("close")
-    def on_close():
+    def on_close() -> None:
         transcript = ""
         for item in session.history.items:
             if item.type == "message":
                 content = item.text_content.replace("\n", " ")
                 text = f"{item.role}: {content}\n"
                 transcript += text
-        
+
         logger.info(f"Transcript: {transcript}")
 
         # POST transcript to the Cloud Run backend because it holds
         # the Cloud SQL Auth Proxy.
-        def post_transcript():
+        def post_transcript() -> None:
             try:
                 resp = requests.post(
                     f"{BACKEND_URL}/internal/process-transcript",
@@ -240,13 +272,12 @@ async def my_agent(ctx: agents.JobContext):
                 )
                 resp.raise_for_status()
                 logger.info(
-                    f"Transcript posted to backend for user {user_id}: "
-                    f"{resp.status_code}",
+                    "Transcript posted to backend for user %s: %s",
+                    user_id,
+                    resp.status_code,
                 )
-            except Exception as e:
-                logger.error(
-                    f"Failed to post transcript for user {user_id}: {e}",
-                )
+            except Exception as e:  # noqa: BLE001
+                logger.error("Failed to post transcript for user %s: %s", user_id, e)
 
         asyncio.get_event_loop().run_in_executor(None, post_transcript)
 

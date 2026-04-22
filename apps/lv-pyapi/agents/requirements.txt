@@ -6,7 +6,8 @@ python-dotenv==1.1.0
 # HTTP client to POST transcripts to the Cloud Run backend after each session
 requests==2.32.3
 livekit-api==1.1.0
-# OpenTelemetry (keep in sync with ../requirements.txt OTel lines; used by telemetry.py)
+# LangSmith tracing via OpenTelemetry OTLP exporter
+langsmith
 opentelemetry-api
 opentelemetry-sdk
 opentelemetry-exporter-otlp-proto-http

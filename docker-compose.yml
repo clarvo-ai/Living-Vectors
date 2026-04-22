@@ -107,8 +107,8 @@ services:
       - PYTHONPATH=/app:/app/apps/lv-pyapi:/app/packages/python-utils/src
       - BACKEND_URL=http://lv-pyapi:8080
       - INTERNAL_API_SECRET=localdev
-      - OTEL_SERVICE_NAME=lv-agent
-      - OTEL_EXPORTER_OTLP_ENDPOINT=http://otel-collector:4318
+      # LangSmith OTEL vars: set in apps/lv-pyapi/.env.local only — do not pass
+      # ${VAR:-} here or Compose substitutes from the host and overwrites env_file with "".
     volumes:
       - ./apps/lv-pyapi:/app/apps/lv-pyapi
       - ./packages/python-utils:/app/packages/python-utils
