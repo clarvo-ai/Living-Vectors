@@ -13,6 +13,7 @@ COPY requirements.txt ./
 RUN pip install --no-cache-dir -r requirements.txt
 
 # Copy agent source files (build context is agents/ directory)
+COPY telemetry.py .
 COPY agent.py .
 COPY helper.py .
 COPY tasks.py .

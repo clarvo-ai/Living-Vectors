@@ -30,6 +30,7 @@ from tasks import (
     OpeningTask,
     ValueVisionTask,
 )
+from telemetry import setup_telemetry
 
 load_dotenv(".env.local")
 
@@ -44,6 +45,7 @@ INTERNAL_API_SECRET = os.environ.get("INTERNAL_API_SECRET", "")
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger("voice-agent")
+setup_telemetry()
 
 
 def setup_langsmith_tracing() -> None:
@@ -224,7 +226,7 @@ async def my_agent(ctx: agents.JobContext):
     session = AgentSession(
         vad=ctx.proc.userdata["vad"],
         stt=elevenlabs.STT(api_key=ELEVENLABS_API_KEY, language_code="en", tag_audio_events=False),
-        llm=google.LLM(model="gemini-2.0-flash", api_key=GOOGLE_API_KEY),
+        llm=google.LLM(model="gemini-2.5-flash", api_key=GOOGLE_API_KEY),
         tts=liam_tts,
         allow_interruptions=True,
     )

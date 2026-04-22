@@ -1,0 +1,6 @@
+FROM otel/opentelemetry-collector-contrib:latest
+COPY otel-collector-config.yaml /etc/otelcol-contrib/config.yaml
+# Default when PORT is unset (local image smoke tests); Cloud Run overrides.
+ENV PORT=4318
+ENTRYPOINT ["/otelcol-contrib"]
+CMD ["--config=/etc/otelcol-contrib/config.yaml"]

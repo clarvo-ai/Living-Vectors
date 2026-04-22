@@ -47,7 +47,7 @@ jobs:
             }
             // Get relevant reviewers
             const finalReviewers = reviewers.filter(r => r !== author)
-              .filter(r => assignedPRsperReviewer[r] < 2);
+              .filter(r => assignedPRsperReviewer[r] < 10);
             console.log('Review counts:', assignedPRsperReviewer);
             console.log('Eligible reviewers:', finalReviewers);
             
