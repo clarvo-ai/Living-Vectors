@@ -20,13 +20,13 @@ export function InterviewStartScreen({
   let durationText = 'This will take 10-15 minutes';
 
   if (allCompleted) {
-    title = 'Welcome back!';
-    subtitle = 'Want to update some information?';
-    buttonText = 'Resume Call';
-    durationText = 'Chat freely with the assistant';
+    title = 'Interview completed';
+    subtitle = 'You finished every section. Open a call only if you want to add or change something.';
+    buttonText = 'Start Call';
+    durationText = 'Optional follow-up with the assistant';
   } else if (partiallyCompleted) {
-    title = 'Welcome back to the interview!';
-    subtitle = `Press the button to continue your interview`;
+    title = 'Continue your interview?';
+    subtitle = `Your progress is saved (${totalTasks - completedTasksCount} sections left). Start the call only if you want to pick up where you left off.`;
     buttonText = 'Continue Call';
     durationText = `${totalTasks - completedTasksCount} sections remaining`;
   }
@@ -74,6 +74,10 @@ export function InterviewStartScreen({
           <p className="text-xs text-gray-500">{durationText}</p>
         </div>
       </div>
+      <p className="text-xs text-gray-400 text-center max-w-md px-6">
+        Finished sections are saved on your account. Signing out clears interview settings on this browser
+        only. Leaving a call ends that session—you can start a new one anytime.
+      </p>
     </div>
   );
 }

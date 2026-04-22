@@ -28,6 +28,22 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 
 const OPPORTUNITIES_COUNT_STORAGE_KEY = 'opportunities-count';
 
+/**
+ * Clears interview UI state in this browser tab (voice/chat mode, mute, etc.).
+ * Account progress (completed interview sections in the database) is unchanged by sign-out.
+ */
+function clearInterviewSessionStorage() {
+  if (typeof window === 'undefined') return;
+  for (const key of [
+    'interview-voiceOnlyMode',
+    'interview-messages',
+    'interview-hasStarted',
+    'isAgentMuted',
+  ]) {
+    sessionStorage.removeItem(key);
+  }
+}
+
 function DashboardLayoutContent({ children }: { children: React.ReactNode }) {
   const { toggleSidebar, open } = useSidebar();
   const router = useRouter();
@@ -63,6 +79,7 @@ function DashboardLayoutContent({ children }: { children: React.ReactNode }) {
   const handleSignOut = () => {
     if (typeof window !== 'undefined') {
       sessionStorage.removeItem(OPPORTUNITIES_COUNT_STORAGE_KEY);
+      clearInterviewSessionStorage();
     }
     signOut({ callbackUrl: '/login' });
   };

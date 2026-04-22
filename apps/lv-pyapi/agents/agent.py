@@ -244,6 +244,8 @@ async def my_agent(ctx: agents.JobContext):
             audio_input=room_io.AudioInputOptions(
                 noise_cancellation=noise_cancellation.NC(),
             ),
+            # Abandoned interviews: when the candidate disconnects, close and delete the room
+            # so the agent session does not linger as an open “same” interview.
             close_on_disconnect=True,
             delete_room_on_close=True,
         ),
