@@ -7,10 +7,12 @@ export interface Message {
 
 export function ChatMessage({ message }: { message: Message }) {
   const isUser = message.role === 'user';
+  const messageTestId = isUser ? 'chat-message-user' : 'chat-message-ai';
 
   return (
     <div
       key={message.id}
+      data-testid={messageTestId}
       className={`flex items-start gap-2 ${isUser ? 'justify-end' : 'justify-start'}`}
     >
       <div className={`flex flex-col ${isUser ? 'items-end' : 'items-start'} max-w-[80%]`}>

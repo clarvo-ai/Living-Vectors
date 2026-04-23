@@ -1,0 +1,25 @@
+{
+  "name": "lv-system-tests",
+  "version": "1.0.0",
+  "description": "End-to-end system tests for the application",
+  "scripts": {
+    "seed:test-user": "tsx ./scripts/create-test-user.ts",
+    "test": "playwright test --project=chromium",
+    "test:headed": "playwright test --headed --project=chromium",
+    "test:interview": "npm run seed:test-user && playwright test --project=chromium tests/interview-and-recommendations.spec.ts",
+    "test:interview:headed": "npm run seed:test-user && playwright test --headed --project=chromium --workers=1 tests/interview-and-recommendations.spec.ts",
+    "test:profile": "npm run seed:test-user && playwright test --project=chromium tests/profile-management.spec.ts",
+    "test:profile:headed": "npm run seed:test-user && playwright test --headed --project=chromium --workers=1 tests/profile-management.spec.ts",
+    "test:debug": "playwright test --debug",
+    "test:report": "playwright show-report",
+    "test:ui": "playwright test --ui",
+    "test:single": "playwright test --grep"
+  },
+  "devDependencies": {
+    "@google/generative-ai": "^0.24.1",
+    "@playwright/test": "^1.59.1",
+    "@types/node": "^20.10.0",
+    "dotenv": "^17.4.2",
+    "tsx": "^4.21.0"
+  }
+}

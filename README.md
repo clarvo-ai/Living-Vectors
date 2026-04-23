@@ -92,6 +92,12 @@ npm install
 npm test
 ```
 
+## System Tests
+
+For Playwright end-to-end/system test setup and run commands, see:
+
+- [system-tests/README.md](system-tests/README.md)
+
 ## Functional Testing of the DB
 
 1. Start local:
