@@ -50,6 +50,7 @@ def test_create_learning_with_messages(db_session: Session):
     test_learning = Learning(
         userId=user_id,
         summary=summary_text,
+        soft_delete=False,
         updatedAt=datetime.now()
     )
     db_session.add(test_learning)

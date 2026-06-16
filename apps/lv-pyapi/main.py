@@ -116,6 +116,26 @@ async def generate_embedding_endpoint(user_id: str, background_tasks: Background
         logging.exception("Error generating user embedding")
         raise HTTPException(status_code=500, detail=str(e))
 
+
+@app.delete("/api/users/{user_id}/embedding")
+async def delete_embedding_endpoint(user_id: str, db: Session = Depends(get_db)):
+    """
+    Delete a user's current embedding if it exists.
+
+    Used before re-generating embeddings to ensure a clean recreate flow.
+    """
+    try:
+        existing = db.query(UserEmbedding).filter_by(userId=user_id).first()
+        if not existing:
+            return {"status": 200, "message": "No embedding found to delete", "deleted": False}
+
+        db.delete(existing)
+        db.commit()
+        return {"status": 200, "message": "Embedding deleted", "deleted": True}
+    except Exception as e:
+        logging.exception("Error deleting user embedding")
+        raise HTTPException(status_code=500, detail=str(e))
+
 @app.get("/api/jobs/match")
 async def match_jobs(
     user_id: str,

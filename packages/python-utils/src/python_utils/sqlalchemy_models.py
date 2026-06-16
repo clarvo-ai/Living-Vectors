@@ -210,6 +210,8 @@ class Learning(Base):
     createdAt: Mapped[datetime] = mapped_column(TIMESTAMP, nullable=False, server_default=func.now())
     updatedAt: Mapped[datetime] = mapped_column(TIMESTAMP, nullable=False, server_default=func.now(), onupdate=func.now())
     messages: Mapped[Optional[List[str]]] = mapped_column(ARRAY(Text), nullable=True)
+    soft_delete: Mapped[bool] = mapped_column(Boolean, nullable=False)
+    order_index: Mapped[Optional[int]] = mapped_column(Integer, nullable=True)
 
     # Relationships
     user: Mapped["User"] = relationship("User", back_populates="learning", uselist=False)

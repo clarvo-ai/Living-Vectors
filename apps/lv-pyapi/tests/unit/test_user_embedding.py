@@ -43,6 +43,7 @@ def add_learning(db_session: Session, user_id: str, summary: str):
     learning = Learning(
         userId=user_id,
         summary=summary,
+        soft_delete=False,
         updatedAt=datetime.now(),
     )
     db_session.add(learning)

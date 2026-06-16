@@ -157,3 +157,31 @@ export async function getMatchedJobs(
     has_more: data.has_more,
   };
 }
+
+export async function generateUserEmbedding(userId: string): Promise<void> {
+  const pyapiBaseUrl = getBaseUrl();
+  if (!pyapiBaseUrl) throw new Error('PyAPI URL not configured');
+
+  const response = await fetch(
+    `${pyapiBaseUrl}/api/users/${encodeURIComponent(userId)}/generate-embedding`,
+    { method: 'POST' }
+  );
+
+  if (!response.ok) {
+    throw new Error(`Failed to regenerate embedding: ${response.status} ${response.statusText}`);
+  }
+}
+
+export async function deleteUserEmbedding(userId: string): Promise<void> {
+  const pyapiBaseUrl = getBaseUrl();
+  if (!pyapiBaseUrl) throw new Error('PyAPI URL not configured');
+
+  const response = await fetch(
+    `${pyapiBaseUrl}/api/users/${encodeURIComponent(userId)}/embedding`,
+    { method: 'DELETE' }
+  );
+
+  if (!response.ok) {
+    throw new Error(`Failed to delete embedding: ${response.status} ${response.statusText}`);
+  }
+}

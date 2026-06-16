@@ -6,6 +6,7 @@ import { Dialog, DialogContent, DialogTitle } from '@repo/ui/components/dialog';
 import { Tabs, TabsList, TabsTrigger } from '@repo/ui/components/tabs';
 import { Sparkles } from 'lucide-react';
 import { useSession } from 'next-auth/react';
+import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { EmptyState, JobDetailView, JobGridCard, JobGridSkeletonList } from './components';
@@ -156,16 +157,37 @@ export default function OpportunitiesPage() {
     <div className="h-full overflow-auto">
       <div className="p-6 max-w-7xl mx-auto">
         {/* Header Section */}
-        <div className="mb-8">
-          <div className="flex items-center gap-3 mb-2">
-            <div className="p-2 rounded-lg bg-white border border-gray-200">
-              <Sparkles className="w-5 h-5 text-gray-900" />
+        <div className="mb-8 flex items-start justify-between gap-4">
+          <div>
+            <div className="flex items-center gap-3 mb-2">
+              <div className="p-2 rounded-lg bg-white border border-gray-200">
+                <Sparkles className="w-5 h-5 text-gray-900" />
+              </div>
+              <h1 className="text-2xl font-bold text-gray-900">Recommended for You</h1>
             </div>
-            <h1 className="text-2xl font-bold text-gray-900">Recommended for You</h1>
+            <p className="text-gray-600 ml-12">
+              Jobs matched to your skills and preferences based on your profile
+            </p>
           </div>
-          <p className="text-gray-600 ml-12">
-            Jobs matched to your skills and preferences based on your profile
-          </p>
+          <Link
+            href="/dashboard/edit"
+            style={{
+              flexShrink: 0,
+              marginTop: 18,
+              border: 'none',
+              borderRadius: 8,
+              background: '#2563eb',
+              color: '#ffffff',
+              padding: '10px 14px',
+              fontSize: 14,
+              cursor: 'pointer',
+              textDecoration: 'none',
+              display: 'inline-flex',
+              alignItems: 'center',
+            }}
+          >
+            Edit Criteria
+          </Link>
         </div>
 
         {/* Error State */}
